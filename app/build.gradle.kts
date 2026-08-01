@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.hassan.breadproto"
+    namespace = "com.raghif.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.hassan.breadproto"
+        applicationId = "com.raghif.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
