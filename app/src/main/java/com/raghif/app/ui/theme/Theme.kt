@@ -1,52 +1,36 @@
 package com.raghif.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
+// primary maps to Accent (not Navy) — PrimaryButton and other CTA-keyed components read
+// colorScheme.primary, and the spec's single trustworthy CTA color is the accent blue.
+// Navy is kept as `secondary` for chrome-adjacent uses (SecondaryButton outline/border).
 private val LightColors = lightColorScheme(
-    primary = DeepBlue,
-    onPrimary = Surface,
-    secondary = SecondaryFill,
-    onSecondary = Surface,
-    background = Paper,
-    onBackground = Ink,
+    primary = Accent,
+    onPrimary = OnAccent,
+    secondary = Navy,
+    onSecondary = OnPrimary,
+    background = Background,
+    onBackground = TextPrimary,
     surface = Surface,
-    onSurface = Ink,
-    onSurfaceVariant = InkMuted,
-    outline = OutlineGray,
+    onSurface = TextPrimary,
+    onSurfaceVariant = TextSecondary,
+    outline = Border,
     error = Danger,
-    onError = DangerOn,
+    onError = StatusOn,
     errorContainer = DangerContainer
 )
 
-private val DarkColors = darkColorScheme(
-    primary = DeepBlueDark,
-    onPrimary = Ink,
-    secondary = SecondaryFillDark,
-    onSecondary = InkDark,
-    background = PaperDark,
-    onBackground = InkDark,
-    surface = SurfaceDark,
-    onSurface = InkDark,
-    onSurfaceVariant = OutlineGray,
-    outline = OutlineGray,
-    error = Danger,
-    onError = DangerOn,
-    errorContainer = DangerContainer
-)
-
-// no dynamic/Material-You color here on purpose — this app needs a consistent,
-// deliberately high-contrast palette regardless of the device's wallpaper theme.
-// light theme first — defaults to light regardless of system setting (demo requirement)
+// Dark mode intentionally out of scope for pilot — target devices are cheap, often locked
+// to light system theme (UI_SPEC.md). Revisit if OwnerDashboard sees night use.
 @Composable
 fun RaghifTheme(
-    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = LightColors,
         typography = Typography,
         shapes = Shapes,
         content = content

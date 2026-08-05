@@ -13,7 +13,26 @@ private val strings: Map<String, String> = mapOf(
     "demo_buyer_label" to "مشتري",
     "demo_owner_label" to "صاحب المخبز",
 
+    "personal_id_label" to "رقم الهوية",
+    "name_label" to "الاسم",
+    "new_account_notice" to "رقم جديد، أكمل بيانات التسجيل",
+    "register_button" to "تسجيل حساب جديد",
+    "register_error" to "يرجى تعبئة جميع الحقول",
+    "demo_badge" to "نموذج تجريبي",
+
+    "search_label" to "ابحث بالاسم أو رقم الهاتف أو رقم الهوية",
+    "no_results" to "لا توجد نتائج",
+    "queue_empty" to "لا يوجد مشترين بعد",
+    "no_stores" to "لا توجد مخابز متاحة حالياً",
+    "bags_remaining" to "المتبقي %d / %d",
+
+    "payment_notif_title" to "تم الدفع بنجاح",
+    "payment_notif_body" to "لقد دفعت ثمن حزمة الخبز في %s. الوقت المتوقع للجاهزية: %s",
+
     "store_list_title" to "المخابز المتاحة",
+    "menu_label" to "القائمة",
+    "orders_count" to "عدد الطلبات",
+    "fab_add_allocation" to "إضافة كمية جديدة",
     "available" to "متوفر",
     "sold_out" to "نفدت الكمية",
     "logout" to "تسجيل الخروج",
@@ -47,12 +66,15 @@ private val strings: Map<String, String> = mapOf(
     "buyer_queue_title" to "قائمة المشترين",
     "notify_next_batch" to "إشعار الدفعة التالية (الدفعة %d)",
     "batch_label" to "الدفعة %d",
-    "back_to_dashboard" to "العودة إلى اللوحة",
     "mark_received" to "تم الاستلام",
+    "undo_received" to "تراجع",
     "status_waiting_short" to "قيد الانتظار",
     "status_notified_short" to "تم الإشعار",
     "status_collected_short" to "تم الاستلام",
-    "notify_permission_toast" to "تم تحديث الدفعة، لكن إذن الإشعارات غير مفعّل على هذا الجهاز"
+    "notify_permission_toast" to "تم تحديث الدفعة، لكن إذن الإشعارات غير مفعّل على هذا الجهاز",
+
+    "increase_value" to "زيادة",
+    "decrease_value" to "إنقاص"
 )
 
 fun t(key: String): String = strings[key] ?: key

@@ -2,8 +2,12 @@ package com.raghif.app.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -11,30 +15,40 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.raghif.app.ui.theme.Border
 import com.raghif.app.ui.theme.Danger
 import com.raghif.app.ui.theme.DangerContainer
 import com.raghif.app.ui.theme.RaghifTheme
-import com.raghif.app.ui.theme.OutlineGray
+import com.raghif.app.ui.theme.Spacing
 import com.raghif.app.ui.theme.Success
 import com.raghif.app.ui.theme.SuccessContainer
 import com.raghif.app.ui.theme.Warning
@@ -75,6 +89,7 @@ fun PrimaryButton(
     }
 }
 
+// Outlined, not filled — a solid second button competes visually with the screen's one
 @Composable
 fun SecondaryButton(
     text: String,
@@ -103,7 +118,7 @@ fun StatusChip(text: String, tone: StatusTone, modifier: Modifier = Modifier) {
     }
     Row(
         modifier = modifier
-            .background(colors.container, RoundedCornerShape(50))
+            .background(colors.container, MaterialTheme.shapes.small)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -120,12 +135,12 @@ fun AppCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, OutlineGray.copy(alpha = 0.4f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(1.dp, Border),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
             content()
         }
     }
@@ -151,7 +166,93 @@ fun ScreenHeader(
 fun BigStatDisplay(label: String, value: String, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+        Text(value, style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+// --- Right-side drawer (the app is forced RTL, so ModalNavigationDrawer opens from the right) ---
+
+@Composable
+fun RaghifDrawer(
+    drawerState: DrawerState,
+    header: @Composable () -> Unit,
+    items: @Composable ColumnScope.() -> Unit,
+    content: @Composable () -> Unit
+) {
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                Column(modifier = Modifier.padding(horizontal = Spacing.md)) { header() }
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                Column(modifier = Modifier.padding(horizontal = Spacing.sm), content = items)
+            }
+        }
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun DrawerStat(icon: ImageVector, text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun DrawerItem(icon: ImageVector, text: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = Spacing.md, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+// +/- stepper over free-text entry — fewer input errors for numeric fields an owner
+// edits mid-crowd (UI_SPEC.md OwnerDashboardScreen treatment).
+@Composable
+fun Stepper(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    decrementDescription: String,
+    incrementDescription: String,
+    modifier: Modifier = Modifier,
+    min: Int = 0
+) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        StepperIconButton(icon = Icons.Filled.Remove, contentDescription = decrementDescription, onClick = { if (value > min) onValueChange(value - 1) })
+        Text(
+            value.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 40.dp)
+        )
+        StepperIconButton(icon = Icons.Filled.Add, contentDescription = incrementDescription, onClick = { onValueChange(value + 1) })
+    }
+}
+
+@Composable
+private fun StepperIconButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = contentDescription, tint = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -201,4 +302,14 @@ private fun ScreenHeaderPreview() {
 @Composable
 private fun BigStatDisplayPreview() {
     RaghifTheme { Column(Modifier.padding(16.dp)) { BigStatDisplay(label = "المتبقي", value = "45 / 300") } }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun StepperPreview() {
+    RaghifTheme {
+        Column(Modifier.padding(16.dp)) {
+            Stepper(value = 20, onValueChange = {}, decrementDescription = "إنقاص", incrementDescription = "زيادة")
+        }
+    }
 }
