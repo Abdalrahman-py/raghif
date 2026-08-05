@@ -30,6 +30,9 @@ interface UserDao {
     @Query("SELECT * FROM UserEntity WHERE phone = :phone AND pin = :pin LIMIT 1")
     suspend fun findByPhoneAndPin(phone: String, pin: String): UserEntity?
 
+    @Query("SELECT * FROM UserEntity WHERE phone = :phone LIMIT 1")
+    suspend fun findByPhone(phone: String): UserEntity?
+
     @Query("SELECT * FROM UserEntity WHERE id = :userId")
     fun getUserById(userId: String): Flow<UserEntity?>
 

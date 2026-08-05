@@ -13,5 +13,8 @@ data class StoreEntity(
     val batchSize: Int = 20,
     // bumped every time the owner tops up allocation — a purchase made under an older
     // round no longer blocks a same-day repurchase once the round has moved on
-    val batchRound: Int = 1
+    val batchRound: Int = 1,
+    // yyyy-MM-dd this store's current allocation was set — a different date means a new
+    // day, so the admin is asked to set today's bundles before seeing the customers list
+    val allocationDate: String = ""
 )

@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase
         UserEntity::class,
         PurchaseEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -51,15 +51,15 @@ abstract class AppDatabase : RoomDatabase() {
             if (db.userDao().countUsers() > 0) return
             db.storeDao().insertAll(
                 listOf(
-                    StoreEntity("store_1", "Al-Rimal Bakery", isOpen = true, dailyBagLimit = 300, bagsRemaining = 300, batchSize = 20),
-                    StoreEntity("store_2", "Al-Shati Bakery", isOpen = true, dailyBagLimit = 300, bagsRemaining = 300, batchSize = 20),
-                    StoreEntity("store_3", "Nuseirat Bakery", isOpen = false, dailyBagLimit = 300, bagsRemaining = 0, batchSize = 20)
+                    StoreEntity("store_1", "Al-Rimal Bakery", isOpen = true, dailyBagLimit = 300, bagsRemaining = 300, batchSize = 20, allocationDate = todayDateString()),
+                    StoreEntity("store_2", "Al-Shati Bakery", isOpen = true, dailyBagLimit = 300, bagsRemaining = 300, batchSize = 20, allocationDate = todayDateString()),
+                    StoreEntity("store_3", "Nuseirat Bakery", isOpen = false, dailyBagLimit = 300, bagsRemaining = 0, batchSize = 20, allocationDate = todayDateString())
                 )
             )
             db.userDao().insertAll(
                 listOf(
-                    UserEntity("user_buyer", DEMO_BUYER_PHONE, DEMO_BUYER_PIN, "buyer", balance = 50),
-                    UserEntity("user_owner", DEMO_OWNER_PHONE, DEMO_OWNER_PIN, "owner", balance = 0)
+                    UserEntity("user_buyer", DEMO_BUYER_PHONE, DEMO_BUYER_PIN, "buyer", balance = 50, personalId = "900111222", name = "أحمد ناصر"),
+                    UserEntity("user_owner", DEMO_OWNER_PHONE, DEMO_OWNER_PIN, "owner", balance = 0, personalId = "900333444", name = "صاحب المخبز")
                 )
             )
         }
