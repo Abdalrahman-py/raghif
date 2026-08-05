@@ -27,8 +27,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.raghif.app.data.AppDatabase
 import com.raghif.app.data.PurchaseEntity
+import com.raghif.app.data.estimatedReadyAtMillis
+import com.raghif.app.data.formatReadyTime
 import com.raghif.app.data.todayDateString
 import com.raghif.app.i18n.t
+import com.raghif.app.notify.NotifyHelper
 import com.raghif.app.session.Session
 import com.raghif.app.ui.components.AppCard
 import com.raghif.app.ui.components.BigStatDisplay
@@ -137,6 +140,7 @@ fun PurchaseScreen(
                             val position = existingQueue.size + 1
                             val batchNumber = ((position - 1) / currentStore.batchSize) + 1
                             val purchaseId = UUID.randomUUID().toString()
+                            val now = System.currentTimeMillis()
 
                             db.purchaseDao().insert(
                                 PurchaseEntity(
@@ -146,12 +150,14 @@ fun PurchaseScreen(
                                     purchaseDate = date,
                                     batchNumber = batchNumber,
                                     status = "waiting",
-                                    createdAt = System.currentTimeMillis(),
+                                    createdAt = now,
                                     batchRoundAtPurchase = currentStore.batchRound
                                 )
                             )
                             db.userDao().updateUser(currentUser.copy(balance = currentUser.balance - BREAD_PRICE_ILS))
                             db.storeDao().updateStore(currentStore.copy(bagsRemaining = currentStore.bagsRemaining - 1))
+                            val readyLabel = formatReadyTime(estimatedReadyAtMillis(now, batchNumber))
+                            NotifyHelper.notifyPaymentConfirmed(context, currentStore.name, readyLabel, notificationId = purchaseId.hashCode())
 
                             isPaying = false
                             onNavigateToConfirmation(purchaseId)

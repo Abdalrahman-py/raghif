@@ -1,7 +1,9 @@
 package com.raghif.app.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.raghif.app.data.AppDatabase
+import com.raghif.app.data.estimatedReadyAtMillis
+import com.raghif.app.data.formatReadyTime
 import com.raghif.app.i18n.t
 import com.raghif.app.ui.components.AppCard
 import com.raghif.app.ui.components.PrimaryButton
@@ -31,12 +35,6 @@ import com.raghif.app.ui.components.ScreenHeader
 import com.raghif.app.ui.components.StatusChip
 import com.raghif.app.ui.components.StatusTone
 import kotlinx.coroutines.flow.first
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-
-private const val BATCH_INTERVAL_MINUTES = 10
-private val READY_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 fun ConfirmationScreen(
@@ -57,8 +55,7 @@ fun ConfirmationScreen(
     }
 
     val readyAtLabel = purchase?.let { p ->
-        val estimatedReadyAt = p.createdAt + p.batchNumber * BATCH_INTERVAL_MINUTES * 60_000L
-        Instant.ofEpochMilli(estimatedReadyAt).atZone(ZoneId.systemDefault()).format(READY_TIME_FORMAT)
+        formatReadyTime(estimatedReadyAtMillis(p.createdAt, p.batchNumber))
     } ?: ""
 
     Scaffold { padding ->
@@ -68,7 +65,12 @@ fun ConfirmationScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             if (position > 0) {
-                StatusChip(text = "${t("queue_position")} $position", tone = StatusTone.NEUTRAL)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StatusChip(text = "${t("queue_position")} $position", tone = StatusTone.NEUTRAL)
+                    purchase?.batchNumber?.let { batch ->
+                        StatusChip(text = t("batch_label").format(batch), tone = StatusTone.NEUTRAL)
+                    }
+                }
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
@@ -97,7 +99,7 @@ fun ConfirmationScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(t("status_notified"), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(t("status_notified"), style = MaterialTheme.typography.displayLarge, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }

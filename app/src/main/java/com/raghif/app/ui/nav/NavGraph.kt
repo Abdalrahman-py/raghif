@@ -33,7 +33,7 @@ fun AppNavGraph(
                     navController.navigate("purchase/$storeId")
                 },
                 onLogout = {
-                    navController.popBackStack("login", inclusive = false)
+                    navController.navigate("login") { popUpTo("login") { inclusive = true } }
                 }
             )
         }
@@ -72,7 +72,7 @@ fun AppNavGraph(
                     navController.navigate("ownerQueue")
                 },
                 onLogout = {
-                    navController.popBackStack("login", inclusive = false)
+                    navController.navigate("login") { popUpTo("login") { inclusive = true } }
                 }
             )
         }
@@ -80,6 +80,9 @@ fun AppNavGraph(
             OwnerQueueScreen(
                 onBack = {
                     navController.popBackStack()
+                },
+                onLogout = {
+                    navController.navigate("login") { popUpTo("login") { inclusive = true } }
                 }
             )
         }
