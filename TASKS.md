@@ -1,0 +1,31 @@
+# Raghif Flutter Port — Task Backlog
+
+Consumed by `.github/workflows/flutter-loop.yml` (runs daily). One unchecked task per run,
+top to bottom. Check a box, commit, stop — don't chain multiple tasks in one run.
+
+Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
+The Kotlin app under `app/` is a throwaway prototype — reference it for behavior, don't port its
+structure.
+
+## Backlog
+
+- [ ] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
+      current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
+- [ ] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
+      from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
+- [ ] Model the Supabase schema from `spec.md` as Dart data classes (or freezed, if added).
+- [ ] Wire Supabase client (auth + queries) per spec.md's backend section.
+- [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
+- [ ] Connect real Supabase queries, replacing mock data.
+- [ ] Add widget tests for the queue/pre-order flow.
+- [ ] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
+      SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`
+      until this task).
+
+## Notes for the loop
+
+- If `flutter/` doesn't exist yet, the first task (scaffold) is always next regardless of
+  checkboxes above it — don't skip ahead.
+- If a task fails (analyze/test red), fix it in the same run rather than checking the box.
+- Keep runs small. A half-finished screen committed with a clear TODO comment beats an
+  uncommitted large diff lost when the run ends.
