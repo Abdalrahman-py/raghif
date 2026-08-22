@@ -11,7 +11,7 @@ structure.
 
 ## Backlog
 
-- [ ] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
+- [x] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
       current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
 - [ ] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
