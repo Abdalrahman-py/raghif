@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/auth/demo_accounts.dart';
+import '../../core/auth/session_store.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/status_chip.dart';
-import 'demo_accounts.dart';
 
 /// Phone + national ID + 4-digit PIN, matching app/.../ui/screens/LoginScreen.kt's
 /// current behavior: known phone+PIN logs in, an unrecognized phone switches the
@@ -13,10 +15,14 @@ import 'demo_accounts.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
+    required this.authRepository,
+    required this.sessionStore,
     required this.onLoginBuyer,
     required this.onLoginOwner,
   });
 
+  final AuthRepository authRepository;
+  final SessionStore sessionStore;
   final VoidCallback onLoginBuyer;
   final VoidCallback onLoginOwner;
 
@@ -43,38 +49,52 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     setState(() => _isLoggingIn = true);
 
     final phone = _phoneController.text.trim();
     final pin = _pinController.text.trim();
+    final repo = widget.authRepository;
 
     if (_isRegistering) {
-      final validationError = validateRegistration(
+      final validationError = repo.validateRegistration(
         phone: phone,
         pin: pin,
-        personalId: _personalIdController.text,
+        nationalId: _personalIdController.text,
         name: _nameController.text,
       );
-      setState(() {
-        _isLoggingIn = false;
-        if (validationError != null) {
+      if (validationError != null) {
+        setState(() {
+          _isLoggingIn = false;
           _error = validationError;
-        } else {
-          _error = null;
-          widget.onLoginBuyer();
-        }
-      });
-      return;
-    }
-
-    final user = findByPhoneAndPin(phone, pin);
-    if (user != null) {
+        });
+        return;
+      }
+      final user = await repo.register(
+        phone: phone,
+        pin: pin,
+        nationalId: _personalIdController.text,
+        name: _nameController.text,
+      );
+      await widget.sessionStore.saveUserId(user.id);
+      if (!mounted) return;
       setState(() {
         _isLoggingIn = false;
         _error = null;
       });
-      if (user.role == UserRole.owner) {
+      widget.onLoginBuyer();
+      return;
+    }
+
+    final user = await repo.findByPhoneAndPin(phone, pin);
+    if (user != null) {
+      await widget.sessionStore.saveUserId(user.id);
+      if (!mounted) return;
+      setState(() {
+        _isLoggingIn = false;
+        _error = null;
+      });
+      if (user.role == 'owner') {
         widget.onLoginOwner();
       } else {
         widget.onLoginBuyer();
@@ -82,9 +102,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final exists = await repo.phoneExists(phone);
+    if (!mounted) return;
     setState(() {
       _isLoggingIn = false;
-      if (phoneExists(phone)) {
+      if (exists) {
         _error = Strings.loginError;
       } else {
         _error = null;
