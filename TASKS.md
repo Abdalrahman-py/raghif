@@ -21,7 +21,7 @@ structure.
 - [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
 - [ ] Replace mock data with real SQLDelight queries.
 - [ ] Add widget tests for the queue/pre-order flow.
-- [ ] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
+- [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
       SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`
       until this task).
 
