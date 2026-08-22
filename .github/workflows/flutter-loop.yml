@@ -2,7 +2,7 @@ name: Flutter Port Loop
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily 06:00 UTC
+    - cron: "0 */6 * * *" # every 6h: 00/06/12/18 UTC (= 03/09/15/21 Gaza); 6h spacing clears Claude's 5h rolling window
   workflow_dispatch: # manual trigger
 
 permissions:
@@ -11,9 +11,26 @@ permissions:
   issues: write
   id-token: write
 
+concurrency:
+  group: flutter-loop
+  cancel-in-progress: false # queue runs — never kill one that already spent Claude budget
+
 jobs:
-  loop:
+  reap:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reset stale ai-in-progress issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/reap-stale.sh
+
+  loop:
+    needs: reap
+    if: always() # run the loop even if the reaper hiccups
+    runs-on: ubuntu-latest
+    timeout-minutes: 45 # one small task should never take longer; guards hung runs from locking issues
     steps:
       - uses: actions/checkout@v6
         with:
@@ -83,6 +100,17 @@ jobs:
             If the task can't be completed (unclear requirement, broken environment, a decision
             only a human can make), stop, comment on the issue explaining why, relabel it
             `ai-blocked` (remove `ai-in-progress`), and do not push a broken commit.
+
+            ## If Claude is rate-limited (expected — the subscription budget is shared)
+            If you get a rate-limit error, or cannot start because the budget is exhausted:
+            stop immediately. Remove `ai-in-progress`, re-add `ai-ready`, comment
+            "Loop hit the Claude rate limit — will retry next run", and exit. Never leave an
+            issue stuck in `ai-in-progress`. (The reaper job also resets issues stuck there
+            for >2h, but don't rely on it.)
+
+            Keep the task small: if it needs more than ~15 rounds of tool use, stop after the
+            first coherent slice, commit it with a TODO note, and describe the remainder in
+            the PR body so a follow-up issue can be filed.
 
             ## Bash notes (avoid permission walls in this non-interactive run)
             - Use `git -C <dir> ...` instead of `cd <dir> && git ...` — the latter is always
