@@ -1,6 +1,6 @@
 # Raghif Flutter Port — Task Backlog
 
-Consumed by `.github/workflows/flutter-loop.yml` (runs daily). The loop checks open GitHub
+Consumed by `.github/workflows/flutter-loop.yml` (runs every 6h). The loop checks open GitHub
 issues first (label `flutter-port`, or any open issue if that label isn't in use yet) — this
 file is the **fallback** when no issues are open. One unchecked task per run, top to bottom.
 Check a box, commit, stop — don't chain multiple tasks in one run.
@@ -11,14 +11,15 @@ structure.
 
 ## Backlog
 
-- [ ] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
+- [x] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
       current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
-- [ ] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
+- [x] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
-- [ ] Model the Supabase schema from `spec.md` as Dart data classes (or freezed, if added).
-- [ ] Wire Supabase client (auth + queries) per spec.md's backend section.
+- [ ] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
+- [ ] Set up SQLDelight (plugin + sqlite driver) and wire local auth: phone + PIN login
+      against the local `users` table, session persisted on-device.
 - [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
-- [ ] Connect real Supabase queries, replacing mock data.
+- [ ] Replace mock data with real SQLDelight queries.
 - [ ] Add widget tests for the queue/pre-order flow.
 - [ ] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
       SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`
@@ -31,3 +32,5 @@ structure.
 - If a task fails (analyze/test red), fix it in the same run rather than checking the box.
 - Keep runs small. A half-finished screen committed with a clear TODO comment beats an
   uncommitted large diff lost when the run ends.
+- Prototype is LOCAL-ONLY: SQLDelight for persistence. Never add Supabase, httpSMS, or any
+  hosted backend.

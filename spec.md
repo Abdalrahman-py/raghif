@@ -20,14 +20,13 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 **Registration & Auth**
 - Phone number + national ID + 4-digit PIN
-- Bilingual (AR/EN), language toggle chip on screen
-- No email, no passwords — works offline after first registration
+- then user logs in using phone number and pin
 
 **Buying Flow**
 - Flat list of ~10 stores by name (no GPS — users recognize their local bakery)
 - Each store shows: available / sold out
 - One bag per national ID per store per day
-- Pre-order today for tomorrow's bread
+- Pre-order today for tomorrow's bread or whenever the owner sets the timeframe for purchasing
 - Fixed price: 3 ILS
 
 **Waiting & Pickup**
@@ -70,19 +69,25 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 ## Technical Decisions
 
+> **Prototype scope:** local-only. SQLDelight on-device database — no Supabase, no hosting,
+> no SMS gateway; notifications simulated locally. Hosting decisions come later.
+
 | Decision | Choice | Why |
 |---|---|---|
-| Platform | Android (Kotlin + Jetpack Compose) | Gaza device landscape, Jade's expertise |
-| Backend | Supabase (Cloud) | Already in use, realtime DB, fast to prototype |
+| Platform | Flutter (Android-first) | Port of the Kotlin prototype — the port IS the prototype now |
+| Backend | Local SQLDelight (prototype) | Nothing hosted — on-device DB, no accounts, no servers |
 | Auth | Phone + national ID + local PIN | No email, works offline |
-| Notifications (SMS) | httpSMS — one centralized phone, Jawwal SIM | One API per recipient, custom message per store |
-| Notifications (fallback) | Push notifications (FCM) | Free, works when user opens app |
+| Notifications | Push notifications (FCM) | Free, works when user opens app |
 | Store discovery | Flat list by name | ~10 stores, no maps needed |
-| Language | Bilingual AR/EN | Toggle chip on screen |
+| Language | Bilingual AR | arabic only app |
 
 ---
 
-## Database Schema (Supabase)
+## Database Schema (local SQLDelight)
+
+Prototype note: these tables live in a local SQLDelight database on-device. In `.sq` files,
+uuid PKs become INTEGER PRIMARY KEY, `pin_hash` is a plain hash (prototype, not bcrypt),
+`timestamptz` becomes INTEGER (epoch millis).
 
 ### stores
 | Column | Type | Notes |
@@ -122,9 +127,6 @@ UNIQUE constraint: (user_id, store_id, purchase_date)
 | # | Question | Status |
 |---|---|---|
 | 1 | **Jawwal Pay integration** — Does their business API support the SMS verification code flow? What payment methods do they offer for online merchants? | ⚠️ BLOCKER — Must confirm with Jawwal Pay / supervisor |
-| 2 | **Push vs SMS ratio** — Should push notifications be primary with SMS as fallback (user hasn't opened app within X minutes of batch call)? | Open — leave for later |
-| 3 | **Collection workflow** — How does an owner mark a batch as done? Manual per-person? Clear all at once? We'll learn during on-site pilot. | Open — learn from pilot |
-| 4 | **Who pays SMS costs** — Costs run through the centralized httpSMS phone's Jawwal SIM. Who funds this? | Open |
 | 5 | **WFP approval** — Required before expanding beyond pilot store. | External dependency |
 
 ---
@@ -133,6 +135,6 @@ UNIQUE constraint: (user_id, store_id, purchase_date)
 
 1. Confirm Jawwal Pay integration (supervisor meeting)
 2. Get WFP blessing for pilot
-3. Build prototype: Kotlin Compose + Supabase + httpSMS
+3. Build prototype: Flutter + SQLDelight (local DB, nothing hosted)
 4. Pilot with 1 store — be on-site, train owner, learn collection workflow
 5. Iterate and expand to ~10 stores
