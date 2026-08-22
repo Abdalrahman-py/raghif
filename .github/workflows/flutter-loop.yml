@@ -34,6 +34,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          show_full_output: true # TEMP: debugging the 21 permission denials from the last run
 
           # Official Dart/Flutter skills plugin (flutter/agent-plugins) — architecture,
           # responsive layout, widget tests, primary constructors, etc.
