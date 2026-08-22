@@ -24,17 +24,9 @@ jobs:
         with:
           channel: stable
 
-      - name: Prep working branch
-        run: |
-          git config user.name "raghif-loop-bot"
-          git config user.email "actions@github.com"
-          git checkout flutter-port 2>/dev/null || git checkout -b flutter-port
-          git merge --no-edit master || true
-
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          show_full_output: true # TEMP: debugging the 21 permission denials from the last run
 
           # Official Dart/Flutter skills plugin (flutter/agent-plugins) — architecture,
           # responsive layout, widget tests, primary constructors, etc.
@@ -43,7 +35,6 @@ jobs:
 
           prompt: |
             REPO: ${{ github.repository }}
-            BRANCH: flutter-port
 
             This is a ralph-loop style run: do exactly ONE task, then stop.
 
@@ -55,9 +46,13 @@ jobs:
             1. `gh issue list --state open --label ai-ready` — if any, take the highest
                priority one (label `p0` > `p1` > `p2`; unlabeled priority = lowest), oldest
                first as tiebreaker. Immediately relabel it `ai-in-progress` (remove `ai-ready`)
-               so a concurrent run won't double-pick it.
+               so a concurrent run won't double-pick it. Work on a new branch off master named
+               for the issue.
             2. If there are no `ai-ready` issues, fall back to TASKS.md — pick the next
                unchecked task, top to bottom, respecting its "Notes for the loop" section.
+               Work on a new branch off master named for the task.
+
+            Only ever work ONE of the above per run — never both.
 
             Source of truth: spec.md (product + Supabase schema), UI_SPEC.md (design tokens).
             The Kotlin app under app/ is a throwaway prototype — reference for behavior only,
@@ -75,23 +70,29 @@ jobs:
             ## Do the work
             1. Implement the chosen task under flutter/.
             2. Run `flutter analyze` and `flutter test` — must be clean.
-            3. Commit everything on the current branch (already checked out as flutter-port)
-               with a message describing the task done.
-            4. Push the branch: `git push origin flutter-port`.
-            5. Open a PR to master if one doesn't already exist for this branch
-               (`gh pr create --base master --head flutter-port --title "..." --body "..."`),
-               otherwise leave the existing PR as is — do not merge it.
-            6. If the task came from an issue: comment on it with what shipped and a link to
-               the PR, then relabel it `ai-in-review` (remove `ai-in-progress`). Only close an
-               issue once its PR is merged — never close it yourself here.
-               If it came from TASKS.md: check its box instead.
+            3. Commit everything on your branch with a message describing the task done.
+            4. Push the branch and open a PR to master
+               (`gh pr create --base master --head <branch> --title "..." --body "..."`).
+               Do not merge it.
+            5. If the task came from an issue: reference it in the PR body ("Closes #N") so it
+               auto-closes on merge, and relabel it `ai-in-review` (remove `ai-in-progress`).
+               Do not close the issue yourself.
+               If it came from TASKS.md: check its box, commit that too.
 
             ## If you get stuck
             If the task can't be completed (unclear requirement, broken environment, a decision
             only a human can make), stop, comment on the issue explaining why, relabel it
             `ai-blocked` (remove `ai-in-progress`), and do not push a broken commit.
 
+            ## Bash notes (avoid permission walls in this non-interactive run)
+            - Use `git -C <dir> ...` instead of `cd <dir> && git ...` — the latter is always
+              held for approval and there's no human here to approve it.
+            - Use `rm`/`rm -r`, never `find ... -delete` — same reason.
+            - Prefer plain `mkdir`/`mv`/`rm`/`cp` over chaining them with `&&` in one command
+              where you can — chained commands are checked part-by-part and are more likely to
+              hit something unapproved.
+
             Do not touch master directly. Do not do more than one task.
 
           claude_args: |
-            --allowedTools "Read,Write,Edit,Skill,Bash(flutter:*),Bash(dart:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(gh label:*)"
+            --allowedTools "Read,Write,Edit,Skill,Bash(flutter:*),Bash(dart:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*),Bash(gh label:*),Bash(mkdir:*),Bash(mv:*),Bash(rm:*),Bash(rmdir:*),Bash(cp:*)"
