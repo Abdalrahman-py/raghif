@@ -1,7 +1,9 @@
 # Raghif Flutter Port — Task Backlog
 
-Consumed by `.github/workflows/flutter-loop.yml` (runs daily). One unchecked task per run,
-top to bottom. Check a box, commit, stop — don't chain multiple tasks in one run.
+Consumed by `.github/workflows/flutter-loop.yml` (runs daily). The loop checks open GitHub
+issues first (label `flutter-port`, or any open issue if that label isn't in use yet) — this
+file is the **fallback** when no issues are open. One unchecked task per run, top to bottom.
+Check a box, commit, stop — don't chain multiple tasks in one run.
 
 Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
 The Kotlin app under `app/` is a throwaway prototype — reference it for behavior, don't port its

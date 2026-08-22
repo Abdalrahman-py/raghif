@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
   id-token: write
 
 jobs:
@@ -33,30 +34,52 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # Official Dart/Flutter skills plugin (flutter/agent-plugins) — architecture,
+          # responsive layout, widget tests, primary constructors, etc.
+          plugin_marketplaces: "https://github.com/flutter/agent-plugins.git"
+          plugins: "dart-flutter@dart-flutter"
+
           prompt: |
             REPO: ${{ github.repository }}
             BRANCH: flutter-port
 
-            This is a ralph-loop style run: read TASKS.md, do exactly ONE unchecked task
-            (top to bottom, respecting the "Notes for the loop" section), then stop.
+            This is a ralph-loop style run: do exactly ONE task, then stop.
+
+            ## Pick the task
+            1. First check open GitHub issues: `gh issue list --state open --label flutter-port`
+               (fall back to `gh issue list --state open` if that label doesn't exist yet).
+               If any are open, work the oldest one.
+            2. If there are no open issues, fall back to TASKS.md — pick the next unchecked
+               task, top to bottom, respecting its "Notes for the loop" section.
 
             Source of truth: spec.md (product + Supabase schema), UI_SPEC.md (design tokens).
             The Kotlin app under app/ is a throwaway prototype — reference for behavior only,
             do not port its structure.
 
-            Steps:
-            1. Read TASKS.md and pick the next task.
-            2. Do the work under flutter/.
-            3. Run `flutter analyze` and `flutter test` (if tests exist) — must be clean.
-            4. Check the task's box in TASKS.md.
-            5. Commit everything on the current branch (already checked out as flutter-port)
+            ## Skills — use them, don't just read code
+            - Use the `tdd` skill for any behavior change under flutter/: red (failing test)
+              before green (implementation), one seam at a time. Skip it only for pure config/
+              scaffolding with no behavior to test yet.
+            - Use the dart-flutter plugin's skills where they apply: architecture-best-practices
+              when structuring new code, build-responsive-layout for any screen/widget work,
+              add-widget-test when writing widget tests, use-primary-constructors for new Dart
+              classes. Call the Skill tool for these rather than guessing the convention.
+
+            ## Do the work
+            1. Implement the chosen task under flutter/.
+            2. Run `flutter analyze` and `flutter test` — must be clean.
+            3. If the task came from an issue: comment on it with what shipped, and close it if
+               fully done (leave it open with a status comment if only partially done).
+               If it came from TASKS.md: check its box instead.
+            4. Commit everything on the current branch (already checked out as flutter-port)
                with a message describing the task done.
-            6. Push the branch: `git push origin flutter-port`.
-            7. Open a PR to master if one doesn't already exist for this branch
+            5. Push the branch: `git push origin flutter-port`.
+            6. Open a PR to master if one doesn't already exist for this branch
                (`gh pr create --base master --head flutter-port --title "..." --body "..."`),
                otherwise leave the existing PR as is — do not merge it.
 
             Do not touch master directly. Do not do more than one task.
 
           claude_args: |
-            --allowedTools "Read,Write,Edit,Bash(flutter:*),Bash(dart:*),Bash(git:*),Bash(gh pr:*)"
+            --allowedTools "Read,Write,Edit,Skill,Bash(flutter:*),Bash(dart:*),Bash(git:*),Bash(gh pr:*),Bash(gh issue:*)"
