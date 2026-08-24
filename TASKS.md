@@ -15,7 +15,7 @@ structure.
       current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
 - [x] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
-- [ ] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
+- [x] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
 - [ ] Set up SQLDelight (plugin + sqlite driver) and wire local auth: phone + PIN login
       against the local `users` table, session persisted on-device.
 - [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
@@ -27,6 +27,12 @@ structure.
 
 ## Notes for the loop
 
+- **SQLDelight has no Dart codegen target** (it's Kotlin/JVM/KMP-only) — the schema task used
+  [`drift`](https://pub.dev/packages/drift) instead, the Dart-ecosystem package built as
+  SQLDelight's equivalent (declarative SQL schema file, compile-time-checked queries, generated
+  type-safe Dart API). Schema lives in `flutter/lib/data/local/database.drift`, mirroring
+  spec.md's table definitions. Treat every remaining "SQLDelight" mention in this backlog (and
+  in spec.md) as meaning drift/on-device sqlite — don't try to add real SQLDelight tooling.
 - If `flutter/` doesn't exist yet, the first task (scaffold) is always next regardless of
   checkboxes above it — don't skip ahead.
 - If a task fails (analyze/test red), fix it in the same run rather than checking the box.
