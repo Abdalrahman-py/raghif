@@ -1,0 +1,33 @@
+-- Local on-device schema per spec.md's "Database Schema (local SQLDelight)" section.
+-- uuid PKs become INTEGER PRIMARY KEY, pin_hash is a plain hash (prototype, not
+-- bcrypt), timestamptz becomes INTEGER (epoch millis), per that section's notes.
+
+CREATE TABLE stores (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  owner_phone TEXT NOT NULL,
+  is_open BOOLEAN NOT NULL DEFAULT TRUE,
+  daily_bag_limit INTEGER NOT NULL DEFAULT 0,
+  bags_remaining INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE users (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  phone TEXT NOT NULL UNIQUE,
+  national_id TEXT NOT NULL UNIQUE,
+  pin_hash TEXT NOT NULL
+);
+
+-- purchase_date is stored as an ISO-8601 date string (YYYY-MM-DD); spec.md only
+-- calls out the uuid/timestamptz/pin_hash mappings, not `date`, and sqlite has
+-- no native date type.
+CREATE TABLE purchases (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  store_id INTEGER NOT NULL REFERENCES stores(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  purchase_date TEXT NOT NULL,
+  batch_number INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('waiting', 'notified', 'collected')),
+  created_at INTEGER NOT NULL,
+  UNIQUE(user_id, store_id, purchase_date)
+);
