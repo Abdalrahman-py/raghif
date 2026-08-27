@@ -1,0 +1,16 @@
+import 'converters.dart';
+import 'stores.drift';
+import 'users.drift';
+
+-- One row per reserved bag. spec.md: purchase_date is the day the bread is
+-- for (not a timestamp), created_at preserves purchase order within a batch.
+CREATE TABLE purchases (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL REFERENCES stores (id),
+    user_id INTEGER NOT NULL REFERENCES users (id),
+    purchase_date TEXT NOT NULL,
+    batch_number INTEGER NOT NULL,
+    status TEXT MAPPED BY `const PurchaseStatusConverter()` NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE (user_id, store_id, purchase_date)
+);
