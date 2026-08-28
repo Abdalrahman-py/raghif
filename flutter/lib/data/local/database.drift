@@ -1,0 +1,32 @@
+import 'purchase_status.dart';
+
+-- Local schema per spec.md § Database Schema (local SQLDelight).
+-- uuid PKs -> INTEGER PRIMARY KEY, pin_hash is a plain prototype hash (not
+-- bcrypt), timestamptz -> INTEGER epoch millis (DATETIME below).
+
+CREATE TABLE stores (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  owner_phone TEXT NOT NULL,
+  is_open BOOLEAN NOT NULL DEFAULT FALSE,
+  daily_bag_limit INTEGER NOT NULL,
+  bags_remaining INTEGER NOT NULL
+);
+
+CREATE TABLE users (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  phone TEXT NOT NULL UNIQUE,
+  national_id TEXT NOT NULL UNIQUE,
+  pin_hash TEXT NOT NULL
+);
+
+CREATE TABLE purchases (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  store_id INTEGER NOT NULL REFERENCES stores(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  purchase_date TEXT NOT NULL,
+  batch_number INTEGER NOT NULL,
+  status TEXT MAPPED BY `const PurchaseStatusConverter()` NOT NULL,
+  created_at DATETIME NOT NULL,
+  UNIQUE(user_id, store_id, purchase_date)
+);
