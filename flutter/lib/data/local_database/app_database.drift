@@ -1,0 +1,30 @@
+-- Local on-device schema, mirrors spec.md § Database Schema.
+-- Prototype note (spec.md): uuid PKs become INTEGER PRIMARY KEY, pin_hash is a
+-- plain hash (not bcrypt), timestamptz/date become epoch-millis DATETIME columns.
+
+CREATE TABLE stores (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  owner_phone TEXT NOT NULL,
+  is_open BOOLEAN NOT NULL DEFAULT FALSE,
+  daily_bag_limit INTEGER NOT NULL,
+  bags_remaining INTEGER NOT NULL
+);
+
+CREATE TABLE users (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  phone TEXT NOT NULL UNIQUE,
+  national_id TEXT NOT NULL UNIQUE,
+  pin_hash TEXT NOT NULL
+);
+
+CREATE TABLE purchases (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  store_id INTEGER NOT NULL REFERENCES stores(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  purchase_date DATETIME NOT NULL,
+  batch_number INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('waiting', 'notified', 'collected')),
+  created_at DATETIME NOT NULL,
+  UNIQUE (user_id, store_id, purchase_date)
+);
