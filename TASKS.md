@@ -15,11 +15,15 @@ structure.
       current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
 - [x] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
-- [ ] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
-- [ ] Set up SQLDelight (plugin + sqlite driver) and wire local auth: phone + PIN login
-      against the local `users` table, session persisted on-device.
+- [ ] Define the local schema from `spec.md` as `drift` schema files (`.drift`, generated
+      Dart types). Five candidate implementations already exist as open PRs (#15, #17, #19,
+      #20, #21) — a human should pick one to merge and close the rest as superseded rather
+      than the loop opening a 6th.
+- [ ] Set up `drift` (drift_dev + sqlite3 driver) and wire local auth: phone + PIN login
+      against the local `users` table, session persisted on-device. See PR #12 for an
+      existing candidate implementation.
 - [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
-- [ ] Replace mock data with real SQLDelight queries.
+- [ ] Replace mock data with real `drift` queries.
 - [ ] Add widget tests for the queue/pre-order flow.
 - [ ] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
       SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`
@@ -32,5 +36,8 @@ structure.
 - If a task fails (analyze/test red), fix it in the same run rather than checking the box.
 - Keep runs small. A half-finished screen committed with a clear TODO comment beats an
   uncommitted large diff lost when the run ends.
-- Prototype is LOCAL-ONLY: SQLDelight for persistence. Never add Supabase, httpSMS, or any
+- Prototype is LOCAL-ONLY: `drift` for persistence — the Dart-ecosystem equivalent of
+  SQLDelight (SQLDelight itself is Kotlin/KMP-only and has no Dart/Flutter codegen target;
+  no `sqldelight` package exists on pub.dev). See spec.md's Technical Decisions callout and
+  issue #4 for the full history of this substitution. Never add Supabase, httpSMS, or any
   hosted backend.

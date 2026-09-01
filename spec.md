@@ -69,13 +69,19 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 ## Technical Decisions
 
-> **Prototype scope:** local-only. SQLDelight on-device database — no Supabase, no hosting,
+> **Prototype scope:** local-only. On-device database — no Supabase, no hosting,
 > no SMS gateway; notifications simulated locally. Hosting decisions come later.
+>
+> **Tooling note:** the `app/` Kotlin prototype uses SQLDelight (Kotlin/KMP-only — no
+> Dart/Flutter codegen target). For the Flutter port, [`drift`](https://pub.dev/packages/drift)
+> is the Dart-ecosystem equivalent — same SQL-file-first, generated-typesafe-query-code
+> approach, sqlite3-backed. Confirmed by five independent implementations (PRs #15, #17,
+> #19, #20, #21) converging on the same choice; see issue #4 for the full history.
 
 | Decision | Choice | Why |
 |---|---|---|
 | Platform | Flutter (Android-first) | Port of the Kotlin prototype — the port IS the prototype now |
-| Backend | Local SQLDelight (prototype) | Nothing hosted — on-device DB, no accounts, no servers |
+| Backend | Local on-device DB via `drift` (prototype) | Nothing hosted — on-device DB, no accounts, no servers |
 | Auth | Phone + national ID + local PIN | No email, works offline |
 | Notifications | Push notifications (FCM) | Free, works when user opens app |
 | Store discovery | Flat list by name | ~10 stores, no maps needed |
@@ -83,11 +89,13 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 ---
 
-## Database Schema (local SQLDelight)
+## Database Schema (local, via `drift`)
 
-Prototype note: these tables live in a local SQLDelight database on-device. In `.sq` files,
-uuid PKs become INTEGER PRIMARY KEY, `pin_hash` is a plain hash (prototype, not bcrypt),
-`timestamptz` becomes INTEGER (epoch millis).
+Prototype note: these tables live in a local on-device database, defined as `drift`
+schema files (`.drift`) with generated Dart types (the Dart-ecosystem equivalent of the
+`app/` Kotlin prototype's SQLDelight `.sq` files — SQLDelight itself has no Dart/Flutter
+codegen target). uuid PKs become INTEGER PRIMARY KEY, `pin_hash` is a plain hash
+(prototype, not bcrypt), `timestamptz` becomes INTEGER (epoch millis).
 
 ### stores
 | Column | Type | Notes |
@@ -135,6 +143,6 @@ UNIQUE constraint: (user_id, store_id, purchase_date)
 
 1. Confirm Jawwal Pay integration (supervisor meeting)
 2. Get WFP blessing for pilot
-3. Build prototype: Flutter + SQLDelight (local DB, nothing hosted)
+3. Build prototype: Flutter + drift (local DB, nothing hosted)
 4. Pilot with 1 store — be on-site, train owner, learn collection workflow
 5. Iterate and expand to ~10 stores
