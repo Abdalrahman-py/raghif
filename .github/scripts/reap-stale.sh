@@ -17,7 +17,8 @@ echo "Reaping issues stuck in ai-in-progress for > ${THRESHOLD_MIN}m ($REPO)"
 for n in $(gh issue list --repo "$REPO" --state open --label ai-in-progress --json number --jq '.[].number'); do
   updated=$(gh api "repos/$REPO/issues/$n" --jq '.updated_at')
   age_min=$(( ( $(date +%s) - $(date -d "$updated" +%s) ) / 60 ))
-  # Skip if an open PR still claims it (loop pushes the PR, then relabels to ai-in-review)
+  # Skip if an open PR still claims it (loop merges its own PR before finishing, so an
+  # open one here means the run died mid-way, e.g. auto-merge failed on conflicts)
   claimed=$(n="$n" gh pr list --repo "$REPO" --state open --json number,body \
     --jq '[.[] | select(.body | test("closes #" + env.n + "\\b"; "i"))] | length')
 

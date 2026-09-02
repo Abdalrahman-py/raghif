@@ -66,8 +66,10 @@ jobs:
 
             ## Pick the task
             This repo uses a label lifecycle for the loop: `ai-ready` (pick this up) →
-            `ai-in-progress` (you're on it) → `ai-in-review` (PR open, waiting on human) →
-            `ai-blocked` (stuck, needs human input — never pick these up).
+            `ai-in-progress` (you're on it) → issue closes automatically when its PR merges
+            (see "Do the work" below — merging is part of this run, not a separate human step).
+            `ai-blocked` (stuck, needs human input — never pick these up) is the only other
+            state a task should land in.
 
             1. `gh issue list --state open --label ai-ready` — if any, take the highest
                priority one (label `p0` > `p1` > `p2`; unlabeled priority = lowest), oldest
@@ -100,13 +102,18 @@ jobs:
                be clean. The workflow now sets up the Android SDK, so the debug APK build is
                a required check like the other two, not optional.
             3. Commit everything on your branch with a message describing the task done.
-            4. Push the branch and open a PR to master
-               (`gh pr create --base master --head <branch> --title "..." --body "..."`).
-               Do not merge it.
-            5. If the task came from an issue: reference it in the PR body ("Closes #N") so it
-               auto-closes on merge, and relabel it `ai-in-review` (remove `ai-in-progress`).
-               Do not close the issue yourself.
-               If it came from TASKS.md: check its box, commit that too.
+            4. Push the branch and open a PR to master. If the task came from an issue,
+               include "Closes #N" in the body so it auto-closes on merge:
+               `gh pr create --base master --head <branch> --title "..." --body "..."`.
+            5. The analyze/test/build checks above already passed in this job — that's the
+               gate. Merge immediately, don't wait for a separate CI signal:
+               `gh pr merge --squash --delete-branch <branch-or-PR-number>`.
+               (This repo's other workflow, android-build.yml, targets the Kotlin `app/`
+               prototype that's since been removed — it's stale/always-red now, not something
+               to gate on. Flag it once via a code comment or issue if you notice it, but
+               don't try to fix it as part of this task.)
+               Do not close the issue yourself — the "Closes #N" merge does that.
+               If the task came from TASKS.md instead: check its box, commit that too.
 
             ## If you get stuck
             If the task can't be completed (unclear requirement, broken environment, a decision
