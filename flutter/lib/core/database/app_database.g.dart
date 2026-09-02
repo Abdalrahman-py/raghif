@@ -454,8 +454,34 @@ class Users extends Table with TableInfo<Users, User> {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'buyer\'',
+    defaultValue: const CustomExpression('\'buyer\''),
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, phone, nationalId, pinHash];
+  List<GeneratedColumn> get $columns => [
+    id,
+    phone,
+    nationalId,
+    pinHash,
+    name,
+    role,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -495,6 +521,20 @@ class Users extends Table with TableInfo<Users, User> {
     } else if (isInserting) {
       context.missing(_pinHashMeta);
     }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
     return context;
   }
 
@@ -520,6 +560,14 @@ class Users extends Table with TableInfo<Users, User> {
         DriftSqlType.string,
         data['${effectivePrefix}pin_hash'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
     );
   }
 
@@ -537,11 +585,15 @@ class User extends DataClass implements Insertable<User> {
   final String phone;
   final String nationalId;
   final String pinHash;
+  final String name;
+  final String role;
   const User({
     required this.id,
     required this.phone,
     required this.nationalId,
     required this.pinHash,
+    required this.name,
+    required this.role,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -550,6 +602,8 @@ class User extends DataClass implements Insertable<User> {
     map['phone'] = Variable<String>(phone);
     map['national_id'] = Variable<String>(nationalId);
     map['pin_hash'] = Variable<String>(pinHash);
+    map['name'] = Variable<String>(name);
+    map['role'] = Variable<String>(role);
     return map;
   }
 
@@ -559,6 +613,8 @@ class User extends DataClass implements Insertable<User> {
       phone: Value(phone),
       nationalId: Value(nationalId),
       pinHash: Value(pinHash),
+      name: Value(name),
+      role: Value(role),
     );
   }
 
@@ -572,6 +628,8 @@ class User extends DataClass implements Insertable<User> {
       phone: serializer.fromJson<String>(json['phone']),
       nationalId: serializer.fromJson<String>(json['national_id']),
       pinHash: serializer.fromJson<String>(json['pin_hash']),
+      name: serializer.fromJson<String>(json['name']),
+      role: serializer.fromJson<String>(json['role']),
     );
   }
   @override
@@ -582,6 +640,8 @@ class User extends DataClass implements Insertable<User> {
       'phone': serializer.toJson<String>(phone),
       'national_id': serializer.toJson<String>(nationalId),
       'pin_hash': serializer.toJson<String>(pinHash),
+      'name': serializer.toJson<String>(name),
+      'role': serializer.toJson<String>(role),
     };
   }
 
@@ -590,11 +650,15 @@ class User extends DataClass implements Insertable<User> {
     String? phone,
     String? nationalId,
     String? pinHash,
+    String? name,
+    String? role,
   }) => User(
     id: id ?? this.id,
     phone: phone ?? this.phone,
     nationalId: nationalId ?? this.nationalId,
     pinHash: pinHash ?? this.pinHash,
+    name: name ?? this.name,
+    role: role ?? this.role,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -604,6 +668,8 @@ class User extends DataClass implements Insertable<User> {
           ? data.nationalId.value
           : this.nationalId,
       pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
+      name: data.name.present ? data.name.value : this.name,
+      role: data.role.present ? data.role.value : this.role,
     );
   }
 
@@ -613,13 +679,15 @@ class User extends DataClass implements Insertable<User> {
           ..write('id: $id, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('pinHash: $pinHash')
+          ..write('pinHash: $pinHash, ')
+          ..write('name: $name, ')
+          ..write('role: $role')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, phone, nationalId, pinHash);
+  int get hashCode => Object.hash(id, phone, nationalId, pinHash, name, role);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -627,7 +695,9 @@ class User extends DataClass implements Insertable<User> {
           other.id == this.id &&
           other.phone == this.phone &&
           other.nationalId == this.nationalId &&
-          other.pinHash == this.pinHash);
+          other.pinHash == this.pinHash &&
+          other.name == this.name &&
+          other.role == this.role);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -635,31 +705,42 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> phone;
   final Value<String> nationalId;
   final Value<String> pinHash;
+  final Value<String> name;
+  final Value<String> role;
   const UsersCompanion({
     this.id = const Value.absent(),
     this.phone = const Value.absent(),
     this.nationalId = const Value.absent(),
     this.pinHash = const Value.absent(),
+    this.name = const Value.absent(),
+    this.role = const Value.absent(),
   });
   UsersCompanion.insert({
     this.id = const Value.absent(),
     required String phone,
     required String nationalId,
     required String pinHash,
+    required String name,
+    this.role = const Value.absent(),
   }) : phone = Value(phone),
        nationalId = Value(nationalId),
-       pinHash = Value(pinHash);
+       pinHash = Value(pinHash),
+       name = Value(name);
   static Insertable<User> custom({
     Expression<int>? id,
     Expression<String>? phone,
     Expression<String>? nationalId,
     Expression<String>? pinHash,
+    Expression<String>? name,
+    Expression<String>? role,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (phone != null) 'phone': phone,
       if (nationalId != null) 'national_id': nationalId,
       if (pinHash != null) 'pin_hash': pinHash,
+      if (name != null) 'name': name,
+      if (role != null) 'role': role,
     });
   }
 
@@ -668,12 +749,16 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? phone,
     Value<String>? nationalId,
     Value<String>? pinHash,
+    Value<String>? name,
+    Value<String>? role,
   }) {
     return UsersCompanion(
       id: id ?? this.id,
       phone: phone ?? this.phone,
       nationalId: nationalId ?? this.nationalId,
       pinHash: pinHash ?? this.pinHash,
+      name: name ?? this.name,
+      role: role ?? this.role,
     );
   }
 
@@ -692,6 +777,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (pinHash.present) {
       map['pin_hash'] = Variable<String>(pinHash.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
     return map;
   }
 
@@ -701,7 +792,9 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('id: $id, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('pinHash: $pinHash')
+          ..write('pinHash: $pinHash, ')
+          ..write('name: $name, ')
+          ..write('role: $role')
           ..write(')'))
         .toString();
   }
@@ -1505,6 +1598,8 @@ typedef $UsersCreateCompanionBuilder =
       required String phone,
       required String nationalId,
       required String pinHash,
+      required String name,
+      Value<String> role,
     });
 typedef $UsersUpdateCompanionBuilder =
     UsersCompanion Function({
@@ -1512,6 +1607,8 @@ typedef $UsersUpdateCompanionBuilder =
       Value<String> phone,
       Value<String> nationalId,
       Value<String> pinHash,
+      Value<String> name,
+      Value<String> role,
     });
 
 final class $UsersReferences
@@ -1563,6 +1660,16 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnFilters<String> get pinHash => $composableBuilder(
     column: $table.pinHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1619,6 +1726,16 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
     column: $table.pinHash,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
@@ -1642,6 +1759,12 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
 
   GeneratedColumn<String> get pinHash =>
       $composableBuilder(column: $table.pinHash, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -1701,11 +1824,15 @@ class $UsersTableManager
                 Value<String> phone = const Value.absent(),
                 Value<String> nationalId = const Value.absent(),
                 Value<String> pinHash = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> role = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
                 phone: phone,
                 nationalId: nationalId,
                 pinHash: pinHash,
+                name: name,
+                role: role,
               ),
           createCompanionCallback:
               ({
@@ -1713,11 +1840,15 @@ class $UsersTableManager
                 required String phone,
                 required String nationalId,
                 required String pinHash,
+                required String name,
+                Value<String> role = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
                 phone: phone,
                 nationalId: nationalId,
                 pinHash: pinHash,
+                name: name,
+                role: role,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $UsersReferences(db, table, e)))

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/auth/auth_repository.dart';
+import '../../core/auth/session_store.dart';
+import '../../core/database/app_database.dart' show User;
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -10,13 +13,21 @@ import 'demo_accounts.dart';
 /// Phone + national ID + 4-digit PIN, matching app/.../ui/screens/LoginScreen.kt's
 /// current behavior: known phone+PIN logs in, an unrecognized phone switches the
 /// form into registration mode. Styled per UI_SPEC.md's design tokens.
+///
+/// Backed by [AuthRepository] (drift, on-device) rather than an in-memory
+/// list — the returned row is adapted to [DemoUser] so downstream screens
+/// (store list, owner dashboard) don't need to know about drift at all.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
+    required this.authRepository,
+    required this.sessionStore,
     required this.onLoginBuyer,
     required this.onLoginOwner,
   });
 
+  final AuthRepository authRepository;
+  final SessionStore sessionStore;
   final ValueChanged<DemoUser> onLoginBuyer;
   final ValueChanged<DemoUser> onLoginOwner;
 
@@ -43,55 +54,71 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  DemoUser _asDemoUser(User user) => DemoUser(
+    phone: user.phone,
+    pin: '',
+    role: user.role == 'owner' ? UserRole.owner : UserRole.buyer,
+    name: user.name,
+  );
+
+  Future<void> _submit() async {
     setState(() => _isLoggingIn = true);
 
+    final repo = widget.authRepository;
     final phone = _phoneController.text.trim();
     final pin = _pinController.text.trim();
 
     if (_isRegistering) {
-      final validationError = validateRegistration(
+      final validationError = repo.validateRegistration(
         phone: phone,
         pin: pin,
-        personalId: _personalIdController.text,
+        nationalId: _personalIdController.text,
         name: _nameController.text,
       );
-      setState(() {
-        _isLoggingIn = false;
-        if (validationError != null) {
+      if (validationError != null) {
+        setState(() {
+          _isLoggingIn = false;
           _error = validationError;
-        } else {
-          _error = null;
-          widget.onLoginBuyer(
-            DemoUser(
-              phone: phone,
-              pin: pin,
-              role: UserRole.buyer,
-              name: _nameController.text.trim(),
-            ),
-          );
-        }
-      });
-      return;
-    }
-
-    final user = findByPhoneAndPin(phone, pin);
-    if (user != null) {
+        });
+        return;
+      }
+      final user = await repo.register(
+        phone: phone,
+        pin: pin,
+        nationalId: _personalIdController.text.trim(),
+        name: _nameController.text.trim(),
+      );
+      await widget.sessionStore.saveUserId(user.id);
+      if (!mounted) return;
       setState(() {
         _isLoggingIn = false;
         _error = null;
       });
-      if (user.role == UserRole.owner) {
-        widget.onLoginOwner(user);
+      widget.onLoginBuyer(_asDemoUser(user));
+      return;
+    }
+
+    final user = await repo.findByPhoneAndPin(phone, pin);
+    if (user != null) {
+      await widget.sessionStore.saveUserId(user.id);
+      if (!mounted) return;
+      setState(() {
+        _isLoggingIn = false;
+        _error = null;
+      });
+      if (user.role == 'owner') {
+        widget.onLoginOwner(_asDemoUser(user));
       } else {
-        widget.onLoginBuyer(user);
+        widget.onLoginBuyer(_asDemoUser(user));
       }
       return;
     }
 
+    final exists = await repo.phoneExists(phone);
+    if (!mounted) return;
     setState(() {
       _isLoggingIn = false;
-      if (phoneExists(phone)) {
+      if (exists) {
         _error = Strings.loginError;
       } else {
         _error = null;
