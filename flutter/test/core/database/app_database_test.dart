@@ -27,6 +27,7 @@ void main() {
         phone: '0599111111',
         nationalId: '900000000',
         pinHash: 'hashed-1234',
+        name: 'test user',
       ),
     );
 
@@ -64,6 +65,7 @@ void main() {
         phone: '0599111111',
         nationalId: '900000000',
         pinHash: 'hashed-1234',
+        name: 'test user',
       ),
     );
     final purchase = PurchasesCompanion.insert(

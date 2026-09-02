@@ -1,7 +1,13 @@
--- Buyers and owners (role-switch is by owner_phone match, not a column — see spec.md).
+-- Buyers and owners. spec.md's role-switch design is "by owner_phone match
+-- against stores, not a column" but that lookup isn't wired up yet (#7), so
+-- `role` stands in for it here, mirroring the Kotlin prototype's
+-- UserEntity.role — drop it once owner lookup goes through `stores`.
+-- `name` isn't in spec.md's schema either; added for login/greeting display.
 CREATE TABLE users (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     phone TEXT NOT NULL UNIQUE,
     national_id TEXT NOT NULL UNIQUE,
-    pin_hash TEXT NOT NULL
+    pin_hash TEXT NOT NULL,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'buyer'
 );
