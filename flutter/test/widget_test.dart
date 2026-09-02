@@ -6,7 +6,7 @@ import 'package:raghif/core/i18n/strings.dart';
 
 void main() {
   testWidgets('RaghifApp renders the login screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const RaghifApp());
+    await tester.pumpWidget(RaghifApp());
 
     expect(find.text(Strings.appTitle), findsOneWidget);
     expect(find.text(Strings.loginButton), findsOneWidget);

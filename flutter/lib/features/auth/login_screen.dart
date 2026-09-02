@@ -17,8 +17,8 @@ class LoginScreen extends StatefulWidget {
     required this.onLoginOwner,
   });
 
-  final VoidCallback onLoginBuyer;
-  final VoidCallback onLoginOwner;
+  final ValueChanged<DemoUser> onLoginBuyer;
+  final ValueChanged<DemoUser> onLoginOwner;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -62,7 +62,14 @@ class _LoginScreenState extends State<LoginScreen> {
           _error = validationError;
         } else {
           _error = null;
-          widget.onLoginBuyer();
+          widget.onLoginBuyer(
+            DemoUser(
+              phone: phone,
+              pin: pin,
+              role: UserRole.buyer,
+              name: _nameController.text.trim(),
+            ),
+          );
         }
       });
       return;
@@ -75,9 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = null;
       });
       if (user.role == UserRole.owner) {
-        widget.onLoginOwner();
+        widget.onLoginOwner(user);
       } else {
-        widget.onLoginBuyer();
+        widget.onLoginBuyer(user);
       }
       return;
     }

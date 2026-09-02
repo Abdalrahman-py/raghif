@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Golden test failure diffs, written by the local file comparator on mismatch
+test/goldens/failures/
+
 # Symbolication related
 app.*.symbols
 

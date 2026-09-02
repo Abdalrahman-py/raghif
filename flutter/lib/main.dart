@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/login_screen.dart';
+import 'features/queue/owner_dashboard_screen.dart';
+import 'features/queue/queue_controller.dart';
+import 'features/queue/store_list_screen.dart';
 
 void main() {
-  runApp(const RaghifApp());
+  runApp(RaghifApp());
 }
 
 class RaghifApp extends StatelessWidget {
-  const RaghifApp({super.key});
+  RaghifApp({super.key});
+
+  // Lives for the app's process lifetime, standing in for the SQLDelight
+  // database until issue #7 wires real on-device persistence.
+  final QueueController _controller = QueueController();
 
   @override
   Widget build(BuildContext context) {
@@ -18,17 +25,25 @@ class RaghifApp extends StatelessWidget {
       builder: (context, child) =>
           Directionality(textDirection: TextDirection.rtl, child: child!),
       home: LoginScreen(
-        onLoginBuyer: () => _showStub(context, 'قائمة المخابز'),
-        onLoginOwner: () => _showStub(context, 'لوحة صاحب المخبز'),
+        onLoginBuyer: (user) => Navigator.of(context).push(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: StoreListScreen.routeName),
+            builder: (_) =>
+                StoreListScreen(controller: _controller, currentUser: user),
+          ),
+        ),
+        onLoginOwner: (user) => Navigator.of(context).push(
+          MaterialPageRoute(
+            settings: const RouteSettings(
+              name: OwnerDashboardScreen.routeName,
+            ),
+            builder: (_) => OwnerDashboardScreen(
+              controller: _controller,
+              storeId: demoOwnerStoreId,
+            ),
+          ),
+        ),
       ),
-    );
-  }
-
-  // Store list / owner dashboard screens are follow-up work — this slice
-  // ports the scaffold plus the login screen only.
-  void _showStub(BuildContext context, String destination) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$destination — قريباً')),
     );
   }
 }
