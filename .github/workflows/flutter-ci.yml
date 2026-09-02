@@ -81,9 +81,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Replace the previous "latest" release so assets never accumulate
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest apk/app-debug.apk \
+          # Replace the previous "latest" release so assets never accumulate.
+          # --repo is required: this job never checks out, so gh has no git
+          # context to infer the repository from.
+          gh release delete latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          gh release create latest --repo "$GITHUB_REPOSITORY" apk/app-debug.apk \
             --title "Latest debug build" \
             --notes "Auto-built from commit \`${{ github.sha }}\` (${{ github.ref_name }})" \
             --target "${{ github.sha }}"
