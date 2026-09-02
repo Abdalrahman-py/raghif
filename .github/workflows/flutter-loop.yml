@@ -84,8 +84,6 @@ jobs:
             Prototype is LOCAL-ONLY: drift (the Dart equivalent of SQLDelight, which has no
             Dart codegen target) for on-device persistence — never add Supabase, httpSMS, or
             any hosted backend.
-            The Kotlin app under app/ is a throwaway prototype — reference for behavior only,
-            do not port its structure.
 
             ## Skills — use them, don't just read code
             - Use the `tdd` skill for any behavior change under flutter/: red (failing test)

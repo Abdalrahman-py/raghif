@@ -6,23 +6,23 @@ file is the **fallback** when no issues are open. One unchecked task per run, to
 Check a box, commit, stop — don't chain multiple tasks in one run.
 
 Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
-The Kotlin app under `app/` is a throwaway prototype — reference it for behavior, don't port its
-structure.
+The original Kotlin/Compose prototype under `app/` has been removed — the Flutter app is the
+only implementation now (see #10).
 
 ## Backlog
 
-- [x] Scaffold `flutter/` with `flutter create`, package name matching spec.md, min SDK per
-      current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
+- [x] Scaffold `flutter/` with `flutter create`, package name matching spec.md. Verify
+      `flutter analyze` is clean. Commit.
 - [x] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
 - [x] Define the local schema from `spec.md` as `drift` schema files (generated Dart types).
       Done in #19 — `drift` is the Dart-ecosystem equivalent of SQLDelight (which has no
       Dart/Flutter codegen target; see #4 for the full history).
 - [ ] Set up `drift` (drift_dev + sqlite3 driver) and wire local auth: phone + PIN login
-      against the local `users` table, session persisted on-device. See PR #12 for an
-      existing candidate implementation.
-- [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
-- [ ] Replace mock data with real `drift` queries.
+      against the local `users` table, session persisted on-device. In review, see #24.
+- [x] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
+      Done in #13.
+- [ ] Replace mock data with real `drift` queries (#7, assigned).
 - [ ] Add widget tests for the queue/pre-order flow.
 - [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
       SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`

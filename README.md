@@ -6,25 +6,24 @@ WFP supplies selected markets with ~300 bags of bread daily (2kg pita, 3 ILS). T
 of people crowd a market at once. Raghif turns that into a queue: users reserve a bag from home
 the day before, and the market owner releases customers in batches, notified by SMS.
 
-## Status: prototype — throwaway
+## Status: prototype, in progress
 
-**This Android/Kotlin code will not ship.** It is a working prototype used to validate flows and
-the design system. Production will be **ported to Flutter**. Treat everything under `app/` as
-disposable; the durable artifacts are the two specs.
+Flutter app under `flutter/`, local-only (drift/sqlite3), no backend wired up yet.
 
 | File | What it is |
 |---|---|
 | [spec.md](spec.md) | Product spec — features, business rules, Supabase schema, open questions |
 | [UI_SPEC.md](UI_SPEC.md) | Visual design system — tokens, type scale, per-screen layout |
-| `app/` | Kotlin + Compose prototype (Room-backed, local only) |
+| [TASKS.md](TASKS.md) | Flutter build backlog |
+| `flutter/` | Flutter app |
 
 ## Prototype stack
 
-Kotlin, Jetpack Compose (Material 3), Room, Navigation Compose. Min SDK 26.
-Storage is local Room — Supabase and httpSMS from the spec are **not wired up yet**.
+Flutter, drift (on-device sqlite). Storage is local — Supabase and httpSMS from the spec are
+**not wired up yet**.
 
 ```bash
-./gradlew assembleDebug        # requires local.properties with sdk.dir
+cd flutter && flutter run
 ```
 
 ## Production stack (planned)
@@ -37,13 +36,11 @@ Storage is local Room — Supabase and httpSMS from the spec are **not wired up 
 | SMS | httpSMS via one centralized Jawwal SIM |
 | Push fallback | FCM |
 
-## What carries over to the Flutter port
+## Business rules
 
-- Schema in [spec.md](spec.md) (`stores`, `users`, `purchases`), including the
-  `(user_id, store_id, purchase_date)` unique constraint
-- Design tokens and per-screen layouts in [UI_SPEC.md](UI_SPEC.md)
-- Business rules: one bag per national ID per store per day, no cancellations,
-  owner-set batch size, bilingual AR/EN
+- One bag per national ID per store per day, no cancellations
+- Owner-set daily batch size
+- Bilingual AR/EN
 
 ## Blockers
 
