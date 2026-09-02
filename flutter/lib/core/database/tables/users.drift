@@ -1,0 +1,7 @@
+-- Buyers and owners (role-switch is by owner_phone match, not a column — see spec.md).
+CREATE TABLE users (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    phone TEXT NOT NULL UNIQUE,
+    national_id TEXT NOT NULL UNIQUE,
+    pin_hash TEXT NOT NULL
+);

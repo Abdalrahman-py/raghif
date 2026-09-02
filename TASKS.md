@@ -15,7 +15,7 @@ structure.
       current `app/build.gradle.kts`. Verify `flutter analyze` is clean. Commit.
 - [x] Set up project structure (lib/features/..., clean-ish layout) and add the design tokens
       from `UI_SPEC.md` (colors, type scale, spacing) as a Flutter theme.
-- [ ] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
+- [x] Define the local schema from `spec.md` as SQLDelight `.sq` files (generated Dart types).
 - [ ] Set up SQLDelight (plugin + sqlite driver) and wire local auth: phone + PIN login
       against the local `users` table, session persisted on-device.
 - [ ] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.

@@ -1,0 +1,9 @@
+-- Bakeries participating in the pilot. spec.md: uuid PKs become INTEGER PRIMARY KEY on-device.
+CREATE TABLE stores (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    owner_phone TEXT NOT NULL,
+    is_open BOOLEAN NOT NULL DEFAULT FALSE,
+    daily_bag_limit INTEGER NOT NULL,
+    bags_remaining INTEGER NOT NULL
+);
