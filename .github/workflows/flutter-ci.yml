@@ -60,3 +60,31 @@ jobs:
           name: raghif-debug-apk
           path: flutter/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+
+  # Rolling "latest" release so the debug APK is one click away (App Store-less
+  # installs). Runs on master pushes and manual dispatches, never on PRs.
+  release:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create/update the rolling release
+    steps:
+      - name: Download debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: raghif-debug-apk
+          path: apk
+
+      - name: Publish rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Replace the previous "latest" release so assets never accumulate
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest apk/app-debug.apk \
+            --title "Latest debug build" \
+            --notes "Auto-built from commit \`${{ github.sha }}\` (${{ github.ref_name }})" \
+            --target "${{ github.sha }}"
+
