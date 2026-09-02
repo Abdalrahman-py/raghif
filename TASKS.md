@@ -38,5 +38,5 @@ only implementation now (see #10).
 - Prototype is LOCAL-ONLY: `drift` for persistence — the Dart-ecosystem equivalent of
   SQLDelight (SQLDelight itself is Kotlin/KMP-only and has no Dart/Flutter codegen target;
   no `sqldelight` package exists on pub.dev). See spec.md's Technical Decisions callout and
-  issue #4 for the full history of this substitution. Never add Supabase, httpSMS, or any
-  hosted backend.
+  issue #4 for the full history of this substitution. Never add Supabase or any hosted
+  backend.

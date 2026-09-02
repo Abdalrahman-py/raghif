@@ -9,5 +9,7 @@ CREATE TABLE users (
     national_id TEXT NOT NULL UNIQUE,
     pin_hash TEXT NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'buyer'
+    role TEXT NOT NULL DEFAULT 'buyer',
+    jawwal_pay_number TEXT,
+    verification_status TEXT NOT NULL DEFAULT 'pending'
 );

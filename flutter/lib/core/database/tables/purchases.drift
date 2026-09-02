@@ -12,5 +12,5 @@ CREATE TABLE purchases (
     batch_number INTEGER NOT NULL,
     status TEXT MAPPED BY `const PurchaseStatusConverter()` NOT NULL,
     created_at INTEGER NOT NULL,
-    UNIQUE (user_id, store_id, purchase_date)
+    UNIQUE (user_id, purchase_date)
 );

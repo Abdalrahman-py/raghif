@@ -16,12 +16,50 @@ class Strings {
 
   static const personalIdLabel = 'رقم الهوية';
   static const nameLabel = 'الاسم';
-  static const newAccountNotice = 'رقم جديد، أكمل بيانات التسجيل';
   static const registerButton = 'تسجيل حساب جديد';
   static const registerError = 'يرجى تعبئة جميع الحقول';
   static const demoBadge = 'نموذج تجريبي';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';
+  static const createAccountPrompt = 'ليس لديك حساب؟';
+  static const createAccountLink = 'إنشاء حساب جديد';
+
+  // Onboarding
+  static const onboardingSkip = 'تخطي';
+  static const onboardingNext = 'التالي';
+  static const onboardingGetStarted = 'إنشاء حساب';
+  static const onboardingHaveAccount = 'لدي حساب بالفعل';
+  static const onboardingTitle1 = 'احجز خبزك من البيت';
+  static const onboardingBody1 =
+      'اطلب كيس الخبز اليومي من أي مخبز قريب منك، دون الحاجة للوقوف في طابور طويل.';
+  static const onboardingTitle2 = 'استلم إشعارك عند الجاهزية';
+  static const onboardingBody2 =
+      'بمجرد أن يحين دورك، سنرسل لك إشعاراً لتستلم طلبك من المخبز مباشرة.';
+  static const onboardingTitle3 = 'تحقق من حسابك للشراء';
+  static const onboardingBody3 =
+      'أكمل التسجيل وتحقق من هويتك — كيس واحد لكل بطاقة هوية يومياً.';
+
+  // Registration
+  static const registrationTitle = 'إنشاء حساب جديد';
+  static const registrationSubtitle = 'المعلومات التالية مطلوبة للتحقق من هويتك وحجز الخبز';
+  static const jawwalPayNumberLabel = 'رقم جوال باي';
+  static const jawwalPayNumberHint = 'سيُستخدم للدفع عند الشراء';
+
+  // Identity verification
+  static const idPhotoTitle = 'صورة بطاقة الهوية';
+  static const idPhotoInstructions =
+      'التقط صورة واضحة للوجه الأمامي لبطاقة هويتك. تأكد من وضوح الأرقام والصورة.';
+  static const selfiePhotoTitle = 'صورة شخصية';
+  static const selfiePhotoInstructions =
+      'التقط صورة واضحة لوجهك للتأكد من مطابقتها مع بطاقة الهوية.';
+  static const capturePrompt = 'اضغط لاختيار صورة';
+  static const retakePhoto = 'إعادة الالتقاط';
+  static const continueLabel = 'متابعة';
+  static const verifyingTitle = 'جاري التحقق من حسابك';
+  static const verifyingBody = 'يرجى الانتظار بينما نتحقق من بياناتك. هذا قد يستغرق لحظات.';
+  static const verifiedTitle = 'تم التحقق من حسابك!';
+  static const verifiedBody = 'يمكنك الآن حجز كيس الخبز اليومي من أي مخبز متاح.';
+  static const continueToApp = 'الانتقال إلى التطبيق';
 
   // Store list
   static const storeListTitle = 'المخابز المتاحة';

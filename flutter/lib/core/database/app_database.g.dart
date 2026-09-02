@@ -473,6 +473,29 @@ class Users extends Table with TableInfo<Users, User> {
     $customConstraints: 'NOT NULL DEFAULT \'buyer\'',
     defaultValue: const CustomExpression('\'buyer\''),
   );
+  static const VerificationMeta _jawwalPayNumberMeta = const VerificationMeta(
+    'jawwalPayNumber',
+  );
+  late final GeneratedColumn<String> jawwalPayNumber = GeneratedColumn<String>(
+    'jawwal_pay_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _verificationStatusMeta =
+      const VerificationMeta('verificationStatus');
+  late final GeneratedColumn<String> verificationStatus =
+      GeneratedColumn<String>(
+        'verification_status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NOT NULL DEFAULT \'pending\'',
+        defaultValue: const CustomExpression('\'pending\''),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -481,6 +504,8 @@ class Users extends Table with TableInfo<Users, User> {
     pinHash,
     name,
     role,
+    jawwalPayNumber,
+    verificationStatus,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -535,6 +560,24 @@ class Users extends Table with TableInfo<Users, User> {
         role.isAcceptableOrUnknown(data['role']!, _roleMeta),
       );
     }
+    if (data.containsKey('jawwal_pay_number')) {
+      context.handle(
+        _jawwalPayNumberMeta,
+        jawwalPayNumber.isAcceptableOrUnknown(
+          data['jawwal_pay_number']!,
+          _jawwalPayNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('verification_status')) {
+      context.handle(
+        _verificationStatusMeta,
+        verificationStatus.isAcceptableOrUnknown(
+          data['verification_status']!,
+          _verificationStatusMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -568,6 +611,14 @@ class Users extends Table with TableInfo<Users, User> {
         DriftSqlType.string,
         data['${effectivePrefix}role'],
       )!,
+      jawwalPayNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}jawwal_pay_number'],
+      ),
+      verificationStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verification_status'],
+      )!,
     );
   }
 
@@ -587,6 +638,8 @@ class User extends DataClass implements Insertable<User> {
   final String pinHash;
   final String name;
   final String role;
+  final String? jawwalPayNumber;
+  final String verificationStatus;
   const User({
     required this.id,
     required this.phone,
@@ -594,6 +647,8 @@ class User extends DataClass implements Insertable<User> {
     required this.pinHash,
     required this.name,
     required this.role,
+    this.jawwalPayNumber,
+    required this.verificationStatus,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -604,6 +659,10 @@ class User extends DataClass implements Insertable<User> {
     map['pin_hash'] = Variable<String>(pinHash);
     map['name'] = Variable<String>(name);
     map['role'] = Variable<String>(role);
+    if (!nullToAbsent || jawwalPayNumber != null) {
+      map['jawwal_pay_number'] = Variable<String>(jawwalPayNumber);
+    }
+    map['verification_status'] = Variable<String>(verificationStatus);
     return map;
   }
 
@@ -615,6 +674,10 @@ class User extends DataClass implements Insertable<User> {
       pinHash: Value(pinHash),
       name: Value(name),
       role: Value(role),
+      jawwalPayNumber: jawwalPayNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(jawwalPayNumber),
+      verificationStatus: Value(verificationStatus),
     );
   }
 
@@ -630,6 +693,10 @@ class User extends DataClass implements Insertable<User> {
       pinHash: serializer.fromJson<String>(json['pin_hash']),
       name: serializer.fromJson<String>(json['name']),
       role: serializer.fromJson<String>(json['role']),
+      jawwalPayNumber: serializer.fromJson<String?>(json['jawwal_pay_number']),
+      verificationStatus: serializer.fromJson<String>(
+        json['verification_status'],
+      ),
     );
   }
   @override
@@ -642,6 +709,8 @@ class User extends DataClass implements Insertable<User> {
       'pin_hash': serializer.toJson<String>(pinHash),
       'name': serializer.toJson<String>(name),
       'role': serializer.toJson<String>(role),
+      'jawwal_pay_number': serializer.toJson<String?>(jawwalPayNumber),
+      'verification_status': serializer.toJson<String>(verificationStatus),
     };
   }
 
@@ -652,6 +721,8 @@ class User extends DataClass implements Insertable<User> {
     String? pinHash,
     String? name,
     String? role,
+    Value<String?> jawwalPayNumber = const Value.absent(),
+    String? verificationStatus,
   }) => User(
     id: id ?? this.id,
     phone: phone ?? this.phone,
@@ -659,6 +730,10 @@ class User extends DataClass implements Insertable<User> {
     pinHash: pinHash ?? this.pinHash,
     name: name ?? this.name,
     role: role ?? this.role,
+    jawwalPayNumber: jawwalPayNumber.present
+        ? jawwalPayNumber.value
+        : this.jawwalPayNumber,
+    verificationStatus: verificationStatus ?? this.verificationStatus,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -670,6 +745,12 @@ class User extends DataClass implements Insertable<User> {
       pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
       name: data.name.present ? data.name.value : this.name,
       role: data.role.present ? data.role.value : this.role,
+      jawwalPayNumber: data.jawwalPayNumber.present
+          ? data.jawwalPayNumber.value
+          : this.jawwalPayNumber,
+      verificationStatus: data.verificationStatus.present
+          ? data.verificationStatus.value
+          : this.verificationStatus,
     );
   }
 
@@ -681,13 +762,24 @@ class User extends DataClass implements Insertable<User> {
           ..write('nationalId: $nationalId, ')
           ..write('pinHash: $pinHash, ')
           ..write('name: $name, ')
-          ..write('role: $role')
+          ..write('role: $role, ')
+          ..write('jawwalPayNumber: $jawwalPayNumber, ')
+          ..write('verificationStatus: $verificationStatus')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, phone, nationalId, pinHash, name, role);
+  int get hashCode => Object.hash(
+    id,
+    phone,
+    nationalId,
+    pinHash,
+    name,
+    role,
+    jawwalPayNumber,
+    verificationStatus,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -697,7 +789,9 @@ class User extends DataClass implements Insertable<User> {
           other.nationalId == this.nationalId &&
           other.pinHash == this.pinHash &&
           other.name == this.name &&
-          other.role == this.role);
+          other.role == this.role &&
+          other.jawwalPayNumber == this.jawwalPayNumber &&
+          other.verificationStatus == this.verificationStatus);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -707,6 +801,8 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> pinHash;
   final Value<String> name;
   final Value<String> role;
+  final Value<String?> jawwalPayNumber;
+  final Value<String> verificationStatus;
   const UsersCompanion({
     this.id = const Value.absent(),
     this.phone = const Value.absent(),
@@ -714,6 +810,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.pinHash = const Value.absent(),
     this.name = const Value.absent(),
     this.role = const Value.absent(),
+    this.jawwalPayNumber = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
   });
   UsersCompanion.insert({
     this.id = const Value.absent(),
@@ -722,6 +820,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     required String pinHash,
     required String name,
     this.role = const Value.absent(),
+    this.jawwalPayNumber = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
   }) : phone = Value(phone),
        nationalId = Value(nationalId),
        pinHash = Value(pinHash),
@@ -733,6 +833,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? pinHash,
     Expression<String>? name,
     Expression<String>? role,
+    Expression<String>? jawwalPayNumber,
+    Expression<String>? verificationStatus,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -741,6 +843,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (pinHash != null) 'pin_hash': pinHash,
       if (name != null) 'name': name,
       if (role != null) 'role': role,
+      if (jawwalPayNumber != null) 'jawwal_pay_number': jawwalPayNumber,
+      if (verificationStatus != null) 'verification_status': verificationStatus,
     });
   }
 
@@ -751,6 +855,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? pinHash,
     Value<String>? name,
     Value<String>? role,
+    Value<String?>? jawwalPayNumber,
+    Value<String>? verificationStatus,
   }) {
     return UsersCompanion(
       id: id ?? this.id,
@@ -759,6 +865,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       pinHash: pinHash ?? this.pinHash,
       name: name ?? this.name,
       role: role ?? this.role,
+      jawwalPayNumber: jawwalPayNumber ?? this.jawwalPayNumber,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
     );
   }
 
@@ -783,6 +891,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (role.present) {
       map['role'] = Variable<String>(role.value);
     }
+    if (jawwalPayNumber.present) {
+      map['jawwal_pay_number'] = Variable<String>(jawwalPayNumber.value);
+    }
+    if (verificationStatus.present) {
+      map['verification_status'] = Variable<String>(verificationStatus.value);
+    }
     return map;
   }
 
@@ -794,7 +908,9 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('nationalId: $nationalId, ')
           ..write('pinHash: $pinHash, ')
           ..write('name: $name, ')
-          ..write('role: $role')
+          ..write('role: $role, ')
+          ..write('jawwalPayNumber: $jawwalPayNumber, ')
+          ..write('verificationStatus: $verificationStatus')
           ..write(')'))
         .toString();
   }
@@ -955,7 +1071,7 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   List<Set<GeneratedColumn>> get uniqueKeys => [
-    {userId, storeId, purchaseDate},
+    {userId, purchaseDate},
   ];
   @override
   Purchase map(Map<String, dynamic> data, {String? tablePrefix}) {
@@ -1003,7 +1119,7 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
       const PurchaseStatusConverter();
   @override
   List<String> get customConstraints => const [
-    'UNIQUE(user_id, store_id, purchase_date)',
+    'UNIQUE(user_id, purchase_date)',
   ];
   @override
   bool get dontWriteConstraints => true;
@@ -1600,6 +1716,8 @@ typedef $UsersCreateCompanionBuilder =
       required String pinHash,
       required String name,
       Value<String> role,
+      Value<String?> jawwalPayNumber,
+      Value<String> verificationStatus,
     });
 typedef $UsersUpdateCompanionBuilder =
     UsersCompanion Function({
@@ -1609,6 +1727,8 @@ typedef $UsersUpdateCompanionBuilder =
       Value<String> pinHash,
       Value<String> name,
       Value<String> role,
+      Value<String?> jawwalPayNumber,
+      Value<String> verificationStatus,
     });
 
 final class $UsersReferences
@@ -1670,6 +1790,16 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnFilters<String> get role => $composableBuilder(
     column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get jawwalPayNumber => $composableBuilder(
+    column: $table.jawwalPayNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1736,6 +1866,16 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
     column: $table.role,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get jawwalPayNumber => $composableBuilder(
+    column: $table.jawwalPayNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
@@ -1765,6 +1905,16 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
 
   GeneratedColumn<String> get role =>
       $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get jawwalPayNumber => $composableBuilder(
+    column: $table.jawwalPayNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
+    builder: (column) => column,
+  );
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -1826,6 +1976,8 @@ class $UsersTableManager
                 Value<String> pinHash = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> role = const Value.absent(),
+                Value<String?> jawwalPayNumber = const Value.absent(),
+                Value<String> verificationStatus = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
                 phone: phone,
@@ -1833,6 +1985,8 @@ class $UsersTableManager
                 pinHash: pinHash,
                 name: name,
                 role: role,
+                jawwalPayNumber: jawwalPayNumber,
+                verificationStatus: verificationStatus,
               ),
           createCompanionCallback:
               ({
@@ -1842,6 +1996,8 @@ class $UsersTableManager
                 required String pinHash,
                 required String name,
                 Value<String> role = const Value.absent(),
+                Value<String?> jawwalPayNumber = const Value.absent(),
+                Value<String> verificationStatus = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
                 phone: phone,
@@ -1849,6 +2005,8 @@ class $UsersTableManager
                 pinHash: pinHash,
                 name: name,
                 role: role,
+                jawwalPayNumber: jawwalPayNumber,
+                verificationStatus: verificationStatus,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $UsersReferences(db, table, e)))

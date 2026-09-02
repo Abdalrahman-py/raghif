@@ -1,17 +1,22 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/auth/auth_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:raghif/core/auth/demo_accounts.dart';
 import 'package:raghif/core/auth/pin_hash.dart';
+import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/database/app_database.dart';
+import 'package:raghif/data/repositories/auth_repository_impl.dart';
+import 'package:raghif/domain/models/user_model.dart';
 
 void main() {
   late AppDatabase db;
-  late AuthRepository repo;
+  late AuthRepositoryImpl repo;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     db = AppDatabase(NativeDatabase.memory());
-    repo = AuthRepository(db);
+    repo = AuthRepositoryImpl(db: db, sessionStore: SessionStore());
   });
 
   tearDown(() => db.close());
@@ -36,16 +41,16 @@ void main() {
     final rows = await db.select(db.users).get();
     expect(rows.length, 2);
 
-    final buyer = await repo.findByPhoneAndPin(demoBuyerPhone, demoBuyerPin);
+    final buyer = await repo.login(phone: demoBuyerPhone, pin: demoBuyerPin);
     expect(buyer, isNotNull);
-    expect(buyer!.role, 'buyer');
+    expect(buyer!.role, UserRole.buyer);
 
-    final owner = await repo.findByPhoneAndPin(demoOwnerPhone, demoOwnerPin);
+    final owner = await repo.login(phone: demoOwnerPhone, pin: demoOwnerPin);
     expect(owner, isNotNull);
-    expect(owner!.role, 'owner');
+    expect(owner!.role, UserRole.owner);
   });
 
-  test('findByPhoneAndPin rejects a wrong pin', () async {
+  test('login rejects a wrong pin', () async {
     await repo.register(
       phone: '0599123456',
       pin: '4321',
@@ -53,8 +58,8 @@ void main() {
       name: 'test user',
     );
 
-    expect(await repo.findByPhoneAndPin('0599123456', '0000'), isNull);
-    expect(await repo.findByPhoneAndPin('0599123456', '4321'), isNotNull);
+    expect(await repo.login(phone: '0599123456', pin: '0000'), isNull);
+    expect(await repo.login(phone: '0599123456', pin: '4321'), isNotNull);
   });
 
   test('phoneExists distinguishes a known phone from an unknown one', () async {
@@ -90,16 +95,33 @@ void main() {
     );
   });
 
-  test('register creates a buyer that can then log in', () async {
+  test('register creates a buyer, pending verification, that can then log in', () async {
+    final created = await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+      jawwalPayNumber: '0599123456',
+    );
+    expect(created.role, UserRole.buyer);
+    expect(created.verificationStatus, VerificationStatus.pending);
+    expect(created.jawwalPayNumber, '0599123456');
+
+    final loggedIn = await repo.login(phone: '0599123456', pin: '4321');
+    expect(loggedIn?.id, created.id);
+  });
+
+  test('updateVerificationStatus flips a user to verified', () async {
     final created = await repo.register(
       phone: '0599123456',
       pin: '4321',
       nationalId: '900555666',
       name: 'test user',
     );
-    expect(created.role, 'buyer');
 
-    final loggedIn = await repo.findByPhoneAndPin('0599123456', '4321');
-    expect(loggedIn?.id, created.id);
+    await repo.updateVerificationStatus(created.id, VerificationStatus.verified);
+
+    final user = await repo.findById(created.id);
+    expect(user?.verificationStatus, VerificationStatus.verified);
   });
 }

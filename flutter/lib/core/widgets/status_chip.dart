@@ -49,12 +49,18 @@ class StatusChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: colors.content),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(icon, size: 16, color: colors.content),
+            ),
             const SizedBox(width: 6),
-            Text(
-              text,
-              style: AppTypography.labelMedium.copyWith(color: colors.content),
+            Flexible(
+              child: Text(
+                text,
+                style: AppTypography.labelMedium.copyWith(color: colors.content),
+              ),
             ),
           ],
         ),

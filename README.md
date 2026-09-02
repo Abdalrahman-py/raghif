@@ -19,7 +19,7 @@ Flutter app under `flutter/`, local-only (drift/sqlite3), no backend wired up ye
 
 ## Prototype stack
 
-Flutter, drift (on-device sqlite). Storage is local — Supabase and httpSMS from the spec are
+Flutter, drift (on-device sqlite). Storage is local — Supabase from the spec is
 **not wired up yet**.
 
 ```bash
@@ -33,8 +33,7 @@ cd flutter && flutter run
 | App | Flutter |
 | Backend | Supabase (Postgres + realtime) |
 | Auth | Phone + national ID + local 4-digit PIN |
-| SMS | httpSMS via one centralized Jawwal SIM |
-| Push fallback | FCM |
+| Push | FCM |
 
 ## Business rules
 

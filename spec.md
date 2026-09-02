@@ -25,7 +25,7 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 **Buying Flow**
 - Flat list of ~10 stores by name (no GPS — users recognize their local bakery)
 - Each store shows: available / sold out
-- One bag per national ID per store per day
+- One bag per national ID per day, across all stores (not per-store)
 - Pre-order today for tomorrow's bread or whenever the owner sets the timeframe for purchasing
 - Fixed price: 3 ILS
 
@@ -126,7 +126,7 @@ codegen target). uuid PKs become INTEGER PRIMARY KEY, `pin_hash` is a plain hash
 | status | enum | `waiting` → `notified` → `collected` |
 | created_at | timestamptz | preserves purchase order |
 
-UNIQUE constraint: (user_id, store_id, purchase_date)
+UNIQUE constraint: (user_id, purchase_date)
 
 ---
 
@@ -134,7 +134,7 @@ UNIQUE constraint: (user_id, store_id, purchase_date)
 
 | # | Question | Status |
 |---|---|---|
-| 1 | **Jawwal Pay integration** — Does their business API support the SMS verification code flow? What payment methods do they offer for online merchants? | ⚠️ BLOCKER — Must confirm with Jawwal Pay / supervisor |
+| 1 | **Jawwal Pay integration** — Does their business API support the SMS verification code flow? What payment methods do they offer for online merchants? A mock version of the expected flow (number entry → OTP → confirm) is specced for the prototype; real API integration is still unconfirmed. | ⚠️ BLOCKER (prototype uses a mock) — Must confirm with Jawwal Pay / supervisor |
 | 5 | **WFP approval** — Required before expanding beyond pilot store. | External dependency |
 
 ---

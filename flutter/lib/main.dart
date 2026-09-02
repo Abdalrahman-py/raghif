@@ -1,114 +1,133 @@
 import 'package:flutter/material.dart';
-import 'core/auth/auth_repository.dart';
-import 'core/auth/session_store.dart';
-import 'core/database/app_database.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/di/injection.dart';
+import 'core/onboarding/onboarding_store.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/demo_accounts.dart';
 import 'features/auth/login_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/queue/owner_dashboard_screen.dart';
 import 'features/queue/queue_controller.dart';
 import 'features/queue/store_list_screen.dart';
+import 'features/verification/photo_capture_screen.dart';
+import 'features/verification/waiting_for_verification_screen.dart';
 
-void main() {
-  final db = AppDatabase();
-  runApp(RaghifApp(authRepository: AuthRepository(db), sessionStore: SessionStore()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initDependencies();
+  runApp(const RaghifApp());
 }
 
 class RaghifApp extends StatefulWidget {
-  const RaghifApp({
-    super.key,
-    required this.authRepository,
-    required this.sessionStore,
-  });
+  const RaghifApp({super.key, this.authBloc});
 
-  final AuthRepository authRepository;
-  final SessionStore sessionStore;
+  /// Test seam: inject a pre-built bloc instead of resolving one from [sl].
+  final AuthBloc? authBloc;
 
   @override
   State<RaghifApp> createState() => _RaghifAppState();
 }
 
 class _RaghifAppState extends State<RaghifApp> {
-  // Lives for the app's process lifetime, standing in for real drift-backed
-  // stores/purchases queries until issue #7 wires those up.
   final QueueController _controller = QueueController();
+  late final AuthBloc _authBloc;
 
-  /// null while the seed/session check is in flight, then the restored user
-  /// (skip straight past login) or null-after-load to mean "show login".
-  DemoUser? _restoredUser;
-  bool _restoring = true;
+  /// null while loading, then whether the intro carousel has been seen —
+  /// shown once per install, ahead of login/registration.
+  bool? _hasSeenOnboarding;
 
   @override
   void initState() {
     super.initState();
-    _restore();
-  }
-
-  Future<void> _restore() async {
-    await widget.authRepository.ensureSeeded();
-    final userId = await widget.sessionStore.loadUserId();
-    final user = userId == null ? null : await widget.authRepository.findById(userId);
-    if (!mounted) return;
-    setState(() {
-      _restoring = false;
-      _restoredUser = user == null
-          ? null
-          : DemoUser(
-              phone: user.phone,
-              pin: '',
-              role: user.role == 'owner' ? UserRole.owner : UserRole.buyer,
-              name: user.name,
-            );
+    _authBloc = (widget.authBloc ?? sl<AuthBloc>())
+      ..add(const CheckAuthSessionEvent());
+    OnboardingStore().hasSeenOnboarding().then((seen) {
+      if (mounted) setState(() => _hasSeenOnboarding = seen);
     });
   }
 
   @override
+  void dispose() {
+    _authBloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'رغيف',
-      theme: AppTheme.light,
-      // Forced RTL regardless of device locale — this app is Arabic-only.
-      builder: (context, child) =>
-          Directionality(textDirection: TextDirection.rtl, child: child!),
-      home: Builder(
-        builder: (context) {
-          if (_restoring) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final restored = _restoredUser;
-          if (restored != null) {
-            return restored.role == UserRole.owner
-                ? OwnerDashboardScreen(
-                    controller: _controller,
-                    storeId: demoOwnerStoreId,
-                  )
-                : StoreListScreen(controller: _controller, currentUser: restored);
-          }
-          return LoginScreen(
-            authRepository: widget.authRepository,
-            sessionStore: widget.sessionStore,
-            onLoginBuyer: (user) => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                settings: const RouteSettings(name: StoreListScreen.routeName),
-                builder: (_) =>
-                    StoreListScreen(controller: _controller, currentUser: user),
-              ),
-            ),
-            onLoginOwner: (user) => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                settings: const RouteSettings(
-                  name: OwnerDashboardScreen.routeName,
-                ),
-                builder: (_) => OwnerDashboardScreen(
-                  controller: _controller,
-                  storeId: demoOwnerStoreId,
-                ),
-              ),
-            ),
-          );
-        },
+    return BlocProvider<AuthBloc>.value(
+      value: _authBloc,
+      child: MaterialApp(
+        title: 'رغيف',
+        theme: AppTheme.light,
+        // Forced RTL regardless of device locale — this app is Arabic-only.
+        builder: (context, child) =>
+            Directionality(textDirection: TextDirection.rtl, child: child!),
+        home: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is AuthInitial) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (state is Authenticated) {
+              // Owners are pre-verified (seeded accounts); buyers go through
+              // mock ID/selfie capture once before they can buy.
+              if (!state.user.isOwner && !state.user.isVerified) {
+                return PhotoCaptureScreen(
+                  kind: PhotoCaptureKind.id,
+                  onContinue: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PhotoCaptureScreen(
+                        kind: PhotoCaptureKind.selfie,
+                        onContinue: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const WaitingForVerificationScreen(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final demoUser = DemoUser(
+                phone: state.user.phone,
+                pin: '',
+                role: state.user.isOwner ? UserRole.owner : UserRole.buyer,
+                name: state.user.name,
+              );
+
+              return state.user.isOwner
+                  ? OwnerDashboardScreen(
+                      controller: _controller,
+                      storeId: demoOwnerStoreId,
+                    )
+                  : StoreListScreen(
+                      controller: _controller,
+                      currentUser: demoUser,
+                    );
+            }
+
+            // Unauthenticated, AuthLoading (session check or a login/register
+            // submit in flight), AuthFailure, AuthSwitchToRegister — all show
+            // the login form (after the once-per-install intro carousel);
+            // LoginScreen reads AuthBloc state itself for its own
+            // loading/error UI.
+            if (_hasSeenOnboarding == null) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (_hasSeenOnboarding == false) {
+              return OnboardingScreen(
+                onDone: () => setState(() => _hasSeenOnboarding = true),
+              );
+            }
+            return const LoginScreen();
+          },
+        ),
       ),
     );
   }

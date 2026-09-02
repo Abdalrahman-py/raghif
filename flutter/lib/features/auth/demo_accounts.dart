@@ -1,9 +1,10 @@
-/// Presentation-layer view of a logged-in user, decoupled from the drift
-/// `User` row so screens under features/queue/ don't need a database
-/// dependency. AuthRepository-backed logins are adapted into this by
-/// LoginScreen; see core/auth/auth_repository.dart for the real lookup.
-enum UserRole { buyer, owner }
+import '../../domain/models/user_model.dart' show UserRole;
+export '../../domain/models/user_model.dart' show UserRole;
 
+/// Presentation-layer view of a logged-in user, decoupled from the domain
+/// `UserModel` so screens under features/queue/ don't need to know about
+/// the auth layer. Adapted from `AuthBloc`'s `Authenticated` state in
+/// main.dart.
 class DemoUser {
   const DemoUser({
     required this.phone,
