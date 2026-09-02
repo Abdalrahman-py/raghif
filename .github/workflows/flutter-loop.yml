@@ -72,8 +72,9 @@ jobs:
             Only ever work ONE of the above per run — never both.
 
             Source of truth: spec.md (product + local schema), UI_SPEC.md (design tokens).
-            Prototype is LOCAL-ONLY: SQLDelight for on-device persistence — never add
-            Supabase, httpSMS, or any hosted backend.
+            Prototype is LOCAL-ONLY: drift (the Dart equivalent of SQLDelight, which has no
+            Dart codegen target) for on-device persistence — never add Supabase, httpSMS, or
+            any hosted backend.
             The Kotlin app under app/ is a throwaway prototype — reference for behavior only,
             do not port its structure.
 
