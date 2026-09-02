@@ -1,9 +1,10 @@
 # Raghif Flutter Port — Task Backlog
 
-Consumed by `.github/workflows/flutter-loop.yml` (runs every 6h). The loop checks open GitHub
-issues first (label `flutter-port`, or any open issue if that label isn't in use yet) — this
-file is the **fallback** when no issues are open. One unchecked task per run, top to bottom.
-Check a box, commit, stop — don't chain multiple tasks in one run.
+Open GitHub issues (prioritized p0 > p1 > p2) are the main task queue; this file
+catches broader work that isn't issue-shaped. One item at a time, top to bottom.
+
+Every push/PR is verified by Flutter CI (`.github/workflows/flutter-ci.yml`):
+`flutter analyze`, `flutter test`, and a debug APK build must all pass.
 
 Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
 The original Kotlin/Compose prototype under `app/` has been removed — the Flutter app is the
@@ -18,23 +19,24 @@ only implementation now (see #10).
 - [x] Define the local schema from `spec.md` as `drift` schema files (generated Dart types).
       Done in #19 — `drift` is the Dart-ecosystem equivalent of SQLDelight (which has no
       Dart/Flutter codegen target; see #4 for the full history).
-- [ ] Set up `drift` (drift_dev + sqlite3 driver) and wire local auth: phone + PIN login
-      against the local `users` table, session persisted on-device. In review, see #24.
+- [x] Set up `drift` (drift_dev + sqlite3 driver) and wire local auth: phone + PIN login
+      against the local `users` table, session persisted on-device. Done in #24 (and
+      reworked with the domain/data layers in the Sep 2026 refactor).
 - [x] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
       Done in #13.
-- [ ] Replace mock data with real `drift` queries (#7, assigned).
-- [ ] Add widget tests for the queue/pre-order flow.
-- [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly (needs Android
-      SDK setup in the workflow — not yet added, keep loop on `flutter analyze`/`flutter test`
-      until this task).
+- [ ] Replace mock data with real `drift` queries (#7, open).
+- [ ] Add widget tests for the queue/pre-order flow (#8, open).
+- [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly.
+      Done: Flutter CI (`flutter-ci.yml`) runs analyze + test + debug APK build on
+      every push/PR.
 
-## Notes for the loop
+## Notes
 
-- If `flutter/` doesn't exist yet, the first task (scaffold) is always next regardless of
-  checkboxes above it — don't skip ahead.
-- If a task fails (analyze/test red), fix it in the same run rather than checking the box.
-- Keep runs small. A half-finished screen committed with a clear TODO comment beats an
-  uncommitted large diff lost when the run ends.
+- Keep changes small and reviewable; check a box (or close an issue) only when the work
+  is actually done and CI is green.
+- CI pins Flutter to 3.41.6 (the version the project was created with — see the workflow
+  comment). Before upgrading Flutter locally, bump the Android Gradle wrapper to >= 8.14
+  and re-check AGP/Kotlin compatibility, or `flutter build apk` will fail.
 - Prototype is LOCAL-ONLY: `drift` for persistence — the Dart-ecosystem equivalent of
   SQLDelight (SQLDelight itself is Kotlin/KMP-only and has no Dart/Flutter codegen target;
   no `sqldelight` package exists on pub.dev). See spec.md's Technical Decisions callout and
