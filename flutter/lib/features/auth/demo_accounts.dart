@@ -1,5 +1,6 @@
 import '../../domain/models/user_model.dart' show UserRole;
 export '../../domain/models/user_model.dart' show UserRole;
+export '../../core/auth/demo_accounts.dart';
 
 /// Presentation-layer view of a logged-in user, decoupled from the domain
 /// `UserModel` so screens under features/queue/ don't need to know about
@@ -20,8 +21,3 @@ class DemoUser {
   final String name;
   final String? jawwalPayNumber;
 }
-
-const demoBuyerPhone = '0599111111';
-const demoBuyerPin = '1234';
-const demoOwnerPhone = '0599222222';
-const demoOwnerPin = '1234';

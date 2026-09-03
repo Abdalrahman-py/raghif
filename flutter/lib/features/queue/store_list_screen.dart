@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/status_chip.dart';
+import '../auth/bloc/auth_bloc.dart';
 import '../auth/demo_accounts.dart';
 import 'models.dart';
 import 'purchase_screen.dart';
@@ -34,7 +36,7 @@ class StoreListScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             tooltip: Strings.logout,
             onPressed: () =>
-                Navigator.of(context).popUntil((route) => route.isFirst),
+                context.read<AuthBloc>().add(const LogoutRequestedEvent()),
           ),
         ],
       ),

@@ -8,7 +8,22 @@ abstract class AuthRepository {
     required String pin,
   });
 
+  Future<UserModel?> loginWithPin({
+    required String nationalId,
+    required String pin,
+  });
+
+  Future<UserModel?> loginWithOtp({
+    required String nationalId,
+  });
+
+  Future<String?> requestOtp(String nationalId);
+
   Future<UserModel?> findById(int id);
+
+  Future<UserModel?> findByNationalId(String nationalId);
+
+  Future<bool> nationalIdExists(String nationalId);
 
   Future<bool> phoneExists(String phone);
 

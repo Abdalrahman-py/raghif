@@ -78,10 +78,70 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<UserModel?> loginWithPin({
+    required String nationalId,
+    required String pin,
+  }) async {
+    final user = await (_db.select(_db.users)
+          ..where((u) => u.nationalId.equals(nationalId.trim())))
+        .getSingleOrNull();
+
+    if (user == null) return null;
+
+    final hash = hashPin(user.phone, pin.trim());
+    if (user.pinHash == hash) {
+      await _sessionStore.saveUserId(user.id);
+      return _toDomain(user);
+    }
+    return null;
+  }
+
+  @override
+  Future<UserModel?> loginWithOtp({
+    required String nationalId,
+  }) async {
+    final user = await (_db.select(_db.users)
+          ..where((u) => u.nationalId.equals(nationalId.trim())))
+        .getSingleOrNull();
+
+    if (user != null) {
+      await _sessionStore.saveUserId(user.id);
+      return _toDomain(user);
+    }
+    return null;
+  }
+
+  @override
+  Future<String?> requestOtp(String nationalId) async {
+    final user = await (_db.select(_db.users)
+          ..where((u) => u.nationalId.equals(nationalId.trim())))
+        .getSingleOrNull();
+
+    if (user == null) return null;
+    return '4821';
+  }
+
+  @override
   Future<UserModel?> findById(int id) async {
     final user = await (_db.select(_db.users)..where((u) => u.id.equals(id)))
         .getSingleOrNull();
     return user == null ? null : _toDomain(user);
+  }
+
+  @override
+  Future<UserModel?> findByNationalId(String nationalId) async {
+    final user = await (_db.select(_db.users)
+          ..where((u) => u.nationalId.equals(nationalId.trim())))
+        .getSingleOrNull();
+    return user == null ? null : _toDomain(user);
+  }
+
+  @override
+  Future<bool> nationalIdExists(String nationalId) async {
+    final row = await (_db.select(_db.users)
+          ..where((u) => u.nationalId.equals(nationalId.trim())))
+        .getSingleOrNull();
+    return row != null;
   }
 
   @override

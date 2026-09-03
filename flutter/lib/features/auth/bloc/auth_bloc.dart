@@ -17,6 +17,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _sessionStore = sessionStore,
         super(const AuthInitial()) {
     on<CheckAuthSessionEvent>(_onCheckAuthSession);
+    on<RequestOtpEvent>(_onRequestOtp);
+    on<VerifyOtpEvent>(_onVerifyOtp);
+    on<PinLoginRequestedEvent>(_onPinLoginRequested);
     on<LoginRequestedEvent>(_onLoginRequested);
     on<RegisterRequestedEvent>(_onRegisterRequested);
     on<LogoutRequestedEvent>(_onLogoutRequested);
@@ -25,6 +28,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   final AuthRepository _authRepository;
   final SessionStore _sessionStore;
+
+  String? _pendingOtp;
+  String? _pendingNationalId;
 
   Future<void> _onCheckAuthSession(
     CheckAuthSessionEvent event,
@@ -51,6 +57,101 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onRequestOtp(
+    RequestOtpEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final nationalId = event.nationalId.trim();
+      final user = await _authRepository.findByNationalId(nationalId);
+      if (user == null) {
+        emit(AuthSwitchToRegister(nationalId: nationalId));
+        return;
+      }
+
+      final otp = await _authRepository.requestOtp(nationalId);
+      if (otp == null) {
+        emit(AuthSwitchToRegister(nationalId: nationalId));
+        return;
+      }
+
+      _pendingOtp = otp;
+      _pendingNationalId = nationalId;
+      emit(AuthOtpSent(
+        nationalId: nationalId,
+        phone: user.phone,
+        otpCode: otp,
+      ));
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onVerifyOtp(
+    VerifyOtpEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final nationalId = event.nationalId.trim();
+      final otp = event.otp.trim();
+
+      if (_pendingNationalId != null && _pendingNationalId != nationalId) {
+        emit(const AuthFailure(Strings.otpError));
+        return;
+      }
+
+      final expectedOtp = _pendingOtp ??
+          (state is AuthOtpSent ? (state as AuthOtpSent).otpCode : '4821');
+
+      if (otp != expectedOtp) {
+        emit(const AuthFailure(Strings.otpError));
+        return;
+      }
+
+      final user = await _authRepository.loginWithOtp(nationalId: nationalId);
+      if (user != null) {
+        _pendingOtp = null;
+        _pendingNationalId = null;
+        emit(Authenticated(user));
+      } else {
+        emit(const AuthFailure(Strings.loginError));
+      }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onPinLoginRequested(
+    PinLoginRequestedEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final nationalId = event.nationalId.trim();
+      final pin = event.pin.trim();
+
+      final user = await _authRepository.loginWithPin(
+        nationalId: nationalId,
+        pin: pin,
+      );
+      if (user != null) {
+        emit(Authenticated(user));
+        return;
+      }
+
+      final exists = await _authRepository.nationalIdExists(nationalId);
+      if (exists) {
+        emit(const AuthFailure(Strings.loginError));
+      } else {
+        emit(AuthSwitchToRegister(nationalId: nationalId));
+      }
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+    }
+  }
+
   Future<void> _onLoginRequested(
     LoginRequestedEvent event,
     Emitter<AuthState> emit,
@@ -70,7 +171,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (exists) {
         emit(const AuthFailure(Strings.loginError));
       } else {
-        emit(AuthSwitchToRegister(phone: phone));
+        emit(AuthSwitchToRegister(nationalId: phone));
       }
     } catch (e) {
       emit(AuthFailure(e.toString()));

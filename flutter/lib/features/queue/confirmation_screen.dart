@@ -1,11 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
+import '../auth/demo_accounts.dart';
 import 'models.dart';
+import 'qr_payload.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 import 'store_list_screen.dart';
@@ -18,10 +25,12 @@ class ConfirmationScreen extends StatelessWidget {
     super.key,
     required this.controller,
     required this.purchaseId,
+    required this.currentUser,
   });
 
   final QueueController controller;
   final String purchaseId;
+  final DemoUser currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +47,17 @@ class ConfirmationScreen extends StatelessWidget {
           );
           final position = queue.indexWhere((p) => p.id == purchaseId) + 1;
           final readyAtLabel = formatReadyTime(
-            estimatedReadyAtMillis(purchase.createdAtMillis, purchase.batchNumber),
+            estimatedReadyAtMillis(
+              purchase.createdAtMillis,
+              purchase.batchNumber,
+            ),
+          );
+          final store = controller.storeById(purchase.storeId);
+          final qrPayload = QrPayload(
+            purchaseId: purchase.id,
+            userName: currentUser.name,
+            storeName: store?.name ?? '',
+            purchaseDate: purchase.purchaseDate,
           );
 
           return SafeArea(
@@ -99,6 +118,48 @@ class ConfirmationScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AppCard(
+                        child: Column(
+                          children: [
+                            Text(
+                              Strings.receiptQrTitle,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              Strings.receiptQrSubtitle,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(AppSpacing.sm),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: QrImageView(
+                                  data: qrPayload.encode(),
+                                  version: QrVersions.auto,
+                                  size: 200.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            SecondaryButton(
+                              text: Strings.shareQrButton,
+                              onPressed: () => _shareQr(context, qrPayload),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.xl),
                       PrimaryButton(
                         text: Strings.returnToStores,
@@ -115,5 +176,29 @@ class ConfirmationScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _shareQr(BuildContext context, QrPayload payload) async {
+    try {
+      final painter = QrPainter(
+        data: payload.encode(),
+        version: QrVersions.auto,
+        gapless: true,
+      );
+      final picData = await painter.toImageData(600);
+      if (picData != null) {
+        final bytes = picData.buffer.asUint8List();
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/qr_${payload.purchaseId}.png');
+        await file.writeAsBytes(bytes);
+        await Share.shareXFiles([
+          XFile(file.path, mimeType: 'image/png'),
+        ], text: '${payload.storeName} - ${payload.userName}');
+        return;
+      }
+    } catch (_) {
+      // Fallback
+    }
+    await Share.share(payload.encode());
   }
 }

@@ -80,6 +80,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
         builder: (_) => ConfirmationScreen(
           controller: widget.controller,
           purchaseId: purchaseId,
+          currentUser: widget.currentUser,
         ),
       ),
     );

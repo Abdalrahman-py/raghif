@@ -124,4 +124,82 @@ void main() {
     final user = await repo.findById(created.id);
     expect(user?.verificationStatus, VerificationStatus.verified);
   });
+
+  test('loginWithPin authenticates using national ID and salts with user phone', () async {
+    await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+    );
+
+    // Correct national ID and PIN
+    final user = await repo.loginWithPin(nationalId: '900555666', pin: '4321');
+    expect(user, isNotNull);
+    expect(user!.nationalId, '900555666');
+    expect(user.phone, '0599123456');
+
+    // Wrong PIN
+    expect(await repo.loginWithPin(nationalId: '900555666', pin: '0000'), isNull);
+
+    // Non-existent national ID
+    expect(await repo.loginWithPin(nationalId: '900999999', pin: '4321'), isNull);
+  });
+
+  test('nationalIdExists distinguishes known from unknown national ID', () async {
+    await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+    );
+
+    expect(await repo.nationalIdExists('900555666'), isTrue);
+    expect(await repo.nationalIdExists('900999999'), isFalse);
+  });
+
+  test('findByNationalId returns user model or null', () async {
+    await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+    );
+
+    final found = await repo.findByNationalId('900555666');
+    expect(found, isNotNull);
+    expect(found!.phone, '0599123456');
+
+    expect(await repo.findByNationalId('900999999'), isNull);
+  });
+
+  test('requestOtp returns demo OTP for registered user, null otherwise', () async {
+    await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+    );
+
+    final otp = await repo.requestOtp('900555666');
+    expect(otp, isNotNull);
+    expect(otp, '4821');
+
+    expect(await repo.requestOtp('900999999'), isNull);
+  });
+
+  test('loginWithOtp completes login and sets session for registered user', () async {
+    final registered = await repo.register(
+      phone: '0599123456',
+      pin: '4321',
+      nationalId: '900555666',
+      name: 'test user',
+    );
+
+    final user = await repo.loginWithOtp(nationalId: '900555666');
+    expect(user, isNotNull);
+    expect(user!.id, registered.id);
+
+    expect(await repo.loginWithOtp(nationalId: '900999999'), isNull);
+  });
 }

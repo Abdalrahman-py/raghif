@@ -59,8 +59,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(Strings.appTitle), findsOneWidget);
-    expect(find.text(Strings.loginButton), findsOneWidget);
-    expect(find.text(Strings.phoneLabel), findsOneWidget);
-    expect(find.text(Strings.pinLabel), findsOneWidget);
+    expect(find.text(Strings.requestOtpButton), findsOneWidget);
+    expect(find.text(Strings.personalIdLabel), findsOneWidget);
+    expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
   });
 }
