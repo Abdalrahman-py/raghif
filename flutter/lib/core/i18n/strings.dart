@@ -41,7 +41,8 @@ class Strings {
 
   // Registration
   static const registrationTitle = 'إنشاء حساب جديد';
-  static const registrationSubtitle = 'المعلومات التالية مطلوبة للتحقق من هويتك وحجز الخبز';
+  static const registrationSubtitle =
+      'المعلومات التالية مطلوبة للتحقق من هويتك وحجز الخبز';
   static const jawwalPayNumberLabel = 'رقم جوال باي';
   static const jawwalPayNumberHint = 'سيُستخدم للدفع عند الشراء';
 
@@ -56,9 +57,11 @@ class Strings {
   static const retakePhoto = 'إعادة الالتقاط';
   static const continueLabel = 'متابعة';
   static const verifyingTitle = 'جاري التحقق من حسابك';
-  static const verifyingBody = 'يرجى الانتظار بينما نتحقق من بياناتك. هذا قد يستغرق لحظات.';
+  static const verifyingBody =
+      'يرجى الانتظار بينما نتحقق من بياناتك. هذا قد يستغرق لحظات.';
   static const verifiedTitle = 'تم التحقق من حسابك!';
-  static const verifiedBody = 'يمكنك الآن حجز كيس الخبز اليومي من أي مخبز متاح.';
+  static const verifiedBody =
+      'يمكنك الآن حجز كيس الخبز اليومي من أي مخبز متاح.';
   static const continueToApp = 'الانتقال إلى التطبيق';
 
   // Store list
@@ -107,4 +110,23 @@ class Strings {
   static const statusCollectedShort = 'تم الاستلام';
   static const markReceived = 'تأكيد الاستلام';
   static const undoReceived = 'تراجع عن الاستلام';
+
+  // Payment (Jawwal Pay mock)
+  static const paymentTitle = 'الدفع عبر جوال باي';
+  static const confirmJawwalPayNumber = 'تأكيد رقم جوال باي';
+  static const jawwalPayPrompt = 'سيتم خصم 3 شيكل من محفظة جوال باي الخاصة بك.';
+  static const proceedToOtp = 'إرسال رمز التأكيد';
+  static const paymentOtpTitle = 'رمز تأكيد الدفع';
+  static const paymentOtpInstructions =
+      'أدخل رمز التأكيد المكون من 4 أرقام لتأكيد عملية الدفع.';
+  static String demoOtpNotification(String code) =>
+      'رمز التحقق (رسالة تجريبية): $code';
+  static const paymentOtpLabel = 'رمز التأكيد (OTP)';
+  static const confirmPaymentButton = 'تأكيد الدفع';
+  static const resendCodeButton = 'إعادة إرسال الرمز';
+  static const wrongOtpError = 'رمز التأكيد غير صحيح، يرجى المحاولة مرة أخرى';
+  static const paymentSuccessTitle = 'تم الدفع بنجاح';
+  static const paymentSuccessMessage =
+      'تمت عملية الدفع بنجاح بقيمة 3 شيكل عبر جوال باي.';
+  static const completeReservationButton = 'إتمام الحجز';
 }

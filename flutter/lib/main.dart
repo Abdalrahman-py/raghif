@@ -83,7 +83,8 @@ class _RaghifAppState extends State<RaghifApp> {
                         kind: PhotoCaptureKind.selfie,
                         onContinue: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const WaitingForVerificationScreen(),
+                            builder: (_) =>
+                                const WaitingForVerificationScreen(),
                           ),
                         ),
                       ),
@@ -97,6 +98,7 @@ class _RaghifAppState extends State<RaghifApp> {
                 pin: '',
                 role: state.user.isOwner ? UserRole.owner : UserRole.buyer,
                 name: state.user.name,
+                jawwalPayNumber: state.user.jawwalPayNumber,
               );
 
               return state.user.isOwner
