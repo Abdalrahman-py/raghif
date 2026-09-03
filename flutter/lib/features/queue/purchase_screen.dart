@@ -5,6 +5,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../auth/demo_accounts.dart';
+import '../payment/payment_number_screen.dart';
 import 'confirmation_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -32,6 +33,20 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
   bool _isPaying = false;
 
   String get _userId => widget.currentUser.phone;
+
+  void _startPaymentFlow() async {
+    final paid = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PaymentNumberScreen(
+          initialNumber:
+              widget.currentUser.jawwalPayNumber ?? widget.currentUser.phone,
+        ),
+      ),
+    );
+    if (paid == true && mounted) {
+      _pay();
+    }
+  }
 
   void _pay() async {
     setState(() => _isPaying = true);
@@ -127,7 +142,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                     PrimaryButton(
                       text: Strings.payButton,
                       loading: _isPaying,
-                      onPressed: _pay,
+                      onPressed: _startPaymentFlow,
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),
