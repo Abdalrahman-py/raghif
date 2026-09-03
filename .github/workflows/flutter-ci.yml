@@ -66,9 +66,13 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | flutter doctor --android-licenses || true
 
-      - name: Build debug APK
+      # arm64-v8a only: covers virtually every Android device from the last ~6
+      # years and cuts APK size roughly 3x versus bundling all ABIs (the
+      # default universal debug build pulls in mobile_scanner's ML Kit native
+      # libs for arm64-v8a + armeabi-v7a + x86_64 alike).
+      - name: Build debug APK (arm64-v8a only)
         working-directory: flutter
-        run: flutter build apk --debug
+        run: flutter build apk --debug --target-platform android-arm64
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
