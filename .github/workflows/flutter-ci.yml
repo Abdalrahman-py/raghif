@@ -66,23 +66,25 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | flutter doctor --android-licenses || true
 
-      # arm64-v8a only: covers virtually every Android device from the last ~6
-      # years and cuts APK size roughly 3x versus bundling all ABIs (the
-      # default universal debug build pulls in mobile_scanner's ML Kit native
-      # libs for arm64-v8a + armeabi-v7a + x86_64 alike).
-      - name: Build debug APK (arm64-v8a only)
+      # Release, arm64-v8a only: a debug build ships the ~80MB Dart JIT kernel
+      # (kernel_blob.bin + isolate_snapshot_data) that release's AOT compile
+      # skips entirely, plus unstripped debug .so's for every ABI. Release
+      # signs with the debug keystore (see android/app/build.gradle.kts), so
+      # no signing secret is needed. arm64-v8a alone covers virtually every
+      # physical Android device from the last ~6 years.
+      - name: Build release APK (arm64-v8a only)
         working-directory: flutter
-        run: flutter build apk --debug --target-platform android-arm64
+        run: flutter build apk --release --target-platform android-arm64
 
-      - name: Upload debug APK
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: raghif-debug-apk
-          path: flutter/build/app/outputs/flutter-apk/app-debug.apk
+          name: raghif-release-apk
+          path: flutter/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
-  # Rolling "latest" release so the debug APK is one click away (App Store-less
-  # installs). Runs on master pushes and manual dispatches, never on PRs.
+  # Rolling "latest" release so the release APK is one click away (App
+  # Store-less installs). Runs on master pushes and manual dispatches, never on PRs.
   release:
     needs: build
     if: github.event_name != 'pull_request'
@@ -91,10 +93,10 @@ jobs:
     permissions:
       contents: write # create/update the rolling release
     steps:
-      - name: Download debug APK
+      - name: Download release APK
         uses: actions/download-artifact@v4
         with:
-          name: raghif-debug-apk
+          name: raghif-release-apk
           path: apk
 
       - name: Publish rolling release
@@ -105,8 +107,8 @@ jobs:
           # --repo is required: this job never checks out, so gh has no git
           # context to infer the repository from.
           gh release delete latest --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-          gh release create latest --repo "$GITHUB_REPOSITORY" apk/app-debug.apk \
-            --title "Latest debug build" \
+          gh release create latest --repo "$GITHUB_REPOSITORY" apk/app-release.apk \
+            --title "Latest build" \
             --notes "Auto-built from commit \`${{ github.sha }}\` (${{ github.ref_name }})" \
             --target "${{ github.sha }}"
 

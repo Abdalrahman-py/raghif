@@ -51,7 +51,6 @@ dependencies:
   intl: ^0.20.2
   easy_localization: ^3.0.7
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.4
   image_picker: ^1.1.2
   path_provider: ^2.1.5
   flutter_local_notifications: ^18.0.1
