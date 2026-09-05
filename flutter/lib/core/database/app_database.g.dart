@@ -70,6 +70,28 @@ class Stores extends Table with TableInfo<Stores, Store> {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
+  static const VerificationMeta _openTimeMeta = const VerificationMeta(
+    'openTime',
+  );
+  late final GeneratedColumn<String> openTime = GeneratedColumn<String>(
+    'open_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  static const VerificationMeta _closeTimeMeta = const VerificationMeta(
+    'closeTime',
+  );
+  late final GeneratedColumn<String> closeTime = GeneratedColumn<String>(
+    'close_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -78,6 +100,8 @@ class Stores extends Table with TableInfo<Stores, Store> {
     isOpen,
     dailyBagLimit,
     bagsRemaining,
+    openTime,
+    closeTime,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -138,6 +162,18 @@ class Stores extends Table with TableInfo<Stores, Store> {
     } else if (isInserting) {
       context.missing(_bagsRemainingMeta);
     }
+    if (data.containsKey('open_time')) {
+      context.handle(
+        _openTimeMeta,
+        openTime.isAcceptableOrUnknown(data['open_time']!, _openTimeMeta),
+      );
+    }
+    if (data.containsKey('close_time')) {
+      context.handle(
+        _closeTimeMeta,
+        closeTime.isAcceptableOrUnknown(data['close_time']!, _closeTimeMeta),
+      );
+    }
     return context;
   }
 
@@ -171,6 +207,14 @@ class Stores extends Table with TableInfo<Stores, Store> {
         DriftSqlType.int,
         data['${effectivePrefix}bags_remaining'],
       )!,
+      openTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}open_time'],
+      ),
+      closeTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}close_time'],
+      ),
     );
   }
 
@@ -190,6 +234,11 @@ class Store extends DataClass implements Insertable<Store> {
   final bool isOpen;
   final int dailyBagLimit;
   final int bagsRemaining;
+
+  /// Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
+  /// purely informational for buyers, doesn't itself gate `is_open`.
+  final String? openTime;
+  final String? closeTime;
   const Store({
     required this.id,
     required this.name,
@@ -197,6 +246,8 @@ class Store extends DataClass implements Insertable<Store> {
     required this.isOpen,
     required this.dailyBagLimit,
     required this.bagsRemaining,
+    this.openTime,
+    this.closeTime,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -207,6 +258,12 @@ class Store extends DataClass implements Insertable<Store> {
     map['is_open'] = Variable<bool>(isOpen);
     map['daily_bag_limit'] = Variable<int>(dailyBagLimit);
     map['bags_remaining'] = Variable<int>(bagsRemaining);
+    if (!nullToAbsent || openTime != null) {
+      map['open_time'] = Variable<String>(openTime);
+    }
+    if (!nullToAbsent || closeTime != null) {
+      map['close_time'] = Variable<String>(closeTime);
+    }
     return map;
   }
 
@@ -218,6 +275,12 @@ class Store extends DataClass implements Insertable<Store> {
       isOpen: Value(isOpen),
       dailyBagLimit: Value(dailyBagLimit),
       bagsRemaining: Value(bagsRemaining),
+      openTime: openTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openTime),
+      closeTime: closeTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closeTime),
     );
   }
 
@@ -233,6 +296,8 @@ class Store extends DataClass implements Insertable<Store> {
       isOpen: serializer.fromJson<bool>(json['is_open']),
       dailyBagLimit: serializer.fromJson<int>(json['daily_bag_limit']),
       bagsRemaining: serializer.fromJson<int>(json['bags_remaining']),
+      openTime: serializer.fromJson<String?>(json['open_time']),
+      closeTime: serializer.fromJson<String?>(json['close_time']),
     );
   }
   @override
@@ -245,6 +310,8 @@ class Store extends DataClass implements Insertable<Store> {
       'is_open': serializer.toJson<bool>(isOpen),
       'daily_bag_limit': serializer.toJson<int>(dailyBagLimit),
       'bags_remaining': serializer.toJson<int>(bagsRemaining),
+      'open_time': serializer.toJson<String?>(openTime),
+      'close_time': serializer.toJson<String?>(closeTime),
     };
   }
 
@@ -255,6 +322,8 @@ class Store extends DataClass implements Insertable<Store> {
     bool? isOpen,
     int? dailyBagLimit,
     int? bagsRemaining,
+    Value<String?> openTime = const Value.absent(),
+    Value<String?> closeTime = const Value.absent(),
   }) => Store(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -262,6 +331,8 @@ class Store extends DataClass implements Insertable<Store> {
     isOpen: isOpen ?? this.isOpen,
     dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
     bagsRemaining: bagsRemaining ?? this.bagsRemaining,
+    openTime: openTime.present ? openTime.value : this.openTime,
+    closeTime: closeTime.present ? closeTime.value : this.closeTime,
   );
   Store copyWithCompanion(StoresCompanion data) {
     return Store(
@@ -277,6 +348,8 @@ class Store extends DataClass implements Insertable<Store> {
       bagsRemaining: data.bagsRemaining.present
           ? data.bagsRemaining.value
           : this.bagsRemaining,
+      openTime: data.openTime.present ? data.openTime.value : this.openTime,
+      closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
     );
   }
 
@@ -288,14 +361,24 @@ class Store extends DataClass implements Insertable<Store> {
           ..write('ownerPhone: $ownerPhone, ')
           ..write('isOpen: $isOpen, ')
           ..write('dailyBagLimit: $dailyBagLimit, ')
-          ..write('bagsRemaining: $bagsRemaining')
+          ..write('bagsRemaining: $bagsRemaining, ')
+          ..write('openTime: $openTime, ')
+          ..write('closeTime: $closeTime')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, ownerPhone, isOpen, dailyBagLimit, bagsRemaining);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    ownerPhone,
+    isOpen,
+    dailyBagLimit,
+    bagsRemaining,
+    openTime,
+    closeTime,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -305,7 +388,9 @@ class Store extends DataClass implements Insertable<Store> {
           other.ownerPhone == this.ownerPhone &&
           other.isOpen == this.isOpen &&
           other.dailyBagLimit == this.dailyBagLimit &&
-          other.bagsRemaining == this.bagsRemaining);
+          other.bagsRemaining == this.bagsRemaining &&
+          other.openTime == this.openTime &&
+          other.closeTime == this.closeTime);
 }
 
 class StoresCompanion extends UpdateCompanion<Store> {
@@ -315,6 +400,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
   final Value<bool> isOpen;
   final Value<int> dailyBagLimit;
   final Value<int> bagsRemaining;
+  final Value<String?> openTime;
+  final Value<String?> closeTime;
   const StoresCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -322,6 +409,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.isOpen = const Value.absent(),
     this.dailyBagLimit = const Value.absent(),
     this.bagsRemaining = const Value.absent(),
+    this.openTime = const Value.absent(),
+    this.closeTime = const Value.absent(),
   });
   StoresCompanion.insert({
     this.id = const Value.absent(),
@@ -330,6 +419,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.isOpen = const Value.absent(),
     required int dailyBagLimit,
     required int bagsRemaining,
+    this.openTime = const Value.absent(),
+    this.closeTime = const Value.absent(),
   }) : name = Value(name),
        ownerPhone = Value(ownerPhone),
        dailyBagLimit = Value(dailyBagLimit),
@@ -341,6 +432,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Expression<bool>? isOpen,
     Expression<int>? dailyBagLimit,
     Expression<int>? bagsRemaining,
+    Expression<String>? openTime,
+    Expression<String>? closeTime,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -349,6 +442,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
       if (isOpen != null) 'is_open': isOpen,
       if (dailyBagLimit != null) 'daily_bag_limit': dailyBagLimit,
       if (bagsRemaining != null) 'bags_remaining': bagsRemaining,
+      if (openTime != null) 'open_time': openTime,
+      if (closeTime != null) 'close_time': closeTime,
     });
   }
 
@@ -359,6 +454,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Value<bool>? isOpen,
     Value<int>? dailyBagLimit,
     Value<int>? bagsRemaining,
+    Value<String?>? openTime,
+    Value<String?>? closeTime,
   }) {
     return StoresCompanion(
       id: id ?? this.id,
@@ -367,6 +464,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
       isOpen: isOpen ?? this.isOpen,
       dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
       bagsRemaining: bagsRemaining ?? this.bagsRemaining,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
     );
   }
 
@@ -391,6 +490,12 @@ class StoresCompanion extends UpdateCompanion<Store> {
     if (bagsRemaining.present) {
       map['bags_remaining'] = Variable<int>(bagsRemaining.value);
     }
+    if (openTime.present) {
+      map['open_time'] = Variable<String>(openTime.value);
+    }
+    if (closeTime.present) {
+      map['close_time'] = Variable<String>(closeTime.value);
+    }
     return map;
   }
 
@@ -402,7 +507,9 @@ class StoresCompanion extends UpdateCompanion<Store> {
           ..write('ownerPhone: $ownerPhone, ')
           ..write('isOpen: $isOpen, ')
           ..write('dailyBagLimit: $dailyBagLimit, ')
-          ..write('bagsRemaining: $bagsRemaining')
+          ..write('bagsRemaining: $bagsRemaining, ')
+          ..write('openTime: $openTime, ')
+          ..write('closeTime: $closeTime')
           ..write(')'))
         .toString();
   }
@@ -1410,6 +1517,8 @@ typedef $StoresCreateCompanionBuilder =
       Value<bool> isOpen,
       required int dailyBagLimit,
       required int bagsRemaining,
+      Value<String?> openTime,
+      Value<String?> closeTime,
     });
 typedef $StoresUpdateCompanionBuilder =
     StoresCompanion Function({
@@ -1419,6 +1528,8 @@ typedef $StoresUpdateCompanionBuilder =
       Value<bool> isOpen,
       Value<int> dailyBagLimit,
       Value<int> bagsRemaining,
+      Value<String?> openTime,
+      Value<String?> closeTime,
     });
 
 final class $StoresReferences
@@ -1480,6 +1591,16 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
 
   ColumnFilters<int> get bagsRemaining => $composableBuilder(
     column: $table.bagsRemaining,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get openTime => $composableBuilder(
+    column: $table.openTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closeTime => $composableBuilder(
+    column: $table.closeTime,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1546,6 +1667,16 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     column: $table.bagsRemaining,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get openTime => $composableBuilder(
+    column: $table.openTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closeTime => $composableBuilder(
+    column: $table.closeTime,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
@@ -1579,6 +1710,12 @@ class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
     column: $table.bagsRemaining,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get openTime =>
+      $composableBuilder(column: $table.openTime, builder: (column) => column);
+
+  GeneratedColumn<String> get closeTime =>
+      $composableBuilder(column: $table.closeTime, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -1640,6 +1777,8 @@ class $StoresTableManager
                 Value<bool> isOpen = const Value.absent(),
                 Value<int> dailyBagLimit = const Value.absent(),
                 Value<int> bagsRemaining = const Value.absent(),
+                Value<String?> openTime = const Value.absent(),
+                Value<String?> closeTime = const Value.absent(),
               }) => StoresCompanion(
                 id: id,
                 name: name,
@@ -1647,6 +1786,8 @@ class $StoresTableManager
                 isOpen: isOpen,
                 dailyBagLimit: dailyBagLimit,
                 bagsRemaining: bagsRemaining,
+                openTime: openTime,
+                closeTime: closeTime,
               ),
           createCompanionCallback:
               ({
@@ -1656,6 +1797,8 @@ class $StoresTableManager
                 Value<bool> isOpen = const Value.absent(),
                 required int dailyBagLimit,
                 required int bagsRemaining,
+                Value<String?> openTime = const Value.absent(),
+                Value<String?> closeTime = const Value.absent(),
               }) => StoresCompanion.insert(
                 id: id,
                 name: name,
@@ -1663,6 +1806,8 @@ class $StoresTableManager
                 isOpen: isOpen,
                 dailyBagLimit: dailyBagLimit,
                 bagsRemaining: bagsRemaining,
+                openTime: openTime,
+                closeTime: closeTime,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))

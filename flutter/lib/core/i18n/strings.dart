@@ -19,7 +19,8 @@ class Strings {
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
-  static String demoOtpBanner(String code) => 'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
+  static String demoOtpBanner(String code) =>
+      'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -84,6 +85,8 @@ class Strings {
   static const soldOut = 'نفدت الكمية';
   static String bagsRemaining(int remaining, int total) =>
       'المتبقي: $remaining من $total';
+  static String purchaseWindowRange(String openTime, String closeTime) =>
+      'وقت الشراء: $openTime - $closeTime';
 
   // Purchase
   static const purchaseTitle = 'الشراء';
@@ -98,6 +101,7 @@ class Strings {
     final prefix = name.startsWith('مخبز') ? '' : 'مخبز ';
     return 'لقد قمت بالحجز من $prefix$name اليوم بالفعل';
   }
+
   static const viewOrder = 'عرض الطلب';
   static const payButton = 'ادفع 3 شيكل';
 
@@ -123,6 +127,10 @@ class Strings {
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';
   static const remainingLabel = 'المتبقي';
   static const purchaseWindowOpen = 'نافذة الشراء مفتوحة';
+  static const purchaseWindowTimesLabel = 'أوقات الشراء';
+  static const openTimeLabel = 'وقت البدء';
+  static const closeTimeLabel = 'وقت الانتهاء';
+  static const notSetLabel = 'غير محدد';
   static const allocationLabel = 'الكمية اليومية';
   static const batchSizeLabel = 'حجم الدفعة';
   static const decreaseValue = 'إنقاص';

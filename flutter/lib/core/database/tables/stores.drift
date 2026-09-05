@@ -5,5 +5,9 @@ CREATE TABLE stores (
     owner_phone TEXT NOT NULL,
     is_open BOOLEAN NOT NULL DEFAULT FALSE,
     daily_bag_limit INTEGER NOT NULL,
-    bags_remaining INTEGER NOT NULL
+    bags_remaining INTEGER NOT NULL,
+    -- Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
+    -- purely informational for buyers, doesn't itself gate `is_open`.
+    open_time TEXT NULL,
+    close_time TEXT NULL
 );

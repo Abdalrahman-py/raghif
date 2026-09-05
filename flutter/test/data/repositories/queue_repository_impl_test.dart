@@ -23,15 +23,46 @@ void main() {
     expect(stores[0].name, 'مخبز الرمال');
   });
 
-  test('reserveBag creates purchase and decrements bagsRemaining', () async {
-    final userId = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599123456',
-        nationalId: '900123456',
-        pinHash: 'hash',
-        name: 'أحمد',
-      ),
+  test(
+    'ensureSeeded seeds a purchase window for the open demo stores',
+    () async {
+      final stores = await queueRepo.getStores();
+      expect(stores[0].openTime, '08:00');
+      expect(stores[0].closeTime, '10:00');
+      expect(stores[0].hasPurchaseWindow, isTrue);
+      // The closed demo store has no window set yet.
+      expect(stores[2].hasPurchaseWindow, isFalse);
+    },
+  );
+
+  test('saveStoreAllocation persists the purchase window', () async {
+    final store = (await queueRepo.getStores()).first;
+
+    await queueRepo.saveStoreAllocation(
+      store.id,
+      dailyLimit: store.dailyBagLimit,
+      batchSize: 20,
+      date: '2026-09-02',
+      openTime: '09:00',
+      closeTime: '11:30',
     );
+
+    final updated = await queueRepo.getStoreById(store.id);
+    expect(updated?.openTime, '09:00');
+    expect(updated?.closeTime, '11:30');
+  });
+
+  test('reserveBag creates purchase and decrements bagsRemaining', () async {
+    final userId = await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            phone: '0599123456',
+            nationalId: '900123456',
+            pinHash: 'hash',
+            name: 'أحمد',
+          ),
+        );
 
     final stores = await queueRepo.getStores();
     final store = stores.first;
@@ -53,14 +84,16 @@ void main() {
   });
 
   test('getBlockingPurchase returns purchase if user reserved today', () async {
-    final userId = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599123456',
-        nationalId: '900123456',
-        pinHash: 'hash',
-        name: 'أحمد',
-      ),
-    );
+    final userId = await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            phone: '0599123456',
+            nationalId: '900123456',
+            pinHash: 'hash',
+            name: 'أحمد',
+          ),
+        );
 
     final stores = await queueRepo.getStores();
     await queueRepo.reserveBag(
@@ -73,28 +106,34 @@ void main() {
     expect(blocking, isNotNull);
     expect(blocking?.storeId, stores[0].id);
 
-    final noBlockingForTomorrow =
-        await queueRepo.getBlockingPurchase(userId, '2026-09-03');
+    final noBlockingForTomorrow = await queueRepo.getBlockingPurchase(
+      userId,
+      '2026-09-03',
+    );
     expect(noBlockingForTomorrow, isNull);
   });
 
   test('notifyNextBatch transitions waiting batch to notified', () async {
-    final user1 = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599111001',
-        nationalId: '900000001',
-        pinHash: 'hash',
-        name: 'مستخدم 1',
-      ),
-    );
-    final user2 = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599111002',
-        nationalId: '900000002',
-        pinHash: 'hash',
-        name: 'مستخدم 2',
-      ),
-    );
+    final user1 = await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            phone: '0599111001',
+            nationalId: '900000001',
+            pinHash: 'hash',
+            name: 'مستخدم 1',
+          ),
+        );
+    final user2 = await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            phone: '0599111002',
+            nationalId: '900000002',
+            pinHash: 'hash',
+            name: 'مستخدم 2',
+          ),
+        );
 
     final stores = await queueRepo.getStores();
     final storeId = stores.first.id;
@@ -118,69 +157,76 @@ void main() {
     expect(queue[1].status, PurchaseStatus.notified);
   });
 
-  test('getCustomersForStore returns distinct customers aggregated across all dates', () async {
-    final user1 = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599222001',
-        nationalId: '900000011',
-        pinHash: 'hash',
-        name: 'عميل 1',
-      ),
-    );
-    final user2 = await db.into(db.users).insert(
-      UsersCompanion.insert(
-        phone: '0599222002',
-        nationalId: '900000012',
-        pinHash: 'hash',
-        name: 'عميل 2',
-      ),
-    );
+  test(
+    'getCustomersForStore returns distinct customers aggregated across all dates',
+    () async {
+      final user1 = await db
+          .into(db.users)
+          .insert(
+            UsersCompanion.insert(
+              phone: '0599222001',
+              nationalId: '900000011',
+              pinHash: 'hash',
+              name: 'عميل 1',
+            ),
+          );
+      final user2 = await db
+          .into(db.users)
+          .insert(
+            UsersCompanion.insert(
+              phone: '0599222002',
+              nationalId: '900000012',
+              pinHash: 'hash',
+              name: 'عميل 2',
+            ),
+          );
 
-    final stores = await queueRepo.getStores();
-    final store1 = stores[0];
-    final store2 = stores[1];
+      final stores = await queueRepo.getStores();
+      final store1 = stores[0];
+      final store2 = stores[1];
 
-    // User 1 buys twice at store 1 across different dates
-    await queueRepo.reserveBag(
-      userId: user1,
-      storeId: store1.id,
-      date: '2026-09-01',
-    );
-    await queueRepo.reserveBag(
-      userId: user1,
-      storeId: store1.id,
-      date: '2026-09-02',
-    );
+      // User 1 buys twice at store 1 across different dates
+      await queueRepo.reserveBag(
+        userId: user1,
+        storeId: store1.id,
+        date: '2026-09-01',
+      );
+      await queueRepo.reserveBag(
+        userId: user1,
+        storeId: store1.id,
+        date: '2026-09-02',
+      );
 
-    // User 2 buys once at store 1
-    await queueRepo.reserveBag(
-      userId: user2,
-      storeId: store1.id,
-      date: '2026-09-01',
-    );
+      // User 2 buys once at store 1
+      await queueRepo.reserveBag(
+        userId: user2,
+        storeId: store1.id,
+        date: '2026-09-01',
+      );
 
-    // User 2 buys at store 2 (should not appear in store 1)
-    await queueRepo.reserveBag(
-      userId: user2,
-      storeId: store2.id,
-      date: '2026-09-03',
-    );
+      // User 2 buys at store 2 (should not appear in store 1)
+      await queueRepo.reserveBag(
+        userId: user2,
+        storeId: store2.id,
+        date: '2026-09-03',
+      );
 
-    final customers = await queueRepo.getCustomersForStore(store1.id);
-    expect(customers.length, 2);
+      final customers = await queueRepo.getCustomersForStore(store1.id);
+      expect(customers.length, 2);
 
-    // User 1 had latest purchase on 2026-09-02, should be first
-    expect(customers[0].userId, user1);
-    expect(customers[0].name, 'عميل 1');
-    expect(customers[0].phone, '0599222001');
-    expect(customers[0].totalPurchases, 2);
-    expect(customers[0].lastPurchaseDate, '2026-09-02');
+      // User 1 had latest purchase on 2026-09-02, should be first
+      expect(customers[0].userId, user1);
+      expect(customers[0].name, 'عميل 1');
+      expect(customers[0].phone, '0599222001');
+      expect(customers[0].totalPurchases, 2);
+      expect(customers[0].lastPurchaseDate, '2026-09-02');
 
-    // User 2 had purchase on 2026-09-01 at store 1
-    expect(customers[1].userId, user2);
-    expect(customers[1].name, 'عميل 2');
-    expect(customers[1].phone, '0599222002');
-    expect(customers[1].totalPurchases, 1);
-    expect(customers[1].lastPurchaseDate, '2026-09-01');
-  });
+      // User 2 had purchase on 2026-09-01 at store 1
+      expect(customers[1].userId, user2);
+      expect(customers[1].name, 'عميل 2');
+      expect(customers[1].phone, '0599222002');
+      expect(customers[1].totalPurchases, 1);
+      expect(customers[1].lastPurchaseDate, '2026-09-01');
+    },
+  );
 }

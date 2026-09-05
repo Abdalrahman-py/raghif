@@ -47,4 +47,15 @@ Workflow rules this changelog lives by:
   are anchored to the bottom.
 - PurchaseScreen no longer shows the price twice — removed the separate
   price row since the buy button already states the amount.
+- `OwnerDashboardScreen`'s allocation/batch-size fields could silently sync
+  from stale placeholder data (`QueueController`'s hardcoded `defaultStores`)
+  instead of the real repository values, because the widget couldn't tell
+  the two apart once loaded. Added an explicit `storesLoaded` signal to
+  `QueueController` so the one-time sync waits for real data.
+
+### Added
+
+- Store owners can now set today's purchase window (start/end time), shown
+  to buyers on the store list and purchase screen alongside the existing
+  bags-remaining count.
 

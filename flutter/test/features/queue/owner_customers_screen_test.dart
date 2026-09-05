@@ -75,14 +75,16 @@ void main() {
     testWidgets('displays customer info when purchases exist', (tester) async {
       final env = await _buildTestEnv();
 
-      final user = await env.db.into(env.db.users).insert(
-        UsersCompanion.insert(
-          phone: '0599888777',
-          nationalId: '988877766',
-          pinHash: 'hash',
-          name: 'خالد محمود',
-        ),
-      );
+      final user = await env.db
+          .into(env.db.users)
+          .insert(
+            UsersCompanion.insert(
+              phone: '0599888777',
+              nationalId: '988877766',
+              pinHash: 'hash',
+              name: 'خالد محمود',
+            ),
+          );
 
       await env.repository.reserveBag(
         userId: user,
@@ -111,19 +113,23 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (tester) async {
+    testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (
+      tester,
+    ) async {
       final env = await _buildTestEnv();
       final mockAuthBloc = MockAuthBloc();
-      when(() => mockAuthBloc.state).thenReturn(const Authenticated(
-        UserModel(
-          id: 2,
-          phone: demoOwnerPhone,
-          nationalId: demoOwnerNationalId,
-          name: demoOwnerName,
-          role: UserRole.owner,
-          verificationStatus: VerificationStatus.verified,
+      when(() => mockAuthBloc.state).thenReturn(
+        const Authenticated(
+          UserModel(
+            id: 2,
+            phone: demoOwnerPhone,
+            nationalId: demoOwnerNationalId,
+            name: demoOwnerName,
+            role: UserRole.owner,
+            verificationStatus: VerificationStatus.verified,
+          ),
         ),
-      ));
+      );
 
       await tester.pumpWidget(
         BlocProvider<AuthBloc>.value(
@@ -140,6 +146,8 @@ void main() {
 
       expect(find.text(Strings.customersButton), findsOneWidget);
 
+      await tester.ensureVisible(find.text(Strings.customersButton));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(Strings.customersButton));
       await tester.pumpAndSettle();
 
