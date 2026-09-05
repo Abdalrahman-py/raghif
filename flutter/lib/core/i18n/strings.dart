@@ -140,6 +140,29 @@ class Strings {
   static const markReceived = 'تأكيد الاستلام';
   static const undoReceived = 'تراجع عن الاستلام';
 
+  // Owner queue — pickup (search + QR redemption)
+  static const idShortLabel = 'الهوية';
+  static const phoneShortLabel = 'الهاتف';
+  static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
+  static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';
+  static const scanQrTitle = 'مسح رمز الاستلام';
+  static const scanCameraHint = 'وجّه الكاميرا نحو رمز الاستلام على هاتف الزبون';
+  static const scanCameraError =
+      'تعذر تشغيل الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
+  static const scanInvalidCode = 'الرمز غير صالح، حاول مرة أخرى';
+  static const scanNotFoundTitle = 'الطلب غير موجود على هذا الجهاز';
+  static const scanNotFoundBody =
+      'قد يكون هذا الرمز صادراً من جهاز آخر — لا توجد مزامنة بين الأجهزة في النسخة التجريبية';
+  static const scanWrongStoreTitle = 'هذا الرمز من مخبز آخر';
+  static String scanWrongStoreBody(String storeName) =>
+      'هذا الرمز صادر من $storeName وليس من مخبزك';
+  static const scanCheckedInTitle = 'تم تأكيد الاستلام';
+  static const scanCheckedInBody = 'تم تسليم الكيس وتسجيل وصول الزبون';
+  static const scanAlreadyCollected = 'تم استلام هذا الطلب مسبقاً';
+  static String scanBatchNotCalledYet(int batch) =>
+      'لم يحن دور الدفعة رقم $batch بعد';
+  static const scanAgain = 'مسح رمز آخر';
+
   // Payment (Jawwal Pay mock)
   static const paymentTitle = 'الدفع عبر جوال باي';
   static const confirmJawwalPayNumber = 'تأكيد رقم جوال باي';

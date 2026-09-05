@@ -25,6 +25,19 @@ Workflow rules this changelog lives by:
 - PR-only GitHub workflow convention: work happens on a branch, CI
   (`flutter analyze` + `flutter test` + release APK) must pass, and merges
   to `master` happen only via reviewed pull requests.
+- Owner pickup flow (#28 + audit items): QR redemption scanner on the buyer
+  queue screen — new `qr_scanner_screen.dart` (mobile_scanner dependency +
+  CAMERA permission) and camera-free decode/match logic in
+  `qr_redemption.dart` with unit tests.
+
+### Changed
+
+- Owner queue buyer rows now show national ID + phone so pickup identity can
+  be verified, with a live search field matching ID/phone suffix or name;
+  the Notify-Next-Batch action is hidden during a search so a lookup can
+  never release a batch accidentally.
+- `PurchaseModel` and all repository row mappings now carry the buyer's
+  national ID (users table join).
 
 ### Fixed
 
