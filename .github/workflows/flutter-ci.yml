@@ -40,13 +40,14 @@ jobs:
         working-directory: flutter
         run: flutter analyze
 
-      # --timeout bounds each test individually: a hung stream/pumpAndSettle
-      # fails fast with a stack trace instead of silently eating the whole
-      # job's 30-minute budget. --reporter expanded prints each test as it
-      # runs so a hang shows exactly which test it's stuck on.
+      # --timeout alone didn't bound this (12+ min with it set — the hang is
+      # likely at per-file teardown, e.g. an unclosed DB/stream, which
+      # --timeout doesn't cover). `timeout 120s` hard-kills the whole
+      # process instead, so the step fails fast and --reporter expanded's
+      # output up to the kill still shows which test/file it stalled on.
       - name: Test
         working-directory: flutter
-        run: flutter test --reporter expanded --timeout 60s
+        run: timeout 120s flutter test --reporter expanded --timeout 60s
 
       # JDK/Gradle only needed past this point (release build). Deferred here
       # so a lint/test failure above skips this setup cost entirely.
