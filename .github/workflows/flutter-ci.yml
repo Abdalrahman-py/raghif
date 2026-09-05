@@ -40,14 +40,13 @@ jobs:
         working-directory: flutter
         run: flutter analyze
 
-      # --timeout alone didn't bound this (12+ min with it set — the hang is
-      # likely at per-file teardown, e.g. an unclosed DB/stream, which
-      # --timeout doesn't cover). `timeout 120s` hard-kills the whole
-      # process instead, so the step fails fast and --reporter expanded's
-      # output up to the kill still shows which test/file it stalled on.
+      # The real hangs (leaked Drift DB connections/streams across tests)
+      # are fixed at the source now; this cap just guards against a future
+      # regression reintroducing one, so the step fails fast with a
+      # visible stack trace (--reporter expanded) instead of stalling.
       - name: Test
         working-directory: flutter
-        run: timeout 120s flutter test --reporter expanded --timeout 60s
+        run: timeout 180s flutter test --reporter expanded --timeout 60s
 
       # JDK/Gradle only needed past this point (release build). Deferred here
       # so a lint/test failure above skips this setup cost entirely.

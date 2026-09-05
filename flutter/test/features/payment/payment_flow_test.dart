@@ -116,7 +116,10 @@ void main() {
     testWidgets(
       'tapping buy pushes payment flow; completing payment creates reservation',
       (tester) async {
-        addTearDown(() => tester.pumpWidget(const SizedBox()));
+        addTearDown(() async {
+          await tester.pumpWidget(const SizedBox());
+          await tester.pump();
+        });
         final store = controller.stores.first;
 
         await tester.pumpWidget(
@@ -189,7 +192,10 @@ void main() {
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
-      addTearDown(() => tester.pumpWidget(const SizedBox()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
       final store = controller.stores.first;
 
       await tester.pumpWidget(

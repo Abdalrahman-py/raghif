@@ -25,7 +25,10 @@ void main() {
     // it (rather than calling authBloc.close() ourselves) so that happens
     // while nothing is still subscribed — closing a bloc a live
     // BlocBuilder is listening to deadlocks pumpAndSettle-style teardown.
-    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
 
     await tester.pumpWidget(RaghifApp(authBloc: authBloc));
     await tester.pumpAndSettle();
@@ -53,7 +56,10 @@ void main() {
       authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
       sessionStore: sessionStore,
     );
-    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
 
     await tester.pumpWidget(RaghifApp(authBloc: authBloc));
     await tester.pumpAndSettle();

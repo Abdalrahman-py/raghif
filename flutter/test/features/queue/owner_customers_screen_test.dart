@@ -41,7 +41,10 @@ void main() {
 
   group('OwnerCustomersScreen', () {
     testWidgets('displays empty state when no purchases exist', (tester) async {
-      addTearDown(() => tester.pumpWidget(const SizedBox()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
       await tester.pumpWidget(
         wrapWithMaterial(
           OwnerCustomersScreen(
@@ -57,7 +60,10 @@ void main() {
     });
 
     testWidgets('displays customer info when purchases exist', (tester) async {
-      addTearDown(() => tester.pumpWidget(const SizedBox()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
       final user = await db.into(db.users).insert(
         UsersCompanion.insert(
           phone: '0599888777',
@@ -92,7 +98,10 @@ void main() {
     });
 
     testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (tester) async {
-      addTearDown(() => tester.pumpWidget(const SizedBox()));
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
       final mockAuthBloc = MockAuthBloc();
       when(() => mockAuthBloc.state).thenReturn(const Authenticated(
         UserModel(

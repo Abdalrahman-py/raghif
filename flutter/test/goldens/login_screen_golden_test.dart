@@ -33,7 +33,10 @@ void main() {
     // second means the unmount fires first -- closing a bloc while a
     // BlocBuilder is still subscribed to it can hang (see widget_test.dart).
     addTearDown(authBloc.close);
-    addTearDown(() => tester.pumpWidget(const SizedBox()));
+    addTearDown(() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
+      });
 
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(

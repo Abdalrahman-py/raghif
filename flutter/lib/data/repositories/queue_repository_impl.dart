@@ -386,7 +386,7 @@ class QueueRepositoryImpl implements QueueRepository {
       'INNER JOIN users u ON u.id = p.user_id '
       'WHERE p.store_id = ? '
       'GROUP BY u.id '
-      'ORDER BY MAX(p.created_at) DESC, last_purchase_date DESC',
+      'ORDER BY last_purchase_date DESC, MAX(p.created_at) DESC',
       variables: [Variable.withInt(storeId)],
       readsFrom: {_db.purchases, _db.users},
     ).watch().map((rows) {
@@ -411,7 +411,7 @@ class QueueRepositoryImpl implements QueueRepository {
       'INNER JOIN users u ON u.id = p.user_id '
       'WHERE p.store_id = ? '
       'GROUP BY u.id '
-      'ORDER BY MAX(p.created_at) DESC, last_purchase_date DESC',
+      'ORDER BY last_purchase_date DESC, MAX(p.created_at) DESC',
       variables: [Variable.withInt(storeId)],
       readsFrom: {_db.purchases, _db.users},
     ).get();
