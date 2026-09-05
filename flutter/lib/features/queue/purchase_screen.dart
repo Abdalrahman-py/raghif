@@ -208,6 +208,18 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                                       context,
                                     ).textTheme.bodyMedium,
                                   ),
+                                  if (store?.hasPurchaseWindow ?? false) ...[
+                                    const SizedBox(height: AppSpacing.xs),
+                                    Text(
+                                      Strings.purchaseWindowRange(
+                                        store!.openTime!,
+                                        store.closeTime!,
+                                      ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

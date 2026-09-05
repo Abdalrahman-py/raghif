@@ -46,6 +46,8 @@ abstract class QueueRepository {
     required int dailyLimit,
     required int batchSize,
     required String date,
+    String? openTime,
+    String? closeTime,
   });
 
   Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId);

@@ -72,14 +72,22 @@ class QueueController extends ChangeNotifier {
   final QueueRepository _repository;
   StreamSubscription<List<StoreModel>>? _storesSub;
   List<StoreModel> _stores = [];
+  bool _storesLoaded = false;
   final Map<int, PurchaseModel> _purchaseCache = {};
 
   List<StoreModel> get stores => _stores;
+
+  /// True once the repository's real store data has arrived at least once —
+  /// [stores] holds [defaultStores] (a same-shaped placeholder) until then,
+  /// so widgets that sync local edit state from a store "once on load"
+  /// should gate that sync on this rather than on `storeById(...) != null`.
+  bool get storesLoaded => _storesLoaded;
 
   void _init() {
     _storesSub = _repository.watchStores().listen((stores) {
       if (stores.isNotEmpty) {
         _stores = stores;
+        _storesLoaded = true;
         notifyListeners();
       }
     });
@@ -187,12 +195,14 @@ class QueueController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Owner action: top up today's allocation.
+  /// Owner action: top up today's allocation and purchase window.
   Future<void> saveAllocation(
     dynamic storeId, {
     required int dailyBagLimit,
     required int batchSize,
     required String today,
+    String? openTime,
+    String? closeTime,
   }) async {
     final sId = _parseInt(storeId);
     await _repository.saveStoreAllocation(
@@ -200,6 +210,8 @@ class QueueController extends ChangeNotifier {
       dailyLimit: dailyBagLimit,
       batchSize: batchSize,
       date: today,
+      openTime: openTime,
+      closeTime: closeTime,
     );
     notifyListeners();
   }

@@ -35,17 +35,29 @@ class OwnerDashboardScreen extends StatefulWidget {
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _allocation = 300;
   int _batchSize = 20;
+  String? _openTime;
+  String? _closeTime;
   bool _stepperInitialized = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final store = widget.controller.storeById(widget.storeId);
-    if (store != null) {
-      _allocation = store.dailyBagLimit;
-      _batchSize = store.batchSize;
-      _stepperInitialized = true;
-    }
+  Future<void> _pickTime({required bool isOpenTime}) async {
+    final current = isOpenTime ? _openTime : _closeTime;
+    final initial = current != null
+        ? TimeOfDay(
+            hour: int.parse(current.split(':')[0]),
+            minute: int.parse(current.split(':')[1]),
+          )
+        : TimeOfDay.now();
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    final formatted =
+        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    setState(() {
+      if (isOpenTime) {
+        _openTime = formatted;
+      } else {
+        _closeTime = formatted;
+      }
+    });
   }
 
   @override
@@ -66,9 +78,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         listenable: widget.controller,
         builder: (context, _) {
           final store = widget.controller.storeById(widget.storeId);
-          if (!_stepperInitialized && store != null) {
+          if (!_stepperInitialized &&
+              widget.controller.storesLoaded &&
+              store != null) {
             _allocation = store.dailyBagLimit;
             _batchSize = store.batchSize;
+            _openTime = store.openTime;
+            _closeTime = store.closeTime;
             _stepperInitialized = true;
           }
           return SafeArea(
@@ -104,11 +120,42 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 ),
                                 Switch(
                                   value: store?.isOpen ?? false,
-                                  onChanged: (value) => widget.controller
-                                      .setPurchaseWindowOpen(
+                                  onChanged: (value) =>
+                                      widget.controller.setPurchaseWindowOpen(
                                         widget.storeId,
                                         value,
                                       ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              Strings.purchaseWindowTimesLabel,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () =>
+                                        _pickTime(isOpenTime: true),
+                                    child: Text(
+                                      '${Strings.openTimeLabel}: '
+                                      '${_openTime ?? Strings.notSetLabel}',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () =>
+                                        _pickTime(isOpenTime: false),
+                                    child: Text(
+                                      '${Strings.closeTimeLabel}: '
+                                      '${_closeTime ?? Strings.notSetLabel}',
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -126,8 +173,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 Expanded(
                                   child: Text(
                                     Strings.allocationLabel,
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                 ),
                                 NumberStepper(
@@ -146,8 +194,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 Expanded(
                                   child: Text(
                                     Strings.batchSizeLabel,
-                                    style:
-                                        Theme.of(context).textTheme.bodyLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
                                   ),
                                 ),
                                 NumberStepper(
@@ -171,6 +220,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                           dailyBagLimit: _allocation,
                           batchSize: _batchSize,
                           today: todayDateString(),
+                          openTime: _openTime,
+                          closeTime: _closeTime,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),

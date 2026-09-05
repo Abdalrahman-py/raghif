@@ -154,6 +154,16 @@ class _StoreRow extends StatelessWidget {
                 Strings.bagsRemaining(store.bagsRemaining, store.dailyBagLimit),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
+              if (store.hasPurchaseWindow) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  Strings.purchaseWindowRange(
+                    store.openTime!,
+                    store.closeTime!,
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
             ],
           ],
         ),
