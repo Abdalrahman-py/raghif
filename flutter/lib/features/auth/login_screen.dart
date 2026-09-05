@@ -132,6 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
               duration: const Duration(seconds: 4),
             ),
           );
+        } else if (state is Authenticated) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(

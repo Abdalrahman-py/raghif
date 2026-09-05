@@ -26,3 +26,14 @@ Workflow rules this changelog lives by:
   (`flutter analyze` + `flutter test` + release APK) must pass, and merges
   to `master` happen only via reviewed pull requests.
 
+### Fixed
+
+- Owner allocation save no longer resets today's remaining bags to the full
+  daily limit, wiping out bags already sold before the save.
+- Buying a bag after a store sells out is now rejected instead of silently
+  clamping remaining stock to zero and completing the purchase anyway.
+- Logging back in after registration/onboarding no longer leaves the stale
+  login screen on top of the app.
+- Registering with a phone number or national ID already on file now shows
+  an Arabic message instead of a raw database exception.
+

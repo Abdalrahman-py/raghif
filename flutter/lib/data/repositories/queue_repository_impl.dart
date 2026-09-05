@@ -271,6 +271,10 @@ class QueueRepositoryImpl implements QueueRepository {
             ..where((s) => s.id.equals(storeId)))
           .getSingle();
 
+      if (store.bagsRemaining <= 0) {
+        throw StoreSoldOutException();
+      }
+
       final existingQueue = await (_db.select(_db.purchases)
             ..where((p) =>
                 p.storeId.equals(storeId) & p.purchaseDate.equals(date)))
@@ -369,12 +373,22 @@ class QueueRepositoryImpl implements QueueRepository {
     required int batchSize,
     required String date,
   }) async {
-    await (_db.update(_db.stores)..where((s) => s.id.equals(storeId))).write(
-      StoresCompanion(
-        dailyBagLimit: Value(dailyLimit),
-        bagsRemaining: Value(dailyLimit),
-      ),
-    );
+    await _db.transaction(() async {
+      final store = await (_db.select(_db.stores)
+            ..where((s) => s.id.equals(storeId)))
+          .getSingle();
+      // Preserve bags already sold today: shift remaining by however much
+      // the limit changed, instead of resetting to the full new limit.
+      final delta = dailyLimit - store.dailyBagLimit;
+      final newRemaining =
+          (store.bagsRemaining + delta).clamp(0, dailyLimit);
+      await (_db.update(_db.stores)..where((s) => s.id.equals(storeId))).write(
+        StoresCompanion(
+          dailyBagLimit: Value(dailyLimit),
+          bagsRemaining: Value(newRemaining),
+        ),
+      );
+    });
   }
 
   @override
