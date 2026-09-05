@@ -35,7 +35,9 @@ abstract class QueueRepository {
     int batchSize = 20,
   });
 
-  Future<void> notifyNextBatch(int storeId, String date);
+  /// Returns true if a waiting batch existed and was notified, false if
+  /// there was nothing left to notify.
+  Future<bool> notifyNextBatch(int storeId, String date);
 
   Future<void> updatePurchaseStatus(int purchaseId, PurchaseStatus newStatus);
 

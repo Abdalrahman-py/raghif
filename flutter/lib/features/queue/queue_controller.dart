@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../../core/auth/demo_accounts.dart';
 import '../../core/database/app_database.dart';
 import '../../core/di/injection.dart';
+import '../../core/i18n/strings.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
@@ -173,10 +175,21 @@ class QueueController extends ChangeNotifier {
   }
 
   /// Owner action: notify every waiting buyer in the next un-notified batch.
+  ///
+  /// There's no push backend in this prototype, so the "notification" a
+  /// buyer would get in production is simulated here: firing a real OS
+  /// notification directly on whatever device runs this action.
   Future<void> notifyNextBatch(dynamic storeId, String date) async {
     final sId = _parseInt(storeId);
-    await _repository.notifyNextBatch(sId, date);
+    final notified = await _repository.notifyNextBatch(sId, date);
     notifyListeners();
+    if (notified) {
+      final storeName = storeById(sId)?.name ?? '';
+      await NotificationService.instance.showNotification(
+        title: Strings.batchReadyNotificationTitle(storeName),
+        body: Strings.batchReadyNotificationBody,
+      );
+    }
   }
 
   /// Owner action: notified <-> collected check-in toggle.

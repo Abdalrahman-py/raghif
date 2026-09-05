@@ -149,12 +149,23 @@ void main() {
       date: '2026-09-02',
     );
 
-    await queueRepo.notifyNextBatch(storeId, '2026-09-02');
+    final notifiedFirstCall = await queueRepo.notifyNextBatch(
+      storeId,
+      '2026-09-02',
+    );
+    expect(notifiedFirstCall, isTrue);
 
     final queue = await queueRepo.getQueueForStore(storeId, '2026-09-02');
     expect(queue.length, 2);
     expect(queue[0].status, PurchaseStatus.notified);
     expect(queue[1].status, PurchaseStatus.notified);
+
+    // Nothing left waiting — a second call has nothing to notify.
+    final notifiedSecondCall = await queueRepo.notifyNextBatch(
+      storeId,
+      '2026-09-02',
+    );
+    expect(notifiedSecondCall, isFalse);
   });
 
   test(
