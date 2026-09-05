@@ -21,7 +21,7 @@ import 'queue_logic.dart';
 /// UI_SPEC.md ConfirmationScreen: big status statement, batch/store at
 /// titleMedium, plain-language status while waiting rather than a raw
 /// countdown digit grid.
-class ConfirmationScreen extends StatelessWidget {
+class ConfirmationScreen extends StatefulWidget {
   const ConfirmationScreen({
     super.key,
     required this.controller,
@@ -34,21 +34,46 @@ class ConfirmationScreen extends StatelessWidget {
   final DemoUser currentUser;
 
   @override
+  State<ConfirmationScreen> createState() => _ConfirmationScreenState();
+}
+
+class _ConfirmationScreenState extends State<ConfirmationScreen> {
+  late final Stream<PurchaseModel?> _purchaseStream =
+      widget.controller.watchPurchase(widget.purchaseId);
+
+  int? _queueStreamStoreId;
+  String? _queueStreamDate;
+  Stream<List<PurchaseModel>>? _queueStream;
+
+  // The inner StreamBuilder's `stream` must stay the same instance across
+  // rebuilds of the outer one, or it resubscribes (and Drift's watch()
+  // re-runs its initial query) every time the purchase stream re-emits —
+  // even when the store/date it targets hasn't actually changed. Cache it,
+  // only rebuilding when storeId/date genuinely change.
+  Stream<List<PurchaseModel>> _queueStreamFor(int storeId, String date) {
+    if (_queueStreamStoreId != storeId || _queueStreamDate != date) {
+      _queueStreamStoreId = storeId;
+      _queueStreamDate = date;
+      _queueStream = widget.controller.watchQueueForStore(storeId, date);
+    }
+    return _queueStream!;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final currentUser = widget.currentUser;
     return Scaffold(
       appBar: AppBar(title: Text(Strings.confirmationTitle)),
       body: StreamBuilder<PurchaseModel?>(
-        stream: controller.watchPurchase(purchaseId),
-        initialData: controller.cachedPurchase(purchaseId),
+        stream: _purchaseStream,
+        initialData: controller.cachedPurchase(widget.purchaseId),
         builder: (context, purchaseSnapshot) {
           final purchase = purchaseSnapshot.data;
           if (purchase == null) return const SizedBox.shrink();
 
           return StreamBuilder<List<PurchaseModel>>(
-            stream: controller.watchQueueForStore(
-              purchase.storeId,
-              purchase.purchaseDate,
-            ),
+            stream: _queueStreamFor(purchase.storeId, purchase.purchaseDate),
             builder: (context, queueSnapshot) {
               final queue = queueSnapshot.data ?? [];
               final position = queue.indexWhere((p) => p.id == purchase.id) + 1;

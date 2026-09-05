@@ -22,29 +22,43 @@ Widget wrapWithMaterial(Widget child) {
   );
 }
 
+class _TestEnv {
+  _TestEnv(this.db, this.repository, this.controller);
+
+  final AppDatabase db;
+  final QueueRepositoryImpl repository;
+  final QueueController controller;
+}
+
+/// Builds a fresh in-memory database + controller. Must be called from
+/// *inside* a testWidgets body, not from setUp() — setUp() runs outside
+/// testWidgets' own FakeAsync zone, and a database built there can't
+/// reliably deliver .watch() stream data inside the test body (its
+/// microtasks/timers are bound to the wrong zone, so the stream never
+/// appears to emit even though the query itself is correct). Not
+/// explicitly closed: each test's database is fresh and short-lived, and
+/// unmounting the widget (pumpWidget(SizedBox()) + pumpAndSettle) already
+/// cancels its .watch() subscription cleanly — an extra explicit
+/// controller.dispose()/db.close() afterward re-touches an already-settled
+/// stream and reliably hangs (drift's internal cleanup Timer never
+/// resolves).
+Future<_TestEnv> _buildTestEnv() async {
+  final db = AppDatabase(NativeDatabase.memory());
+  final repository = QueueRepositoryImpl(db);
+  await repository.ensureSeeded();
+  final controller = QueueController(repository);
+  return _TestEnv(db, repository, controller);
+}
+
 void main() {
-  late AppDatabase db;
-  late QueueRepositoryImpl repository;
-  late QueueController controller;
-
-  setUp(() async {
-    db = AppDatabase(NativeDatabase.memory());
-    repository = QueueRepositoryImpl(db);
-    await repository.ensureSeeded();
-    controller = QueueController(repository);
-  });
-
-  tearDown(() async {
-    controller.dispose();
-    await db.close();
-  });
-
   group('OwnerCustomersScreen', () {
     testWidgets('displays empty state when no purchases exist', (tester) async {
+      final env = await _buildTestEnv();
+
       await tester.pumpWidget(
         wrapWithMaterial(
           OwnerCustomersScreen(
-            controller: controller,
+            controller: env.controller,
             storeId: demoOwnerStoreId,
           ),
         ),
@@ -54,16 +68,14 @@ void main() {
       expect(find.text(Strings.customersTitle), findsOneWidget);
       expect(find.text(Strings.customersEmpty), findsOneWidget);
 
-      // Unmount here (not via addTearDown, which runs after Flutter's own
-      // end-of-test invariant check) so the StreamBuilder's drift .watch()
-      // subscription cancels — and its internal cleanup Timer fires via
-      // the follow-up pump() — before that check runs.
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
     });
 
     testWidgets('displays customer info when purchases exist', (tester) async {
-      final user = await db.into(db.users).insert(
+      final env = await _buildTestEnv();
+
+      final user = await env.db.into(env.db.users).insert(
         UsersCompanion.insert(
           phone: '0599888777',
           nationalId: '988877766',
@@ -72,7 +84,7 @@ void main() {
         ),
       );
 
-      await repository.reserveBag(
+      await env.repository.reserveBag(
         userId: user,
         storeId: demoOwnerStoreId,
         date: '2026-09-02',
@@ -81,7 +93,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithMaterial(
           OwnerCustomersScreen(
-            controller: controller,
+            controller: env.controller,
             storeId: demoOwnerStoreId,
           ),
         ),
@@ -100,6 +112,7 @@ void main() {
     });
 
     testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (tester) async {
+      final env = await _buildTestEnv();
       final mockAuthBloc = MockAuthBloc();
       when(() => mockAuthBloc.state).thenReturn(const Authenticated(
         UserModel(
@@ -117,7 +130,7 @@ void main() {
           value: mockAuthBloc,
           child: wrapWithMaterial(
             OwnerDashboardScreen(
-              controller: controller,
+              controller: env.controller,
               storeId: demoOwnerStoreId,
             ),
           ),

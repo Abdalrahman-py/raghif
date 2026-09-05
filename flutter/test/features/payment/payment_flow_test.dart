@@ -91,8 +91,6 @@ void main() {
   });
 
   group('PurchaseScreen Jawwal Pay integration', () {
-    late AppDatabase db;
-    late QueueController controller;
     const testUser = DemoUser(
       phone: '0599111111',
       pin: '1234',
@@ -101,21 +99,21 @@ void main() {
       jawwalPayNumber: '0599111111',
     );
 
-    setUp(() async {
-      db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      controller = QueueController(repository);
-    });
-
-    tearDown(() async {
-      controller.dispose();
-      await db.close();
-    });
-
     testWidgets(
       'tapping buy pushes payment flow; completing payment creates reservation',
       (tester) async {
+        // Built inside the test body, not setUp() — setUp() runs outside
+        // testWidgets' own FakeAsync zone, and a database built there can't
+        // reliably deliver .watch() stream data inside the test body.
+        // Not explicitly closed: this database is fresh and short-lived,
+        // and unmounting the widget below already cancels its .watch()
+        // subscriptions cleanly — an extra explicit controller
+        // .dispose()/db.close() afterward re-touches an already-settled
+        // stream and reliably hangs.
+        final db = AppDatabase(NativeDatabase.memory());
+        final repository = QueueRepositoryImpl(db);
+        await repository.ensureSeeded();
+        final controller = QueueController(repository);
         final store = controller.stores.first;
 
         await tester.pumpWidget(
@@ -183,10 +181,6 @@ void main() {
         );
         expect(blocker, isNotNull);
 
-        // Unmount here (not via addTearDown, which runs after Flutter's
-        // own end-of-test invariant check) so PurchaseScreen/ConfirmationScreen's
-        // drift .watch() subscriptions cancel — and their internal cleanup
-        // Timer fires via the follow-up pump() — before that check runs.
         await tester.pumpWidget(const SizedBox());
         await tester.pumpAndSettle();
       },
@@ -195,6 +189,10 @@ void main() {
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final repository = QueueRepositoryImpl(db);
+      await repository.ensureSeeded();
+      final controller = QueueController(repository);
       final store = controller.stores.first;
 
       await tester.pumpWidget(
