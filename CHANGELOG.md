@@ -36,4 +36,9 @@ Workflow rules this changelog lives by:
   login screen on top of the app.
 - Registering with a phone number or national ID already on file now shows
   an Arabic message instead of a raw database exception.
+- Flutter web build no longer fails to compile: `QueueController`'s no-DI
+  fallback unconditionally imported `drift/native.dart` (`dart:ffi`), which
+  isn't available on web, even though that fallback never runs once
+  `main()` sets up DI. The native import is now conditional so web builds
+  compile and behavior is unchanged elsewhere.
 
