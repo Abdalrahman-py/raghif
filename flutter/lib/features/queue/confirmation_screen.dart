@@ -15,7 +15,6 @@ import 'models.dart';
 import 'qr_payload.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
-import 'store_list_screen.dart';
 
 /// UI_SPEC.md ConfirmationScreen: big status statement, batch/store at
 /// titleMedium, plain-language status while waiting rather than a raw
@@ -163,9 +162,7 @@ class ConfirmationScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xl),
                       PrimaryButton(
                         text: Strings.returnToStores,
-                        onPressed: () => Navigator.of(context).popUntil(
-                          ModalRoute.withName(StoreListScreen.routeName),
-                        ),
+                        onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                       ),
                     ],
                   ),

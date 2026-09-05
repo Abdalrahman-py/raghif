@@ -20,8 +20,6 @@ class StoreListScreen extends StatelessWidget {
     required this.currentUser,
   });
 
-  static const routeName = 'storeList';
-
   final QueueController controller;
   final DemoUser currentUser;
 
