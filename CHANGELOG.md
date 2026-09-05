@@ -41,4 +41,10 @@ Workflow rules this changelog lives by:
   isn't available on web, even though that fallback never runs once
   `main()` sets up DI. The native import is now conditional so web builds
   compile and behavior is unchanged elsewhere.
+- PurchaseScreen no longer centers its content in the middle of the screen
+  (leaving large dead space above and below on short content) — the store
+  detail block now sits directly under the app bar and the buy/back buttons
+  are anchored to the bottom.
+- PurchaseScreen no longer shows the price twice — removed the separate
+  price row since the buy button already states the amount.
 

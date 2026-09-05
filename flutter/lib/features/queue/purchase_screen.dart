@@ -107,9 +107,9 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     } on StoreSoldOutException {
       if (!mounted) return;
       setState(() => _isPaying = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(Strings.soldOut)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(Strings.soldOut)));
       Navigator.of(context).pop();
     }
   }
@@ -134,130 +134,145 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(Strings.purchaseTitle)),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: ListenableBuilder(
-                listenable: widget.controller,
-                builder: (context, _) {
-                  final store = widget.controller.storeById(widget.storeId);
-                  final isAvailable = store?.isAvailable ?? false;
-                  final blocker = _blocker;
+        child: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            final store = widget.controller.storeById(widget.storeId);
+            final isAvailable = store?.isAvailable ?? false;
+            final blocker = _blocker;
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AppCard(
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Row(
+                            AppCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Icon(
-                                        Icons.storefront,
-                                        color: isAvailable
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.storefront,
+                                              color: isAvailable
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                            ),
+                                            const SizedBox(
+                                              width: AppSpacing.sm,
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                store?.name ?? '',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.titleLarge,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                       const SizedBox(width: AppSpacing.sm),
-                                      Expanded(
-                                        child: Text(
-                                          store?.name ?? '',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge,
-                                        ),
+                                      StatusChip(
+                                        text: isAvailable
+                                            ? Strings.available
+                                            : Strings.soldOut,
+                                        tone: isAvailable
+                                            ? StatusTone.success
+                                            : StatusTone.danger,
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                StatusChip(
-                                  text: isAvailable
-                                      ? Strings.available
-                                      : Strings.soldOut,
-                                  tone: isAvailable
-                                      ? StatusTone.success
-                                      : StatusTone.danger,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              Strings.bagsRemaining(
-                                store?.bagsRemaining ?? 0,
-                                store?.dailyBagLimit ?? 0,
-                              ),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AppCard(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              Strings.priceLabel,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                            Text(
-                              Strings.priceValue,
-                              style: Theme.of(context).textTheme.displayMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      if (blocker != null) ...[
-                        AppCard(
-                          child: Text(
-                            blocker.storeId == widget.storeId
-                                ? Strings.dailyLimitReached
-                                : Strings.dailyLimitReachedOtherStore(
-                                    blocker.storeName ??
-                                        widget.controller
-                                            .storeById(blocker.storeId)
-                                            ?.name ??
-                                        '',
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text(
+                                    Strings.bagsRemaining(
+                                      store?.bagsRemaining ?? 0,
+                                      store?.dailyBagLimit ?? 0,
+                                    ),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                                ],
+                              ),
+                            ),
+                            if (blocker != null) ...[
+                              const SizedBox(height: AppSpacing.lg),
+                              AppCard(
+                                child: Text(
+                                  blocker.storeId == widget.storeId
+                                      ? Strings.dailyLimitReached
+                                      : Strings.dailyLimitReachedOtherStore(
+                                          blocker.storeName ??
+                                              widget.controller
+                                                  .storeById(blocker.storeId)
+                                                  ?.name ??
+                                              '',
+                                        ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: AppSpacing.lg),
-                        PrimaryButton(
-                          text: Strings.viewOrder,
-                          onPressed: () => _goToConfirmation(blocker.id),
-                        ),
-                      ] else ...[
-                        PrimaryButton(
-                          text: Strings.payButton,
-                          loading: _isPaying,
-                          onPressed: _startPaymentFlow,
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.sm),
-                      SecondaryButton(
-                        text: Strings.back,
-                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (blocker != null)
+                            PrimaryButton(
+                              text: Strings.viewOrder,
+                              onPressed: () => _goToConfirmation(blocker.id),
+                            )
+                          else
+                            PrimaryButton(
+                              text: Strings.payButton,
+                              loading: _isPaying,
+                              onPressed: _startPaymentFlow,
+                            ),
+                          const SizedBox(height: AppSpacing.sm),
+                          SecondaryButton(
+                            text: Strings.back,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
