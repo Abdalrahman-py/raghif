@@ -6,6 +6,11 @@ catches broader work that isn't issue-shaped. One item at a time, top to bottom.
 Every push/PR is verified by Flutter CI (`.github/workflows/flutter-ci.yml`):
 `flutter analyze`, `flutter test`, and a debug APK build must all pass.
 
+Git workflow (collaboration rules): all changes land on GitHub as **clean PRs**
+— branch off `master`, small reviewable commits, CI green, then merge via PR.
+Never push to `master` directly. Each completed task is logged in
+`CHANGELOG.md` **before** its commit.
+
 Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
 The original Kotlin/Compose prototype under `app/` has been removed — the Flutter app is the
 only implementation now (see #10).
