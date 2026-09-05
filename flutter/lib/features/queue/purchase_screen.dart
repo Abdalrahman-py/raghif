@@ -5,6 +5,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/repositories/queue_repository.dart';
 import '../auth/demo_accounts.dart';
 import '../payment/payment_number_screen.dart';
 import 'confirmation_screen.dart';
@@ -90,17 +91,26 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
       return;
     }
 
-    final purchase = await widget.controller.buy(
-      userId: _userId,
-      storeId: widget.storeId,
-      date: date,
-    );
-    if (!mounted) return;
-    setState(() {
-      _isPaying = false;
-      _blocker = purchase;
-    });
-    _goToConfirmation(purchase.id);
+    try {
+      final purchase = await widget.controller.buy(
+        userId: _userId,
+        storeId: widget.storeId,
+        date: date,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isPaying = false;
+        _blocker = purchase;
+      });
+      _goToConfirmation(purchase.id);
+    } on StoreSoldOutException {
+      if (!mounted) return;
+      setState(() => _isPaying = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(Strings.soldOut)),
+      );
+      Navigator.of(context).pop();
+    }
   }
 
   void _goToConfirmation(int purchaseId) async {

@@ -2,6 +2,9 @@ import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
 import '../models/store_model.dart';
 
+/// Thrown by [QueueRepository.reserveBag] when the store has no bags left.
+class StoreSoldOutException implements Exception {}
+
 abstract class QueueRepository {
   Future<void> ensureSeeded();
 

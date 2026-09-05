@@ -28,6 +28,8 @@ class Strings {
   static const nameLabel = 'الاسم';
   static const registerButton = 'تسجيل حساب جديد';
   static const registerError = 'يرجى تعبئة جميع الحقول';
+  static const phoneAlreadyRegistered = 'رقم الهاتف مسجل مسبقاً';
+  static const nationalIdAlreadyRegistered = 'رقم الهوية مسجل مسبقاً';
   static const demoBadge = 'نموذج تجريبي';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';

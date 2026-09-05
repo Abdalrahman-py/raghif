@@ -197,6 +197,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     emit(const AuthLoading());
     try {
+      if (await _authRepository.phoneExists(event.phone)) {
+        emit(const AuthFailure(Strings.phoneAlreadyRegistered));
+        return;
+      }
+      if (await _authRepository.nationalIdExists(event.nationalId)) {
+        emit(const AuthFailure(Strings.nationalIdAlreadyRegistered));
+        return;
+      }
       final user = await _authRepository.register(
         phone: event.phone,
         pin: event.pin,
