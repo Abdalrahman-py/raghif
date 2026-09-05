@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
@@ -16,6 +17,7 @@ import '../auth/demo_accounts.dart';
 import '../../domain/models/purchase_model.dart';
 import 'qr_payload.dart';
 import 'queue_controller.dart';
+import 'receipt_card.dart';
 
 /// UI_SPEC.md ConfirmationScreen: big status statement, batch/store at
 /// titleMedium, plain-language status while waiting rather than a raw
@@ -37,6 +39,8 @@ class ConfirmationScreen extends StatefulWidget {
 }
 
 class _ConfirmationScreenState extends State<ConfirmationScreen> {
+  final GlobalKey _receiptKey = GlobalKey();
+
   late final Stream<PurchaseModel?> _purchaseStream =
       widget.controller.watchPurchase(widget.purchaseId);
 
@@ -141,51 +145,33 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                           ),
                         ),
                       const SizedBox(height: AppSpacing.lg),
-                      AppCard(
-                        child: Column(
-                          children: [
-                            Text(
-                              Strings.receiptQrTitle,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              Strings.receiptQrSubtitle,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(AppSpacing.sm),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: QrImageView(
-                                  data: qrPayload.encode(),
-                                  version: QrVersions.auto,
-                                  size: 200.0,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            SecondaryButton(
-                              text: Strings.shareQrButton,
-                              onPressed: () => _shareQr(context, qrPayload),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            SecondaryButton(
-                              text: Strings.saveQrButton,
-                              onPressed: () => _saveQrToGallery(context, qrPayload),
-                            ),
-                          ],
+                      Text(
+                        Strings.receiptQrTitle,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      RepaintBoundary(
+                        key: _receiptKey,
+                        child: ReceiptCard(
+                          storeName: qrPayload.storeName,
+                          purchaseId: qrPayload.purchaseId,
+                          purchaseDate: qrPayload.purchaseDate,
+                          batchNumber: purchase.batchNumber,
+                          userName: qrPayload.userName,
+                          status: purchase.status,
+                          qrData: qrPayload.encode(),
                         ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SecondaryButton(
+                        text: Strings.shareQrButton,
+                        onPressed: () => _shareQr(context, qrPayload),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SecondaryButton(
+                        text: Strings.saveQrButton,
+                        onPressed: () => _saveQrToGallery(context, qrPayload),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       PrimaryButton(
@@ -205,15 +191,16 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
   );
 }
 
-  Future<Uint8List?> _generateQrBytes(QrPayload payload) async {
+  Future<Uint8List?> _captureReceiptBytes() async {
     try {
-      final painter = QrPainter(
-        data: payload.encode(),
-        version: QrVersions.auto,
-        gapless: true,
+      final boundary =
+          _receiptKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      final image = await boundary?.toImage(pixelRatio: 3.0);
+      final byteData = await image?.toByteData(
+        format: ui.ImageByteFormat.png,
       );
-      final picData = await painter.toImageData(600);
-      return picData?.buffer.asUint8List();
+      return byteData?.buffer.asUint8List();
     } catch (_) {
       return null;
     }
@@ -221,10 +208,10 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
 
   Future<void> _shareQr(BuildContext context, QrPayload payload) async {
     try {
-      final bytes = await _generateQrBytes(payload);
+      final bytes = await _captureReceiptBytes();
       if (bytes != null) {
         final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/qr_${payload.purchaseId}.png');
+        final file = File('${tempDir.path}/receipt_${payload.purchaseId}.png');
         await file.writeAsBytes(bytes);
         await Share.shareXFiles([
           XFile(file.path, mimeType: 'image/png'),
@@ -239,9 +226,9 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
 
   Future<void> _saveQrToGallery(BuildContext context, QrPayload payload) async {
     try {
-      final bytes = await _generateQrBytes(payload);
+      final bytes = await _captureReceiptBytes();
       if (bytes != null) {
-        await Gal.putImageBytes(bytes, name: 'qr_${payload.purchaseId}');
+        await Gal.putImageBytes(bytes, name: 'receipt_${payload.purchaseId}');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text(Strings.qrSavedSuccess)),
