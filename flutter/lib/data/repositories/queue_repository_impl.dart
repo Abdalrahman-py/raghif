@@ -361,7 +361,7 @@ class QueueRepositoryImpl implements QueueRepository {
   }
 
   @override
-  Future<void> notifyNextBatch(int storeId, String date) async {
+  Future<bool> notifyNextBatch(int storeId, String date) async {
     final waiting =
         await (_db.select(_db.purchases)
               ..where(
@@ -373,7 +373,7 @@ class QueueRepositoryImpl implements QueueRepository {
               ..orderBy([(p) => OrderingTerm.asc(p.batchNumber)]))
             .get();
 
-    if (waiting.isEmpty) return;
+    if (waiting.isEmpty) return false;
     final nextBatch = waiting.first.batchNumber;
 
     await (_db.update(_db.purchases)..where(
@@ -386,6 +386,7 @@ class QueueRepositoryImpl implements QueueRepository {
         .write(
           const PurchasesCompanion(status: Value(PurchaseStatus.notified)),
         );
+    return true;
   }
 
   @override

@@ -58,4 +58,9 @@ Workflow rules this changelog lives by:
 - Store owners can now set today's purchase window (start/end time), shown
   to buyers on the store list and purchase screen alongside the existing
   bags-remaining count.
+- Notifying the next batch now fires a real OS notification, simulating the
+  push notification a buyer would get in production — there's no backend
+  in this prototype, so it fires directly on whatever device runs the
+  owner's "Notify Next Batch" action. Uses `flutter_local_notifications`
+  (previously an unused dependency); no-op on web.
 

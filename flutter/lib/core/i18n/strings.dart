@@ -113,6 +113,10 @@ class Strings {
   static const waitingReassurance = 'سيتم إشعارك عندما يحين دورك';
   static const estimatedTime = 'الوقت التقديري للجاهزية';
   static const statusNotified = 'خبزك جاهز!';
+  static String batchReadyNotificationTitle(String storeName) =>
+      'خبزك جاهز في $storeName';
+  static const batchReadyNotificationBody =
+      'حان دورك، توجه إلى المخبز لاستلام طلبك';
   static const returnToStores = 'العودة إلى المخابز';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
