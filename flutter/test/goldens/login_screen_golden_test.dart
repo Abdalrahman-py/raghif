@@ -35,7 +35,7 @@ void main() {
     addTearDown(authBloc.close);
     addTearDown(() async {
         await tester.pumpWidget(const SizedBox());
-        await tester.pump();
+        await tester.pumpAndSettle();
       });
 
     await tester.pumpWidget(

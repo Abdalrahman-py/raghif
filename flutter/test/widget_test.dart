@@ -42,7 +42,7 @@ void main() {
     // dispose schedules internally (e.g. drift's stream-cancellation
     // cleanup) gets to fire before that check runs.
     await tester.pumpWidget(const SizedBox());
-    await tester.pump();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('RaghifApp renders the login screen once onboarding is done',
@@ -66,6 +66,6 @@ void main() {
 
     // See the first test's comment: unmount inline, not via addTearDown.
     await tester.pumpWidget(const SizedBox());
-    await tester.pump();
+    await tester.pumpAndSettle();
   });
 }

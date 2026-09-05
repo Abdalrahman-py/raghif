@@ -59,7 +59,7 @@ void main() {
       // subscription cancels — and its internal cleanup Timer fires via
       // the follow-up pump() — before that check runs.
       await tester.pumpWidget(const SizedBox());
-      await tester.pump();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('displays customer info when purchases exist', (tester) async {
@@ -96,7 +96,7 @@ void main() {
       expect(find.text(Strings.customersEmpty), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
-      await tester.pump();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (tester) async {
@@ -134,7 +134,7 @@ void main() {
       expect(find.text(Strings.customersTitle), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
-      await tester.pump();
+      await tester.pumpAndSettle();
     });
   });
 }

@@ -188,7 +188,7 @@ void main() {
         // drift .watch() subscriptions cancel — and their internal cleanup
         // Timer fires via the follow-up pump() — before that check runs.
         await tester.pumpWidget(const SizedBox());
-        await tester.pump();
+        await tester.pumpAndSettle();
       },
     );
 
@@ -227,7 +227,7 @@ void main() {
       expect(blocker, isNull);
 
       await tester.pumpWidget(const SizedBox());
-      await tester.pump();
+      await tester.pumpAndSettle();
     });
   });
 }
