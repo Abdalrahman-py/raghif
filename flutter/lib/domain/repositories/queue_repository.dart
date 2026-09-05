@@ -1,3 +1,4 @@
+import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
 import '../models/store_model.dart';
 
@@ -14,9 +15,15 @@ abstract class QueueRepository {
 
   Future<List<PurchaseModel>> getQueueForStore(int storeId, String date);
 
-  Future<PurchaseModel?> getBlockingPurchase(int userId, String date);
+  Future<PurchaseModel?> getBlockingPurchase(
+    int userId,
+    String date, {
+    String? userPhone,
+  });
 
   Future<PurchaseModel?> getPurchaseById(int purchaseId);
+
+  Stream<PurchaseModel?> watchPurchaseById(int purchaseId);
 
   Future<PurchaseModel> reserveBag({
     required int userId,
@@ -37,4 +44,8 @@ abstract class QueueRepository {
     required int batchSize,
     required String date,
   });
+
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId);
+
+  Future<List<CustomerSummaryModel>> getCustomersForStore(int storeId);
 }

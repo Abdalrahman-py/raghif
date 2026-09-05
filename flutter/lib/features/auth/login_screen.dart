@@ -10,13 +10,9 @@ import 'bloc/auth_bloc.dart';
 import 'demo_accounts.dart';
 import 'registration_screen.dart';
 
-/// Phone + 4-digit PIN. An unrecognized phone number pushes
-/// [RegistrationScreen] with the phone prefilled. Styled per UI_SPEC.md's
-/// design tokens.
-///
-/// Reads/dispatches the [AuthBloc] provided above it in the widget tree —
-/// a successful login is picked up by the app-level [AuthBloc] listener in
-/// main.dart, which swaps this screen out. No direct repository access here.
+/// LoginScreen: National ID is the login identifier per spec.md.
+/// Default flow: OTP login (Step 1: enter National ID -> Step 2: verify on-screen demo OTP).
+/// Alternate flow: PIN login (National ID + 4-digit PIN), reached via low-emphasis text link.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -25,31 +21,90 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _phoneController = TextEditingController();
+  final _nationalIdController = TextEditingController();
+  final _otpController = TextEditingController();
   final _pinController = TextEditingController();
 
+  bool _isPinMode = false;
+  bool _isOtpVerifyStep = false;
+  String? _demoOtpCode;
   String? _error;
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _nationalIdController.dispose();
+    _otpController.dispose();
     _pinController.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  void _requestOtp() {
+    final nationalId = _nationalIdController.text.trim();
+    if (nationalId.isEmpty) {
+      setState(() => _error = Strings.registerError);
+      return;
+    }
+    setState(() => _error = null);
+    context.read<AuthBloc>().add(RequestOtpEvent(nationalId: nationalId));
+  }
+
+  void _verifyOtp() {
+    final otp = _otpController.text.trim();
+    if (otp.isEmpty) {
+      setState(() => _error = Strings.otpError);
+      return;
+    }
+    setState(() => _error = null);
     context.read<AuthBloc>().add(
-          LoginRequestedEvent(
-            phone: _phoneController.text.trim(),
-            pin: _pinController.text.trim(),
+          VerifyOtpEvent(
+            nationalId: _nationalIdController.text.trim(),
+            otp: otp,
           ),
         );
   }
 
-  void _goToRegistration([String? initialPhone]) {
+  void _submitPinLogin() {
+    final nationalId = _nationalIdController.text.trim();
+    final pin = _pinController.text.trim();
+    if (nationalId.isEmpty || pin.isEmpty) {
+      setState(() => _error = Strings.registerError);
+      return;
+    }
+    setState(() => _error = null);
+    context.read<AuthBloc>().add(
+          PinLoginRequestedEvent(
+            nationalId: nationalId,
+            pin: pin,
+          ),
+        );
+  }
+
+  void _switchToPinMode() {
+    setState(() {
+      _isPinMode = true;
+      _error = null;
+    });
+  }
+
+  void _switchToOtpMode() {
+    setState(() {
+      _isPinMode = false;
+      _error = null;
+    });
+  }
+
+  void _resetOtpStep() {
+    setState(() {
+      _isOtpVerifyStep = false;
+      _otpController.clear();
+      _error = null;
+    });
+  }
+
+  void _goToRegistration() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RegistrationScreen(initialPhone: initialPhone),
+        builder: (_) => const RegistrationScreen(),
       ),
     );
   }
@@ -62,7 +117,21 @@ class _LoginScreenState extends State<LoginScreen> {
         if (state is AuthFailure) {
           setState(() => _error = state.errorMessage);
         } else if (state is AuthSwitchToRegister) {
-          _goToRegistration(state.phone);
+          setState(() {
+            _error = Strings.nationalIdNotFound;
+          });
+        } else if (state is AuthOtpSent) {
+          setState(() {
+            _isOtpVerifyStep = true;
+            _demoOtpCode = state.otpCode;
+            _error = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(Strings.demoOtpBanner(state.otpCode)),
+              duration: const Duration(seconds: 4),
+            ),
+          );
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -108,34 +177,156 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xl + AppSpacing.sm),
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
-                            labelText: Strings.phoneLabel,
+                        if (_isPinMode) ...[
+                          TextField(
+                            controller: _nationalIdController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: Strings.personalIdLabel,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        TextField(
-                          controller: _pinController,
-                          keyboardType: TextInputType.number,
-                          obscureText: true,
-                          maxLength: 4,
-                          decoration: const InputDecoration(
-                            labelText: Strings.pinLabel,
-                            counterText: '',
+                          const SizedBox(height: AppSpacing.sm),
+                          TextField(
+                            controller: _pinController,
+                            keyboardType: TextInputType.number,
+                            obscureText: true,
+                            maxLength: 4,
+                            decoration: const InputDecoration(
+                              labelText: Strings.pinLabel,
+                              counterText: '',
+                            ),
                           ),
-                        ),
-                        if (_error != null) ...[
+                          if (_error != null) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            StatusChip(text: _error!, tone: StatusTone.danger),
+                          ],
+                          const SizedBox(height: AppSpacing.lg),
+                          PrimaryButton(
+                            text: Strings.loginButton,
+                            loading: isLoading,
+                            onPressed: _submitPinLogin,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Center(
+                            child: TextButton(
+                              onPressed: _switchToOtpMode,
+                              child: Text(
+                                Strings.loginWithOtpInstead,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else if (!_isOtpVerifyStep) ...[
+                          TextField(
+                            controller: _nationalIdController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: Strings.personalIdLabel,
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            StatusChip(text: _error!, tone: StatusTone.danger),
+                          ],
+                          const SizedBox(height: AppSpacing.lg),
+                          PrimaryButton(
+                            text: Strings.requestOtpButton,
+                            loading: isLoading,
+                            onPressed: _requestOtp,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Center(
+                            child: TextButton(
+                              onPressed: _switchToPinMode,
+                              child: Text(
+                                Strings.loginWithPinInstead,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          AppCard(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    Strings.demoOtpBanner(
+                                        _demoOtpCode ?? '4821'),
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: AppSpacing.md),
-                          StatusChip(text: _error!, tone: StatusTone.danger),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${Strings.personalIdLabel}: ${_nationalIdController.text.trim()}',
+                                style: textTheme.bodyMedium,
+                              ),
+                              TextButton(
+                                onPressed: _resetOtpStep,
+                                child: const Text(Strings.changeNationalId),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          TextField(
+                            controller: _otpController,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            decoration: const InputDecoration(
+                              labelText: Strings.otpLabel,
+                              counterText: '',
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            StatusChip(text: _error!, tone: StatusTone.danger),
+                          ],
+                          const SizedBox(height: AppSpacing.lg),
+                          PrimaryButton(
+                            text: Strings.verifyOtpButton,
+                            loading: isLoading,
+                            onPressed: _verifyOtp,
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Center(
+                            child: TextButton(
+                              onPressed: isLoading ? null : _requestOtp,
+                              child: const Text(Strings.resendOtp),
+                            ),
+                          ),
+                          Center(
+                            child: TextButton(
+                              onPressed: _switchToPinMode,
+                              child: Text(
+                                Strings.loginWithPinInstead,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
-                        const SizedBox(height: AppSpacing.lg),
-                        PrimaryButton(
-                          text: Strings.loginButton,
-                          loading: isLoading,
-                          onPressed: _submit,
-                        ),
                         const SizedBox(height: AppSpacing.sm),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -161,11 +352,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Text(
-                                '${Strings.demoBuyerLabel} — $demoBuyerPhone / $demoBuyerPin',
+                                '${Strings.demoBuyerLabel} — $demoBuyerNationalId / $demoBuyerPin',
                                 style: textTheme.bodyMedium,
                               ),
                               Text(
-                                '${Strings.demoOwnerLabel} — $demoOwnerPhone / $demoOwnerPin',
+                                '${Strings.demoOwnerLabel} — $demoOwnerNationalId / $demoOwnerPin',
                                 style: textTheme.bodyMedium,
                               ),
                             ],

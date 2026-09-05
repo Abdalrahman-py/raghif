@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -6,6 +7,8 @@ import '../../core/widgets/big_stat_display.dart';
 import '../../core/widgets/number_stepper.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../auth/bloc/auth_bloc.dart';
+import 'owner_customers_screen.dart';
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -23,22 +26,26 @@ class OwnerDashboardScreen extends StatefulWidget {
   static const routeName = 'ownerDashboard';
 
   final QueueController controller;
-  final String storeId;
+  final dynamic storeId;
 
   @override
   State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
 }
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
-  late int _allocation;
-  late int _batchSize;
+  int _allocation = 300;
+  int _batchSize = 20;
+  bool _stepperInitialized = false;
 
   @override
   void initState() {
     super.initState();
     final store = widget.controller.storeById(widget.storeId);
-    _allocation = store?.dailyBagLimit ?? 0;
-    _batchSize = store?.batchSize ?? 1;
+    if (store != null) {
+      _allocation = store.dailyBagLimit;
+      _batchSize = store.batchSize;
+      _stepperInitialized = true;
+    }
   }
 
   @override
@@ -51,7 +58,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             icon: const Icon(Icons.logout),
             tooltip: Strings.logout,
             onPressed: () =>
-                Navigator.of(context).popUntil((route) => route.isFirst),
+                context.read<AuthBloc>().add(const LogoutRequestedEvent()),
           ),
         ],
       ),
@@ -59,6 +66,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         listenable: widget.controller,
         builder: (context, _) {
           final store = widget.controller.storeById(widget.storeId);
+          if (!_stepperInitialized && store != null) {
+            _allocation = store.dailyBagLimit;
+            _batchSize = store.batchSize;
+            _stepperInitialized = true;
+          }
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -167,6 +179,18 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => OwnerQueueScreen(
+                              controller: widget.controller,
+                              storeId: widget.storeId,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SecondaryButton(
+                        text: Strings.customersButton,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => OwnerCustomersScreen(
                               controller: widget.controller,
                               storeId: widget.storeId,
                             ),

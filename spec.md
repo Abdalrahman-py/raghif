@@ -19,8 +19,14 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 ### User Side
 
 **Registration & Auth**
-- Phone number + national ID + 4-digit PIN
-- then user logs in using phone number and pin
+- Registration: phone number + national ID + 4-digit PIN
+- Login identifier is national ID (unique, verifies the user) — not phone number
+  - Default: OTP login — user enters national ID, app looks up the phone on file for
+    that ID, simulates sending an OTP to it (shown on-screen — no real SMS gateway in
+    the prototype), user enters the code to confirm
+  - Alternate: PIN login — national ID + the 4-digit PIN set at registration, reached
+    via a "log in with PIN instead" link on the OTP screen (only works if that ID has
+    a PIN on file)
 
 **Buying Flow**
 - Flat list of ~10 stores by name (no GPS — users recognize their local bakery)
@@ -82,7 +88,7 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 |---|---|---|
 | Platform | Flutter (Android-first) | Port of the Kotlin prototype — the port IS the prototype now |
 | Backend | Local on-device DB via `drift` (prototype) | Nothing hosted — on-device DB, no accounts, no servers |
-| Auth | Phone + national ID + local PIN | No email, works offline |
+| Auth | National ID login (OTP default, local PIN alternate) | No email, works offline |
 | Notifications | Push notifications (FCM) | Free, works when user opens app |
 | Store discovery | Flat list by name | ~10 stores, no maps needed |
 | Language | Bilingual AR | arabic only app |

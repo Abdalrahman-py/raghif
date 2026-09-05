@@ -137,7 +137,7 @@ void main() {
       ),
       expect: () => [
         const AuthLoading(),
-        const AuthSwitchToRegister(phone: '0599999999'),
+        const AuthSwitchToRegister(nationalId: '0599999999'),
       ],
     );
 
@@ -196,5 +196,177 @@ void main() {
         const Unauthenticated(),
       ],
     );
+
+    group('OTP Login Flow', () {
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, AuthOtpSent] when national ID exists',
+        build: () {
+          when(() => mockAuthRepository.findByNationalId('900111222'))
+              .thenAnswer((_) async => testUser);
+          when(() => mockAuthRepository.requestOtp('900111222'))
+              .thenAnswer((_) async => '4821');
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
+        expect: () => [
+          const AuthLoading(),
+          const AuthOtpSent(
+            nationalId: '900111222',
+            phone: '0599111111',
+            otpCode: '4821',
+          ),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
+        build: () {
+          when(() => mockAuthRepository.findByNationalId('900999999'))
+              .thenAnswer((_) async => null);
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900999999')),
+        expect: () => [
+          const AuthLoading(),
+          const AuthSwitchToRegister(nationalId: '900999999'),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, Authenticated] when entered OTP matches',
+        seed: () => const AuthOtpSent(
+          nationalId: '900111222',
+          phone: '0599111111',
+          otpCode: '4821',
+        ),
+        build: () {
+          when(() => mockAuthRepository.loginWithOtp(nationalId: '900111222'))
+              .thenAnswer((_) async => testUser);
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(
+          const VerifyOtpEvent(nationalId: '900111222', otp: '4821'),
+        ),
+        expect: () => [
+          const AuthLoading(),
+          const Authenticated(testUser),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, AuthFailure] when entered OTP is incorrect',
+        seed: () => const AuthOtpSent(
+          nationalId: '900111222',
+          phone: '0599111111',
+          otpCode: '4821',
+        ),
+        build: () {
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(
+          const VerifyOtpEvent(nationalId: '900111222', otp: '0000'),
+        ),
+        expect: () => [
+          const AuthLoading(),
+          const AuthFailure(Strings.otpError),
+        ],
+      );
+    });
+
+    group('PIN Login Flow', () {
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, Authenticated] on successful PIN login',
+        build: () {
+          when(
+            () => mockAuthRepository.loginWithPin(
+              nationalId: '900111222',
+              pin: '1234',
+            ),
+          ).thenAnswer((_) async => testUser);
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(
+          const PinLoginRequestedEvent(
+            nationalId: '900111222',
+            pin: '1234',
+          ),
+        ),
+        expect: () => [
+          const AuthLoading(),
+          const Authenticated(testUser),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, AuthFailure] when PIN is wrong for existing user',
+        build: () {
+          when(
+            () => mockAuthRepository.loginWithPin(
+              nationalId: '900111222',
+              pin: '0000',
+            ),
+          ).thenAnswer((_) async => null);
+          when(() => mockAuthRepository.nationalIdExists('900111222'))
+              .thenAnswer((_) async => true);
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(
+          const PinLoginRequestedEvent(
+            nationalId: '900111222',
+            pin: '0000',
+          ),
+        ),
+        expect: () => [
+          const AuthLoading(),
+          const AuthFailure(Strings.loginError),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
+        'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
+        build: () {
+          when(
+            () => mockAuthRepository.loginWithPin(
+              nationalId: '900999999',
+              pin: '1234',
+            ),
+          ).thenAnswer((_) async => null);
+          when(() => mockAuthRepository.nationalIdExists('900999999'))
+              .thenAnswer((_) async => false);
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(
+          const PinLoginRequestedEvent(
+            nationalId: '900999999',
+            pin: '1234',
+          ),
+        ),
+        expect: () => [
+          const AuthLoading(),
+          const AuthSwitchToRegister(nationalId: '900999999'),
+        ],
+      );
+    });
   });
 }

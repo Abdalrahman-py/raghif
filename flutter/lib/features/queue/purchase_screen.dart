@@ -4,6 +4,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../../domain/models/purchase_model.dart';
 import '../auth/demo_accounts.dart';
 import '../payment/payment_number_screen.dart';
 import 'confirmation_screen.dart';
@@ -22,7 +23,7 @@ class PurchaseScreen extends StatefulWidget {
   });
 
   final QueueController controller;
-  final String storeId;
+  final int storeId;
   final DemoUser currentUser;
 
   @override
@@ -31,8 +32,28 @@ class PurchaseScreen extends StatefulWidget {
 
 class _PurchaseScreenState extends State<PurchaseScreen> {
   bool _isPaying = false;
+  PurchaseModel? _blocker;
 
-  String get _userId => widget.currentUser.phone;
+  int get _userId => widget.currentUser.id;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBlocker();
+  }
+
+  Future<void> _checkBlocker() async {
+    final blocker = await widget.controller.blockingPurchaseFor(
+      _userId,
+      widget.storeId,
+      todayDateString(),
+    );
+    if (mounted) {
+      setState(() {
+        _blocker = blocker;
+      });
+    }
+  }
 
   void _startPaymentFlow() async {
     final paid = await Navigator.of(context).push<bool>(
@@ -54,45 +75,53 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     if (!mounted) return;
 
     final date = todayDateString();
-    final blocker = widget.controller.blockingPurchaseFor(
+    final blocker = await widget.controller.blockingPurchaseFor(
       _userId,
       widget.storeId,
       date,
     );
     if (blocker != null) {
-      setState(() => _isPaying = false);
+      if (!mounted) return;
+      setState(() {
+        _isPaying = false;
+        _blocker = blocker;
+      });
       _goToConfirmation(blocker.id);
       return;
     }
 
-    final purchase = widget.controller.buy(
+    final purchase = await widget.controller.buy(
       userId: _userId,
       storeId: widget.storeId,
       date: date,
     );
-    setState(() => _isPaying = false);
+    if (!mounted) return;
+    setState(() {
+      _isPaying = false;
+      _blocker = purchase;
+    });
     _goToConfirmation(purchase.id);
   }
 
-  void _goToConfirmation(String purchaseId) {
-    Navigator.of(context).push(
+  void _goToConfirmation(int purchaseId) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConfirmationScreen(
           controller: widget.controller,
           purchaseId: purchaseId,
+          currentUser: widget.currentUser,
         ),
       ),
     );
+    if (mounted) {
+      _checkBlocker();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final store = widget.controller.storeById(widget.storeId);
-    final blocker = widget.controller.blockingPurchaseFor(
-      _userId,
-      widget.storeId,
-      todayDateString(),
-    );
+    final blocker = _blocker;
 
     return Scaffold(
       appBar: AppBar(title: Text(Strings.purchaseTitle)),

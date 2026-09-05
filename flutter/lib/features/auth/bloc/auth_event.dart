@@ -11,6 +11,41 @@ class CheckAuthSessionEvent extends AuthEvent {
   const CheckAuthSessionEvent();
 }
 
+class RequestOtpEvent extends AuthEvent {
+  const RequestOtpEvent({required this.nationalId});
+
+  final String nationalId;
+
+  @override
+  List<Object?> get props => [nationalId];
+}
+
+class VerifyOtpEvent extends AuthEvent {
+  const VerifyOtpEvent({
+    required this.nationalId,
+    required this.otp,
+  });
+
+  final String nationalId;
+  final String otp;
+
+  @override
+  List<Object?> get props => [nationalId, otp];
+}
+
+class PinLoginRequestedEvent extends AuthEvent {
+  const PinLoginRequestedEvent({
+    required this.nationalId,
+    required this.pin,
+  });
+
+  final String nationalId;
+  final String pin;
+
+  @override
+  List<Object?> get props => [nationalId, pin];
+}
+
 class LoginRequestedEvent extends AuthEvent {
   const LoginRequestedEvent({
     required this.phone,

@@ -117,4 +117,70 @@ void main() {
     expect(queue[0].status, PurchaseStatus.notified);
     expect(queue[1].status, PurchaseStatus.notified);
   });
+
+  test('getCustomersForStore returns distinct customers aggregated across all dates', () async {
+    final user1 = await db.into(db.users).insert(
+      UsersCompanion.insert(
+        phone: '0599222001',
+        nationalId: '900000011',
+        pinHash: 'hash',
+        name: 'عميل 1',
+      ),
+    );
+    final user2 = await db.into(db.users).insert(
+      UsersCompanion.insert(
+        phone: '0599222002',
+        nationalId: '900000012',
+        pinHash: 'hash',
+        name: 'عميل 2',
+      ),
+    );
+
+    final stores = await queueRepo.getStores();
+    final store1 = stores[0];
+    final store2 = stores[1];
+
+    // User 1 buys twice at store 1 across different dates
+    await queueRepo.reserveBag(
+      userId: user1,
+      storeId: store1.id,
+      date: '2026-09-01',
+    );
+    await queueRepo.reserveBag(
+      userId: user1,
+      storeId: store1.id,
+      date: '2026-09-02',
+    );
+
+    // User 2 buys once at store 1
+    await queueRepo.reserveBag(
+      userId: user2,
+      storeId: store1.id,
+      date: '2026-09-01',
+    );
+
+    // User 2 buys at store 2 (should not appear in store 1)
+    await queueRepo.reserveBag(
+      userId: user2,
+      storeId: store2.id,
+      date: '2026-09-03',
+    );
+
+    final customers = await queueRepo.getCustomersForStore(store1.id);
+    expect(customers.length, 2);
+
+    // User 1 had latest purchase on 2026-09-02, should be first
+    expect(customers[0].userId, user1);
+    expect(customers[0].name, 'عميل 1');
+    expect(customers[0].phone, '0599222001');
+    expect(customers[0].totalPurchases, 2);
+    expect(customers[0].lastPurchaseDate, '2026-09-02');
+
+    // User 2 had purchase on 2026-09-01 at store 1
+    expect(customers[1].userId, user2);
+    expect(customers[1].name, 'عميل 2');
+    expect(customers[1].phone, '0599222002');
+    expect(customers[1].totalPurchases, 1);
+    expect(customers[1].lastPurchaseDate, '2026-09-01');
+  });
 }

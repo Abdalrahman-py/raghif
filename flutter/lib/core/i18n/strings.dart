@@ -9,7 +9,17 @@ class Strings {
   static const phoneLabel = 'رقم الهاتف';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
-  static const loginError = 'لا يوجد حساب بهذا الرقم والرمز السري';
+  static const loginError = 'الرمز السري غير صحيح';
+  static const requestOtpButton = 'إرسال رمز التحقق';
+  static const otpLabel = 'رمز التحقق';
+  static const verifyOtpButton = 'تأكيد الرمز والدخول';
+  static const loginWithPinInstead = 'الدخول باستخدام الرمز السري بدلاً من ذلك';
+  static const loginWithOtpInstead = 'الدخول برمز التحقق (OTP) بدلاً من ذلك';
+  static const changeNationalId = 'تغيير رقم الهوية';
+  static const resendOtp = 'إعادة إرسال الرمز';
+  static const otpError = 'رمز التحقق غير صحيح';
+  static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
+  static String demoOtpBanner(String code) => 'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -89,6 +99,14 @@ class Strings {
   static const estimatedTime = 'الوقت التقديري للجاهزية';
   static const statusNotified = 'خبزك جاهز!';
   static const returnToStores = 'العودة إلى المخابز';
+  static const receiptQrTitle = 'رمز استلام الطلب';
+  static const receiptQrSubtitle =
+      'أظهر هذا الرمز لصاحب المخبز لتأكيد الاستلام';
+  static const shareQrButton = 'مشاركة رمز الاستلام';
+  static const saveQrButton = 'حفظ في المعرض';
+  static const shareQrText = 'رمز استلام الخبز';
+  static const qrSavedSuccess = 'تم حفظ رمز الاستلام في المعرض';
+  static const qrSaveFailed = 'تعذر حفظ رمز الاستلام في المعرض';
 
   // Owner dashboard
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';
@@ -129,4 +147,11 @@ class Strings {
   static const paymentSuccessMessage =
       'تمت عملية الدفع بنجاح بقيمة 3 شيكل عبر جوال باي.';
   static const completeReservationButton = 'إتمام الحجز';
+
+  // Owner customers
+  static const customersTitle = 'سجل الزبائن';
+  static const customersButton = 'عرض سجل الزبائن';
+  static const customersEmpty = 'لا يوجد زبائن مسجلون بعد';
+  static String totalPurchasesCount(int count) => 'إجمالي المشتريات: $count';
+  static String lastPurchaseDate(String date) => 'آخر شراء: $date';
 }

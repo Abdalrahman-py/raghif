@@ -1,6 +1,9 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
+import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
 import 'package:raghif/features/payment/payment_number_screen.dart';
@@ -88,7 +91,6 @@ void main() {
   });
 
   group('PurchaseScreen Jawwal Pay integration', () {
-    late QueueController controller;
     const testUser = DemoUser(
       phone: '0599111111',
       pin: '1234',
@@ -97,13 +99,21 @@ void main() {
       jawwalPayNumber: '0599111111',
     );
 
-    setUp(() {
-      controller = QueueController();
-    });
-
     testWidgets(
       'tapping buy pushes payment flow; completing payment creates reservation',
       (tester) async {
+        // Built inside the test body, not setUp() — setUp() runs outside
+        // testWidgets' own FakeAsync zone, and a database built there can't
+        // reliably deliver .watch() stream data inside the test body.
+        // Not explicitly closed: this database is fresh and short-lived,
+        // and unmounting the widget below already cancels its .watch()
+        // subscriptions cleanly — an extra explicit controller
+        // .dispose()/db.close() afterward re-touches an already-settled
+        // stream and reliably hangs.
+        final db = AppDatabase(NativeDatabase.memory());
+        final repository = QueueRepositoryImpl(db);
+        await repository.ensureSeeded();
+        final controller = QueueController(repository);
         final store = controller.stores.first;
 
         await tester.pumpWidget(
@@ -164,18 +174,25 @@ void main() {
         expect(find.text(Strings.confirmationTitle), findsOneWidget);
 
         // Verify reservation exists in QueueController
-        final blocker = controller.blockingPurchaseFor(
+        final blocker = await controller.blockingPurchaseFor(
           testUser.phone,
           store.id,
           todayDateString(),
         );
         expect(blocker, isNotNull);
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
       },
     );
 
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final repository = QueueRepositoryImpl(db);
+      await repository.ensureSeeded();
+      final controller = QueueController(repository);
       final store = controller.stores.first;
 
       await tester.pumpWidget(
@@ -200,12 +217,15 @@ void main() {
       expect(find.text(Strings.purchaseTitle), findsOneWidget);
 
       // Verify NO purchase was made
-      final blocker = controller.blockingPurchaseFor(
+      final blocker = await controller.blockingPurchaseFor(
         testUser.phone,
         store.id,
         todayDateString(),
       );
       expect(blocker, isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     });
   });
 }

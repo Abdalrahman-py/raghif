@@ -9,6 +9,7 @@ import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/queue/queue_controller.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -35,12 +36,15 @@ Future<void> initDependencies() async {
   final queueRepository = QueueRepositoryImpl(sl<AppDatabase>());
   sl.registerSingleton<QueueRepository>(queueRepository);
 
-  // Blocs
+  // Blocs & Controllers
   sl.registerFactory<AuthBloc>(
     () => AuthBloc(
       authRepository: sl<AuthRepository>(),
       sessionStore: sl<SessionStore>(),
     ),
+  );
+  sl.registerLazySingleton<QueueController>(
+    () => QueueController(sl<QueueRepository>()),
   );
 
   // Seed default data
