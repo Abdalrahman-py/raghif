@@ -147,4 +147,11 @@ class Strings {
   static const paymentSuccessMessage =
       'تمت عملية الدفع بنجاح بقيمة 3 شيكل عبر جوال باي.';
   static const completeReservationButton = 'إتمام الحجز';
+
+  // Owner customers
+  static const customersTitle = 'سجل الزبائن';
+  static const customersButton = 'عرض سجل الزبائن';
+  static const customersEmpty = 'لا يوجد زبائن مسجلون بعد';
+  static String totalPurchasesCount(int count) => 'إجمالي المشتريات: $count';
+  static String lastPurchaseDate(String date) => 'آخر شراء: $date';
 }

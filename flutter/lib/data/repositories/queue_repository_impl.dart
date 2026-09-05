@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import '../../core/auth/demo_accounts.dart';
 import '../../core/auth/pin_hash.dart';
 import '../../core/database/app_database.dart';
+import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -374,5 +375,55 @@ class QueueRepositoryImpl implements QueueRepository {
         bagsRemaining: Value(dailyLimit),
       ),
     );
+  }
+
+  @override
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId) {
+    return _db.customSelect(
+      'SELECT u.id AS user_id, u.name AS user_name, u.phone AS user_phone, '
+      'COUNT(p.id) AS total_purchases, MAX(p.purchase_date) AS last_purchase_date '
+      'FROM purchases p '
+      'INNER JOIN users u ON u.id = p.user_id '
+      'WHERE p.store_id = ? '
+      'GROUP BY u.id '
+      'ORDER BY MAX(p.created_at) DESC, last_purchase_date DESC',
+      variables: [Variable.withInt(storeId)],
+      readsFrom: {_db.purchases, _db.users},
+    ).watch().map((rows) {
+      return rows.map((row) {
+        return CustomerSummaryModel(
+          userId: row.read<int>('user_id'),
+          name: row.read<String>('user_name'),
+          phone: row.read<String>('user_phone'),
+          totalPurchases: row.read<int>('total_purchases'),
+          lastPurchaseDate: row.read<String>('last_purchase_date'),
+        );
+      }).toList();
+    });
+  }
+
+  @override
+  Future<List<CustomerSummaryModel>> getCustomersForStore(int storeId) async {
+    final rows = await _db.customSelect(
+      'SELECT u.id AS user_id, u.name AS user_name, u.phone AS user_phone, '
+      'COUNT(p.id) AS total_purchases, MAX(p.purchase_date) AS last_purchase_date '
+      'FROM purchases p '
+      'INNER JOIN users u ON u.id = p.user_id '
+      'WHERE p.store_id = ? '
+      'GROUP BY u.id '
+      'ORDER BY MAX(p.created_at) DESC, last_purchase_date DESC',
+      variables: [Variable.withInt(storeId)],
+      readsFrom: {_db.purchases, _db.users},
+    ).get();
+
+    return rows.map((row) {
+      return CustomerSummaryModel(
+        userId: row.read<int>('user_id'),
+        name: row.read<String>('user_name'),
+        phone: row.read<String>('user_phone'),
+        totalPurchases: row.read<int>('total_purchases'),
+        lastPurchaseDate: row.read<String>('last_purchase_date'),
+      );
+    }).toList();
   }
 }

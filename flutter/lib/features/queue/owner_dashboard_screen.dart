@@ -8,6 +8,7 @@ import '../../core/widgets/number_stepper.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../auth/bloc/auth_bloc.dart';
+import 'owner_customers_screen.dart';
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -178,6 +179,18 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => OwnerQueueScreen(
+                              controller: widget.controller,
+                              storeId: widget.storeId,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SecondaryButton(
+                        text: Strings.customersButton,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => OwnerCustomersScreen(
                               controller: widget.controller,
                               storeId: widget.storeId,
                             ),

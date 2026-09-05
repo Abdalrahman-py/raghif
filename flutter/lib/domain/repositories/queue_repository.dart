@@ -1,3 +1,4 @@
+import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
 import '../models/store_model.dart';
 
@@ -43,4 +44,8 @@ abstract class QueueRepository {
     required int batchSize,
     required String date,
   });
+
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId);
+
+  Future<List<CustomerSummaryModel>> getCustomersForStore(int storeId);
 }

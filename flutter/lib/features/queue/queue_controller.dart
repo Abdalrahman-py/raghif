@@ -5,6 +5,7 @@ import '../../core/auth/demo_accounts.dart';
 import '../../core/database/app_database.dart';
 import '../../core/di/injection.dart';
 import '../../data/repositories/queue_repository_impl.dart';
+import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -188,6 +189,18 @@ class QueueController extends ChangeNotifier {
       date: today,
     );
     notifyListeners();
+  }
+
+  /// Watch distinct customers for store across all dates.
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(dynamic storeId) {
+    final sId = _parseInt(storeId, 1);
+    return _repository.watchCustomersForStore(sId);
+  }
+
+  /// Get distinct customers for store across all dates.
+  Future<List<CustomerSummaryModel>> getCustomersForStore(dynamic storeId) {
+    final sId = _parseInt(storeId, 1);
+    return _repository.getCustomersForStore(sId);
   }
 
   @override
