@@ -17,14 +17,26 @@ const int demoOwnerStoreId = 1;
 /// Controller managing bakery queue state and operations. Backed by
 /// [QueueRepository] (Drift persistence) with reactive streams.
 class QueueController extends ChangeNotifier {
-  QueueController([QueueRepository? repository])
-      : _repository = repository ??
-            (sl.isRegistered<QueueRepository>()
-                ? sl<QueueRepository>()
-                : QueueRepositoryImpl(AppDatabase(NativeDatabase.memory()))..ensureSeeded()) {
+  factory QueueController([QueueRepository? repository]) {
+    if (repository != null) return QueueController._(repository, null);
+    if (sl.isRegistered<QueueRepository>()) {
+      return QueueController._(sl<QueueRepository>(), null);
+    }
+    final db = AppDatabase(NativeDatabase.memory());
+    final repo = QueueRepositoryImpl(db);
+    unawaited(repo.ensureSeeded());
+    return QueueController._(repo, db);
+  }
+
+  QueueController._(this._repository, this._ownedDatabase) {
     _stores = defaultStores;
     _init();
   }
+
+  /// Non-null only when this controller created its own database (no DI,
+  /// no injected repository) — [dispose] must close it or the connection
+  /// and its pending operations leak past the widget's lifetime.
+  final AppDatabase? _ownedDatabase;
 
   static const List<StoreModel> defaultStores = [
     StoreModel(
@@ -206,6 +218,7 @@ class QueueController extends ChangeNotifier {
   @override
   void dispose() {
     _storesSub?.cancel();
+    _ownedDatabase?.close();
     super.dispose();
   }
 }

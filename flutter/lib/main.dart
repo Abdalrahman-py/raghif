@@ -55,6 +55,7 @@ class _RaghifAppState extends State<RaghifApp> {
   @override
   void dispose() {
     _authBloc.close();
+    _controller.dispose();
     super.dispose();
   }
 

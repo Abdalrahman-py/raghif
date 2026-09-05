@@ -1,6 +1,9 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
+import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
 import 'package:raghif/features/payment/payment_number_screen.dart';
@@ -88,6 +91,7 @@ void main() {
   });
 
   group('PurchaseScreen Jawwal Pay integration', () {
+    late AppDatabase db;
     late QueueController controller;
     const testUser = DemoUser(
       phone: '0599111111',
@@ -97,13 +101,22 @@ void main() {
       jawwalPayNumber: '0599111111',
     );
 
-    setUp(() {
-      controller = QueueController();
+    setUp(() async {
+      db = AppDatabase(NativeDatabase.memory());
+      final repository = QueueRepositoryImpl(db);
+      await repository.ensureSeeded();
+      controller = QueueController(repository);
+    });
+
+    tearDown(() async {
+      controller.dispose();
+      await db.close();
     });
 
     testWidgets(
       'tapping buy pushes payment flow; completing payment creates reservation',
       (tester) async {
+        addTearDown(() => tester.pumpWidget(const SizedBox()));
         final store = controller.stores.first;
 
         await tester.pumpWidget(
@@ -176,6 +189,7 @@ void main() {
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
+      addTearDown(() => tester.pumpWidget(const SizedBox()));
       final store = controller.stores.first;
 
       await tester.pumpWidget(
