@@ -81,11 +81,8 @@ void main() {
         findsOneWidget,
       );
 
-      // Price row
-      expect(find.text(Strings.priceLabel), findsOneWidget);
-      expect(find.text(Strings.priceValue), findsOneWidget);
-
-      // Buy action button
+      // Price shown once, on the buy button itself — not as a separate row
+      expect(find.text(Strings.priceLabel), findsNothing);
       expect(find.text(Strings.payButton), findsOneWidget);
       expect(find.text(Strings.viewOrder), findsNothing);
 
@@ -164,8 +161,6 @@ void main() {
 
       // Store detail block still renders
       expect(find.text(store.name), findsOneWidget);
-      expect(find.text(Strings.priceLabel), findsOneWidget);
-      expect(find.text(Strings.priceValue), findsOneWidget);
 
       // Same store blocker message
       expect(find.text(Strings.dailyLimitReached), findsOneWidget);
@@ -207,8 +202,6 @@ void main() {
 
       // Store detail block renders store 2's info
       expect(find.text(store2.name), findsOneWidget);
-      expect(find.text(Strings.priceLabel), findsOneWidget);
-      expect(find.text(Strings.priceValue), findsOneWidget);
 
       // Blocker message refers to store 1 (where the user actually reserved)
       final expectedMessage = Strings.dailyLimitReachedOtherStore(store1.name);
