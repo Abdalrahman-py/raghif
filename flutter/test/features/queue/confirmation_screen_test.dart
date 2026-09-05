@@ -66,6 +66,52 @@ void main() {
       // Verify QrImageView is rendered
       expect(find.byType(QrImageView), findsOneWidget);
 
+      // Verify reassurance message is displayed and fake estimated time clock is NOT shown
+      expect(find.text(Strings.statusWaiting), findsOneWidget);
+      expect(find.text(Strings.waitingReassurance), findsOneWidget);
+      expect(find.text(Strings.estimatedTime), findsNothing);
+
+      // Verify queue position and batch chips
+      expect(find.textContaining(Strings.queuePosition), findsOneWidget);
+      expect(find.text(Strings.batchLabel(purchase.batchNumber)), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows statusNotified when purchase is notified', (
+      tester,
+    ) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final repository = QueueRepositoryImpl(db);
+      await repository.ensureSeeded();
+      final controller = QueueController(repository);
+      final store = controller.stores.first;
+      final purchase = await controller.buy(
+        userId: testUser.id,
+        storeId: store.id,
+        date: '2026-09-03',
+      );
+
+      // Transition batch to notified
+      await controller.notifyNextBatch(store.id, '2026-09-03');
+
+      await tester.pumpWidget(
+        wrapWithMaterial(
+          ConfirmationScreen(
+            controller: controller,
+            purchaseId: purchase.id,
+            currentUser: testUser,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.statusNotified), findsOneWidget);
+      expect(find.text(Strings.statusWaiting), findsNothing);
+      expect(find.text(Strings.waitingReassurance), findsNothing);
+      expect(find.text(Strings.estimatedTime), findsNothing);
+
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
     });

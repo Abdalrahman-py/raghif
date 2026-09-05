@@ -16,7 +16,6 @@ import '../auth/demo_accounts.dart';
 import '../../domain/models/purchase_model.dart';
 import 'qr_payload.dart';
 import 'queue_controller.dart';
-import 'queue_logic.dart';
 
 /// UI_SPEC.md ConfirmationScreen: big status statement, batch/store at
 /// titleMedium, plain-language status while waiting rather than a raw
@@ -77,12 +76,6 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
             builder: (context, queueSnapshot) {
               final queue = queueSnapshot.data ?? [];
               final position = queue.indexWhere((p) => p.id == purchase.id) + 1;
-              final readyAtLabel = formatReadyTime(
-                estimatedReadyAtMillis(
-                  purchase.createdAtMillis,
-                  purchase.batchNumber,
-                ),
-              );
               final store = controller.storeById(purchase.storeId);
               final qrPayload = QrPayload(
                 purchaseId: purchase.id.toString(),
@@ -123,19 +116,17 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                         ),
                         const SizedBox(height: AppSpacing.lg),
                         AppCard(
-                          child: Column(
-                            children: [
-                              Text(
-                                Strings.estimatedTime,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.sm,
                               ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                readyAtLabel,
-                                style: Theme.of(context).textTheme.displayLarge
-                                    ?.copyWith(color: AppColors.accent),
+                              child: Text(
+                                Strings.waitingReassurance,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ] else
