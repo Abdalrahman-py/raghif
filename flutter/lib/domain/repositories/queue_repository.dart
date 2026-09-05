@@ -14,9 +14,15 @@ abstract class QueueRepository {
 
   Future<List<PurchaseModel>> getQueueForStore(int storeId, String date);
 
-  Future<PurchaseModel?> getBlockingPurchase(int userId, String date);
+  Future<PurchaseModel?> getBlockingPurchase(
+    int userId,
+    String date, {
+    String? userPhone,
+  });
 
   Future<PurchaseModel?> getPurchaseById(int purchaseId);
+
+  Stream<PurchaseModel?> watchPurchaseById(int purchaseId);
 
   Future<PurchaseModel> reserveBag({
     required int userId,

@@ -8,6 +8,7 @@ export '../../core/auth/demo_accounts.dart';
 /// main.dart.
 class DemoUser {
   const DemoUser({
+    this.id = 1,
     required this.phone,
     required this.pin,
     required this.role,
@@ -15,6 +16,7 @@ class DemoUser {
     this.jawwalPayNumber,
   });
 
+  final int id;
   final String phone;
   final String pin;
   final UserRole role;

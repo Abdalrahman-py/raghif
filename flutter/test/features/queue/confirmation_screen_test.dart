@@ -32,8 +32,8 @@ void main() {
       tester,
     ) async {
       final store = controller.stores.first;
-      final purchase = controller.buy(
-        userId: testUser.phone,
+      final purchase = await controller.buy(
+        userId: testUser.id,
         storeId: store.id,
         date: '2026-09-03',
       );

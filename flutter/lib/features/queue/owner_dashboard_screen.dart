@@ -25,22 +25,26 @@ class OwnerDashboardScreen extends StatefulWidget {
   static const routeName = 'ownerDashboard';
 
   final QueueController controller;
-  final String storeId;
+  final dynamic storeId;
 
   @override
   State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
 }
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
-  late int _allocation;
-  late int _batchSize;
+  int _allocation = 300;
+  int _batchSize = 20;
+  bool _stepperInitialized = false;
 
   @override
   void initState() {
     super.initState();
     final store = widget.controller.storeById(widget.storeId);
-    _allocation = store?.dailyBagLimit ?? 0;
-    _batchSize = store?.batchSize ?? 1;
+    if (store != null) {
+      _allocation = store.dailyBagLimit;
+      _batchSize = store.batchSize;
+      _stepperInitialized = true;
+    }
   }
 
   @override
@@ -61,6 +65,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         listenable: widget.controller,
         builder: (context, _) {
           final store = widget.controller.storeById(widget.storeId);
+          if (!_stepperInitialized && store != null) {
+            _allocation = store.dailyBagLimit;
+            _batchSize = store.batchSize;
+            _stepperInitialized = true;
+          }
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(

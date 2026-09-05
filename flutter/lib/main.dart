@@ -20,17 +20,18 @@ void main() async {
 }
 
 class RaghifApp extends StatefulWidget {
-  const RaghifApp({super.key, this.authBloc});
+  const RaghifApp({super.key, this.authBloc, this.queueController});
 
   /// Test seam: inject a pre-built bloc instead of resolving one from [sl].
   final AuthBloc? authBloc;
+  final QueueController? queueController;
 
   @override
   State<RaghifApp> createState() => _RaghifAppState();
 }
 
 class _RaghifAppState extends State<RaghifApp> {
-  final QueueController _controller = QueueController();
+  late final QueueController _controller;
   late final AuthBloc _authBloc;
 
   /// null while loading, then whether the intro carousel has been seen —
@@ -40,6 +41,10 @@ class _RaghifAppState extends State<RaghifApp> {
   @override
   void initState() {
     super.initState();
+    _controller = widget.queueController ??
+        (sl.isRegistered<QueueController>()
+            ? sl<QueueController>()
+            : QueueController());
     _authBloc = (widget.authBloc ?? sl<AuthBloc>())
       ..add(const CheckAuthSessionEvent());
     OnboardingStore().hasSeenOnboarding().then((seen) {
@@ -94,6 +99,7 @@ class _RaghifAppState extends State<RaghifApp> {
               }
 
               final demoUser = DemoUser(
+                id: state.user.id,
                 phone: state.user.phone,
                 pin: '',
                 role: state.user.isOwner ? UserRole.owner : UserRole.buyer,

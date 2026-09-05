@@ -1,4 +1,5 @@
-import 'models.dart';
+import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_model.dart';
 
 /// Pure queue logic, kept separate from widgets so it's unit-testable without
 /// pumping a widget tree. Mirrors app/.../data/QueueLogic.kt's rules.
@@ -22,7 +23,7 @@ PurchaseStatus toggleArrivalStatus(PurchaseStatus status) => switch (status) {
 
 /// Smallest batch number that still has waiting customers — the one the
 /// owner should notify next. Null when nobody is waiting.
-int? nextBatchToNotify(List<Purchase> queue) {
+int? nextBatchToNotify(List<PurchaseModel> queue) {
   final waiting = queue.where((p) => p.status == PurchaseStatus.waiting);
   if (waiting.isEmpty) return null;
   return waiting.map((p) => p.batchNumber).reduce((a, b) => a < b ? a : b);
@@ -42,5 +43,5 @@ String formatReadyTime(int millis) {
 
 /// True when the owner must set today's allocation first: it's a new day, or
 /// the current bundles are gone.
-bool needsAllocation(Store store, String today) =>
+bool needsAllocation(StoreModel store, String today) =>
     store.allocationDate != today || store.bagsRemaining <= 0;

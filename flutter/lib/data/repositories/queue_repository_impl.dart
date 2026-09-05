@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import '../../core/auth/demo_accounts.dart';
+import '../../core/auth/pin_hash.dart';
 import '../../core/database/app_database.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
@@ -23,34 +24,62 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<void> ensureSeeded() async {
-    final existing = await (_db.select(_db.stores)..limit(1)).getSingleOrNull();
-    if (existing != null) return;
+    final existingStore =
+        await (_db.select(_db.stores)..limit(1)).getSingleOrNull();
+    if (existingStore == null) {
+      await _db.batch((batch) {
+        batch.insertAll(_db.stores, [
+          StoresCompanion.insert(
+            name: 'مخبز الرمال',
+            ownerPhone: demoOwnerPhone,
+            isOpen: const Value(true),
+            dailyBagLimit: 300,
+            bagsRemaining: 45,
+          ),
+          StoresCompanion.insert(
+            name: 'مخبز الشاطئ',
+            ownerPhone: '0599000003',
+            isOpen: const Value(true),
+            dailyBagLimit: 300,
+            bagsRemaining: 120,
+          ),
+          StoresCompanion.insert(
+            name: 'مخبز النصيرات',
+            ownerPhone: '0599000004',
+            isOpen: const Value(false),
+            dailyBagLimit: 300,
+            bagsRemaining: 0,
+          ),
+        ]);
+      });
+    }
 
-    await _db.batch((batch) {
-      batch.insertAll(_db.stores, [
-        StoresCompanion.insert(
-          name: 'مخبز الرمال',
-          ownerPhone: demoOwnerPhone,
-          isOpen: const Value(true),
-          dailyBagLimit: 300,
-          bagsRemaining: 45,
-        ),
-        StoresCompanion.insert(
-          name: 'مخبز الشاطئ',
-          ownerPhone: '0599000003',
-          isOpen: const Value(true),
-          dailyBagLimit: 300,
-          bagsRemaining: 120,
-        ),
-        StoresCompanion.insert(
-          name: 'مخبز النصيرات',
-          ownerPhone: '0599000004',
-          isOpen: const Value(false),
-          dailyBagLimit: 300,
-          bagsRemaining: 0,
-        ),
-      ]);
-    });
+    final existingUser =
+        await (_db.select(_db.users)..limit(1)).getSingleOrNull();
+    if (existingUser == null) {
+      await _db.batch((batch) {
+        batch.insertAll(_db.users, [
+          UsersCompanion.insert(
+            phone: demoBuyerPhone,
+            nationalId: demoBuyerNationalId,
+            pinHash: hashPin(demoBuyerPhone, demoBuyerPin),
+            name: demoBuyerName,
+            role: const Value('buyer'),
+            jawwalPayNumber: const Value('0599000001'),
+            verificationStatus: const Value('verified'),
+          ),
+          UsersCompanion.insert(
+            phone: demoOwnerPhone,
+            nationalId: demoOwnerNationalId,
+            pinHash: hashPin(demoOwnerPhone, demoOwnerPin),
+            name: demoOwnerName,
+            role: const Value('owner'),
+            jawwalPayNumber: const Value('0599000002'),
+            verificationStatus: const Value('verified'),
+          ),
+        ]);
+      });
+    }
   }
 
   @override
@@ -136,12 +165,18 @@ class QueueRepositoryImpl implements QueueRepository {
   }
 
   @override
-  Future<PurchaseModel?> getBlockingPurchase(int userId, String date) async {
+  Future<PurchaseModel?> getBlockingPurchase(
+    int userId,
+    String date, {
+    String? userPhone,
+  }) async {
     final query = _db.select(_db.purchases).join([
       innerJoin(_db.users, _db.users.id.equalsExp(_db.purchases.userId)),
       innerJoin(_db.stores, _db.stores.id.equalsExp(_db.purchases.storeId)),
     ])
-      ..where(_db.purchases.userId.equals(userId) &
+      ..where((userPhone != null
+              ? _db.users.phone.equals(userPhone)
+              : _db.purchases.userId.equals(userId)) &
           _db.purchases.purchaseDate.equals(date))
       ..limit(1);
 
@@ -192,6 +227,35 @@ class QueueRepositoryImpl implements QueueRepository {
       userPhone: u.phone,
       storeName: s.name,
     );
+  }
+
+  @override
+  Stream<PurchaseModel?> watchPurchaseById(int purchaseId) {
+    final query = _db.select(_db.purchases).join([
+      innerJoin(_db.users, _db.users.id.equalsExp(_db.purchases.userId)),
+      innerJoin(_db.stores, _db.stores.id.equalsExp(_db.purchases.storeId)),
+    ])
+      ..where(_db.purchases.id.equals(purchaseId))
+      ..limit(1);
+
+    return query.watchSingleOrNull().map((row) {
+      if (row == null) return null;
+      final p = row.readTable(_db.purchases);
+      final u = row.readTable(_db.users);
+      final s = row.readTable(_db.stores);
+      return PurchaseModel(
+        id: p.id,
+        storeId: p.storeId,
+        userId: p.userId,
+        purchaseDate: p.purchaseDate,
+        batchNumber: p.batchNumber,
+        status: p.status,
+        createdAtMillis: p.createdAt,
+        userName: u.name,
+        userPhone: u.phone,
+        storeName: s.name,
+      );
+    });
   }
 
   @override

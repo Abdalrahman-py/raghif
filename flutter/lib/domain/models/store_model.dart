@@ -25,6 +25,7 @@ class StoreModel extends Equatable {
 
   bool get isSoldOut => bagsRemaining <= 0;
   bool get canPurchase => isOpen && !isSoldOut;
+  bool get isAvailable => canPurchase;
 
   StoreModel copyWith({
     int? id,

@@ -13,7 +13,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../auth/demo_accounts.dart';
-import 'models.dart';
+import '../../domain/models/purchase_model.dart';
 import 'qr_payload.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -30,36 +30,41 @@ class ConfirmationScreen extends StatelessWidget {
   });
 
   final QueueController controller;
-  final String purchaseId;
+  final dynamic purchaseId;
   final DemoUser currentUser;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(Strings.confirmationTitle)),
-      body: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          final purchase = controller.purchaseById(purchaseId);
+      body: StreamBuilder<PurchaseModel?>(
+        stream: controller.watchPurchase(purchaseId),
+        initialData: controller.cachedPurchase(purchaseId),
+        builder: (context, purchaseSnapshot) {
+          final purchase = purchaseSnapshot.data;
           if (purchase == null) return const SizedBox.shrink();
-          final queue = controller.queueForStore(
-            purchase.storeId,
-            purchase.purchaseDate,
-          );
-          final position = queue.indexWhere((p) => p.id == purchaseId) + 1;
-          final readyAtLabel = formatReadyTime(
-            estimatedReadyAtMillis(
-              purchase.createdAtMillis,
-              purchase.batchNumber,
+
+          return StreamBuilder<List<PurchaseModel>>(
+            stream: controller.watchQueueForStore(
+              purchase.storeId,
+              purchase.purchaseDate,
             ),
-          );
-          final store = controller.storeById(purchase.storeId);
-          final qrPayload = QrPayload(
-            purchaseId: purchase.id,
-            userName: currentUser.name,
-            storeName: store?.name ?? '',
-            purchaseDate: purchase.purchaseDate,
-          );
+            builder: (context, queueSnapshot) {
+              final queue = queueSnapshot.data ?? [];
+              final position = queue.indexWhere((p) => p.id == purchase.id) + 1;
+              final readyAtLabel = formatReadyTime(
+                estimatedReadyAtMillis(
+                  purchase.createdAtMillis,
+                  purchase.batchNumber,
+                ),
+              );
+              final store = controller.storeById(purchase.storeId);
+              final qrPayload = QrPayload(
+                purchaseId: purchase.id.toString(),
+                userName: purchase.userName ?? currentUser.name,
+                storeName: purchase.storeName ?? store?.name ?? '',
+                purchaseDate: purchase.purchaseDate,
+              );
 
           return SafeArea(
             child: Center(
@@ -176,11 +181,13 @@ class ConfirmationScreen extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+            );
+          },
+        );
+      },
+    ),
+  );
+}
 
   Future<Uint8List?> _generateQrBytes(QrPayload payload) async {
     try {

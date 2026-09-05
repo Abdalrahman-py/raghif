@@ -164,7 +164,7 @@ void main() {
         expect(find.text(Strings.confirmationTitle), findsOneWidget);
 
         // Verify reservation exists in QueueController
-        final blocker = controller.blockingPurchaseFor(
+        final blocker = await controller.blockingPurchaseFor(
           testUser.phone,
           store.id,
           todayDateString(),
@@ -200,7 +200,7 @@ void main() {
       expect(find.text(Strings.purchaseTitle), findsOneWidget);
 
       // Verify NO purchase was made
-      final blocker = controller.blockingPurchaseFor(
+      final blocker = await controller.blockingPurchaseFor(
         testUser.phone,
         store.id,
         todayDateString(),

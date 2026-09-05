@@ -4,7 +4,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/status_chip.dart';
-import 'models.dart';
+import '../../domain/models/purchase_model.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 
@@ -20,19 +20,19 @@ class OwnerQueueScreen extends StatelessWidget {
   });
 
   final QueueController controller;
-  final String storeId;
+  final dynamic storeId;
 
   @override
   Widget build(BuildContext context) {
     final date = todayDateString();
     return Scaffold(
       appBar: AppBar(title: Text(Strings.buyerQueueTitle)),
-      body: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
+      body: StreamBuilder<List<PurchaseModel>>(
+        stream: controller.watchQueueForStore(storeId, date),
+        builder: (context, snapshot) {
           final store = controller.storeById(storeId);
-          final queue = controller.queueForStore(storeId, date);
-          final grouped = <int, List<Purchase>>{};
+          final queue = snapshot.data ?? [];
+          final grouped = <int, List<PurchaseModel>>{};
           for (final p in queue) {
             grouped.putIfAbsent(p.batchNumber, () => []).add(p);
           }
@@ -127,7 +127,7 @@ class OwnerQueueScreen extends StatelessWidget {
 class _BuyerRow extends StatelessWidget {
   const _BuyerRow({required this.purchase, required this.onToggleArrival});
 
-  final Purchase purchase;
+  final PurchaseModel purchase;
   final VoidCallback onToggleArrival;
 
   @override
@@ -154,7 +154,7 @@ class _BuyerRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    purchase.userId,
+                    purchase.userName ?? purchase.userPhone ?? purchase.userId.toString(),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: AppSpacing.xs),
