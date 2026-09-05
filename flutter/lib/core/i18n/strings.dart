@@ -90,6 +90,14 @@ class Strings {
   static const priceLabel = 'السعر';
   static const priceValue = '3 شيكل';
   static const dailyLimitReached = 'لقد قمت بالحجز من هذا المخبز اليوم';
+  static String dailyLimitReachedOtherStore(String storeName) {
+    final name = storeName.trim();
+    if (name.isEmpty) {
+      return 'لقد قمت بالحجز من مخبز آخر اليوم بالفعل';
+    }
+    final prefix = name.startsWith('مخبز') ? '' : 'مخبز ';
+    return 'لقد قمت بالحجز من $prefix$name اليوم بالفعل';
+  }
   static const viewOrder = 'عرض الطلب';
   static const payButton = 'ادفع 3 شيكل';
 
@@ -98,6 +106,7 @@ class Strings {
   static const queuePosition = 'الترتيب في الطابور';
   static String batchLabel(int batch) => 'الدفعة رقم $batch';
   static const statusWaiting = 'بانتظار الدور';
+  static const waitingReassurance = 'سيتم إشعارك عندما يحين دورك';
   static const estimatedTime = 'الوقت التقديري للجاهزية';
   static const statusNotified = 'خبزك جاهز!';
   static const returnToStores = 'العودة إلى المخابز';
