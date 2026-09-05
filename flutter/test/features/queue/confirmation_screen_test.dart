@@ -49,10 +49,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verify receipt titles and share button are visible
+      // Verify receipt titles and share/save buttons are visible
       expect(find.text(Strings.receiptQrTitle), findsOneWidget);
       expect(find.text(Strings.receiptQrSubtitle), findsOneWidget);
       expect(find.text(Strings.shareQrButton), findsOneWidget);
+      expect(find.text(Strings.saveQrButton), findsOneWidget);
 
       // Verify QrImageView is rendered
       expect(find.byType(QrImageView), findsOneWidget);

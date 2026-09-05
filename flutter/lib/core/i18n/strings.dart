@@ -102,8 +102,11 @@ class Strings {
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
       'أظهر هذا الرمز لصاحب المخبز لتأكيد الاستلام';
-  static const shareQrButton = 'مشاركة أو حفظ رمز الاستلام';
+  static const shareQrButton = 'مشاركة رمز الاستلام';
+  static const saveQrButton = 'حفظ في المعرض';
   static const shareQrText = 'رمز استلام الخبز';
+  static const qrSavedSuccess = 'تم حفظ رمز الاستلام في المعرض';
+  static const qrSaveFailed = 'تعذر حفظ رمز الاستلام في المعرض';
 
   // Owner dashboard
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';

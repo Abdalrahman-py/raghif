@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -156,6 +158,11 @@ class ConfirmationScreen extends StatelessWidget {
                               text: Strings.shareQrButton,
                               onPressed: () => _shareQr(context, qrPayload),
                             ),
+                            const SizedBox(height: AppSpacing.sm),
+                            SecondaryButton(
+                              text: Strings.saveQrButton,
+                              onPressed: () => _saveQrToGallery(context, qrPayload),
+                            ),
                           ],
                         ),
                       ),
@@ -175,7 +182,7 @@ class ConfirmationScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _shareQr(BuildContext context, QrPayload payload) async {
+  Future<Uint8List?> _generateQrBytes(QrPayload payload) async {
     try {
       final painter = QrPainter(
         data: payload.encode(),
@@ -183,8 +190,16 @@ class ConfirmationScreen extends StatelessWidget {
         gapless: true,
       );
       final picData = await painter.toImageData(600);
-      if (picData != null) {
-        final bytes = picData.buffer.asUint8List();
+      return picData?.buffer.asUint8List();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _shareQr(BuildContext context, QrPayload payload) async {
+    try {
+      final bytes = await _generateQrBytes(payload);
+      if (bytes != null) {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/qr_${payload.purchaseId}.png');
         await file.writeAsBytes(bytes);
@@ -197,5 +212,27 @@ class ConfirmationScreen extends StatelessWidget {
       // Fallback
     }
     await Share.share(payload.encode());
+  }
+
+  Future<void> _saveQrToGallery(BuildContext context, QrPayload payload) async {
+    try {
+      final bytes = await _generateQrBytes(payload);
+      if (bytes != null) {
+        await Gal.putImageBytes(bytes, name: 'qr_${payload.purchaseId}');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text(Strings.qrSavedSuccess)),
+          );
+        }
+        return;
+      }
+    } catch (_) {
+      // Fallback
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(Strings.qrSaveFailed)),
+      );
+    }
   }
 }
