@@ -9,5 +9,9 @@ CREATE TABLE stores (
     -- Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
     -- purely informational for buyers, doesn't itself gate `is_open`.
     open_time TEXT NULL,
-    close_time TEXT NULL
+    close_time TEXT NULL,
+    -- How many queue positions make up one notify-able batch. Purchases don't
+    -- store their own batch number: it's derived from queue position and this
+    -- value at read time, so changing it regroups the whole queue immediately.
+    batch_size INTEGER NOT NULL DEFAULT 20
 );

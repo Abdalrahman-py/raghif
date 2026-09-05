@@ -92,6 +92,18 @@ class Stores extends Table with TableInfo<Stores, Store> {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  static const VerificationMeta _batchSizeMeta = const VerificationMeta(
+    'batchSize',
+  );
+  late final GeneratedColumn<int> batchSize = GeneratedColumn<int>(
+    'batch_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 20',
+    defaultValue: const CustomExpression('20'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -102,6 +114,7 @@ class Stores extends Table with TableInfo<Stores, Store> {
     bagsRemaining,
     openTime,
     closeTime,
+    batchSize,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -174,6 +187,12 @@ class Stores extends Table with TableInfo<Stores, Store> {
         closeTime.isAcceptableOrUnknown(data['close_time']!, _closeTimeMeta),
       );
     }
+    if (data.containsKey('batch_size')) {
+      context.handle(
+        _batchSizeMeta,
+        batchSize.isAcceptableOrUnknown(data['batch_size']!, _batchSizeMeta),
+      );
+    }
     return context;
   }
 
@@ -215,6 +234,10 @@ class Stores extends Table with TableInfo<Stores, Store> {
         DriftSqlType.string,
         data['${effectivePrefix}close_time'],
       ),
+      batchSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_size'],
+      )!,
     );
   }
 
@@ -239,6 +262,11 @@ class Store extends DataClass implements Insertable<Store> {
   /// purely informational for buyers, doesn't itself gate `is_open`.
   final String? openTime;
   final String? closeTime;
+
+  /// How many queue positions make up one notify-able batch. Purchases don't
+  /// store their own batch number: it's derived from queue position and this
+  /// value at read time, so changing it regroups the whole queue immediately.
+  final int batchSize;
   const Store({
     required this.id,
     required this.name,
@@ -248,6 +276,7 @@ class Store extends DataClass implements Insertable<Store> {
     required this.bagsRemaining,
     this.openTime,
     this.closeTime,
+    required this.batchSize,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -264,6 +293,7 @@ class Store extends DataClass implements Insertable<Store> {
     if (!nullToAbsent || closeTime != null) {
       map['close_time'] = Variable<String>(closeTime);
     }
+    map['batch_size'] = Variable<int>(batchSize);
     return map;
   }
 
@@ -281,6 +311,7 @@ class Store extends DataClass implements Insertable<Store> {
       closeTime: closeTime == null && nullToAbsent
           ? const Value.absent()
           : Value(closeTime),
+      batchSize: Value(batchSize),
     );
   }
 
@@ -298,6 +329,7 @@ class Store extends DataClass implements Insertable<Store> {
       bagsRemaining: serializer.fromJson<int>(json['bags_remaining']),
       openTime: serializer.fromJson<String?>(json['open_time']),
       closeTime: serializer.fromJson<String?>(json['close_time']),
+      batchSize: serializer.fromJson<int>(json['batch_size']),
     );
   }
   @override
@@ -312,6 +344,7 @@ class Store extends DataClass implements Insertable<Store> {
       'bags_remaining': serializer.toJson<int>(bagsRemaining),
       'open_time': serializer.toJson<String?>(openTime),
       'close_time': serializer.toJson<String?>(closeTime),
+      'batch_size': serializer.toJson<int>(batchSize),
     };
   }
 
@@ -324,6 +357,7 @@ class Store extends DataClass implements Insertable<Store> {
     int? bagsRemaining,
     Value<String?> openTime = const Value.absent(),
     Value<String?> closeTime = const Value.absent(),
+    int? batchSize,
   }) => Store(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -333,6 +367,7 @@ class Store extends DataClass implements Insertable<Store> {
     bagsRemaining: bagsRemaining ?? this.bagsRemaining,
     openTime: openTime.present ? openTime.value : this.openTime,
     closeTime: closeTime.present ? closeTime.value : this.closeTime,
+    batchSize: batchSize ?? this.batchSize,
   );
   Store copyWithCompanion(StoresCompanion data) {
     return Store(
@@ -350,6 +385,7 @@ class Store extends DataClass implements Insertable<Store> {
           : this.bagsRemaining,
       openTime: data.openTime.present ? data.openTime.value : this.openTime,
       closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
+      batchSize: data.batchSize.present ? data.batchSize.value : this.batchSize,
     );
   }
 
@@ -363,7 +399,8 @@ class Store extends DataClass implements Insertable<Store> {
           ..write('dailyBagLimit: $dailyBagLimit, ')
           ..write('bagsRemaining: $bagsRemaining, ')
           ..write('openTime: $openTime, ')
-          ..write('closeTime: $closeTime')
+          ..write('closeTime: $closeTime, ')
+          ..write('batchSize: $batchSize')
           ..write(')'))
         .toString();
   }
@@ -378,6 +415,7 @@ class Store extends DataClass implements Insertable<Store> {
     bagsRemaining,
     openTime,
     closeTime,
+    batchSize,
   );
   @override
   bool operator ==(Object other) =>
@@ -390,7 +428,8 @@ class Store extends DataClass implements Insertable<Store> {
           other.dailyBagLimit == this.dailyBagLimit &&
           other.bagsRemaining == this.bagsRemaining &&
           other.openTime == this.openTime &&
-          other.closeTime == this.closeTime);
+          other.closeTime == this.closeTime &&
+          other.batchSize == this.batchSize);
 }
 
 class StoresCompanion extends UpdateCompanion<Store> {
@@ -402,6 +441,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
   final Value<int> bagsRemaining;
   final Value<String?> openTime;
   final Value<String?> closeTime;
+  final Value<int> batchSize;
   const StoresCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -411,6 +451,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.bagsRemaining = const Value.absent(),
     this.openTime = const Value.absent(),
     this.closeTime = const Value.absent(),
+    this.batchSize = const Value.absent(),
   });
   StoresCompanion.insert({
     this.id = const Value.absent(),
@@ -421,6 +462,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     required int bagsRemaining,
     this.openTime = const Value.absent(),
     this.closeTime = const Value.absent(),
+    this.batchSize = const Value.absent(),
   }) : name = Value(name),
        ownerPhone = Value(ownerPhone),
        dailyBagLimit = Value(dailyBagLimit),
@@ -434,6 +476,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Expression<int>? bagsRemaining,
     Expression<String>? openTime,
     Expression<String>? closeTime,
+    Expression<int>? batchSize,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -444,6 +487,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
       if (bagsRemaining != null) 'bags_remaining': bagsRemaining,
       if (openTime != null) 'open_time': openTime,
       if (closeTime != null) 'close_time': closeTime,
+      if (batchSize != null) 'batch_size': batchSize,
     });
   }
 
@@ -456,6 +500,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Value<int>? bagsRemaining,
     Value<String?>? openTime,
     Value<String?>? closeTime,
+    Value<int>? batchSize,
   }) {
     return StoresCompanion(
       id: id ?? this.id,
@@ -466,6 +511,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
       bagsRemaining: bagsRemaining ?? this.bagsRemaining,
       openTime: openTime ?? this.openTime,
       closeTime: closeTime ?? this.closeTime,
+      batchSize: batchSize ?? this.batchSize,
     );
   }
 
@@ -496,6 +542,9 @@ class StoresCompanion extends UpdateCompanion<Store> {
     if (closeTime.present) {
       map['close_time'] = Variable<String>(closeTime.value);
     }
+    if (batchSize.present) {
+      map['batch_size'] = Variable<int>(batchSize.value);
+    }
     return map;
   }
 
@@ -509,7 +558,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
           ..write('dailyBagLimit: $dailyBagLimit, ')
           ..write('bagsRemaining: $bagsRemaining, ')
           ..write('openTime: $openTime, ')
-          ..write('closeTime: $closeTime')
+          ..write('closeTime: $closeTime, ')
+          ..write('batchSize: $batchSize')
           ..write(')'))
         .toString();
   }
@@ -1519,6 +1569,7 @@ typedef $StoresCreateCompanionBuilder =
       required int bagsRemaining,
       Value<String?> openTime,
       Value<String?> closeTime,
+      Value<int> batchSize,
     });
 typedef $StoresUpdateCompanionBuilder =
     StoresCompanion Function({
@@ -1530,6 +1581,7 @@ typedef $StoresUpdateCompanionBuilder =
       Value<int> bagsRemaining,
       Value<String?> openTime,
       Value<String?> closeTime,
+      Value<int> batchSize,
     });
 
 final class $StoresReferences
@@ -1601,6 +1653,11 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
 
   ColumnFilters<String> get closeTime => $composableBuilder(
     column: $table.closeTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchSize => $composableBuilder(
+    column: $table.batchSize,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1677,6 +1734,11 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     column: $table.closeTime,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get batchSize => $composableBuilder(
+    column: $table.batchSize,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
@@ -1716,6 +1778,9 @@ class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
 
   GeneratedColumn<String> get closeTime =>
       $composableBuilder(column: $table.closeTime, builder: (column) => column);
+
+  GeneratedColumn<int> get batchSize =>
+      $composableBuilder(column: $table.batchSize, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -1779,6 +1844,7 @@ class $StoresTableManager
                 Value<int> bagsRemaining = const Value.absent(),
                 Value<String?> openTime = const Value.absent(),
                 Value<String?> closeTime = const Value.absent(),
+                Value<int> batchSize = const Value.absent(),
               }) => StoresCompanion(
                 id: id,
                 name: name,
@@ -1788,6 +1854,7 @@ class $StoresTableManager
                 bagsRemaining: bagsRemaining,
                 openTime: openTime,
                 closeTime: closeTime,
+                batchSize: batchSize,
               ),
           createCompanionCallback:
               ({
@@ -1799,6 +1866,7 @@ class $StoresTableManager
                 required int bagsRemaining,
                 Value<String?> openTime = const Value.absent(),
                 Value<String?> closeTime = const Value.absent(),
+                Value<int> batchSize = const Value.absent(),
               }) => StoresCompanion.insert(
                 id: id,
                 name: name,
@@ -1808,6 +1876,7 @@ class $StoresTableManager
                 bagsRemaining: bagsRemaining,
                 openTime: openTime,
                 closeTime: closeTime,
+                batchSize: batchSize,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))

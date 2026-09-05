@@ -32,7 +32,6 @@ abstract class QueueRepository {
     required int userId,
     required int storeId,
     required String date,
-    int batchSize = 20,
   });
 
   /// Returns true if a waiting batch existed and was notified, false if

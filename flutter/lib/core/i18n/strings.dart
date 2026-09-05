@@ -21,6 +21,8 @@ class Strings {
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
+  static const otpNotificationTitle = 'رمز التحقق';
+  static String otpNotificationBody(String code) => 'رمز التحقق الخاص بك: $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -117,6 +119,10 @@ class Strings {
       'خبزك جاهز في $storeName';
   static const batchReadyNotificationBody =
       'حان دورك، توجه إلى المخبز لاستلام طلبك';
+  static String purchaseConfirmedNotificationTitle(String storeName) =>
+      'تم تأكيد حجزك في $storeName';
+  static String purchaseConfirmedNotificationBody(int batch) =>
+      'أنت الآن في الدفعة رقم $batch، سنشعرك عندما يحين دورك';
   static const returnToStores = 'العودة إلى المخابز';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
@@ -130,7 +136,6 @@ class Strings {
   // Owner dashboard
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';
   static const remainingLabel = 'المتبقي';
-  static const purchaseWindowOpen = 'نافذة الشراء مفتوحة';
   static const purchaseWindowTimesLabel = 'أوقات الشراء';
   static const openTimeLabel = 'وقت البدء';
   static const closeTimeLabel = 'وقت الانتهاء';
@@ -140,6 +145,7 @@ class Strings {
   static const decreaseValue = 'إنقاص';
   static const increaseValue = 'زيادة';
   static const saveAllocation = 'حفظ الكمية';
+  static const saveBatchSize = 'حفظ حجم الدفعة';
   static const goToQueue = 'عرض طابور المشترين';
 
   // Owner queue

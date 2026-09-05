@@ -169,6 +169,62 @@ void main() {
   });
 
   test(
+    'batch grouping is derived from the store\'s current batch size, not '
+    'frozen at purchase time',
+    () async {
+      final stores = await queueRepo.getStores();
+      final store = stores.first;
+      final date = '2026-09-02';
+
+      Future<int> addBuyer(String phone, String nationalId) => db
+          .into(db.users)
+          .insert(
+            UsersCompanion.insert(
+              phone: phone,
+              nationalId: nationalId,
+              pinHash: 'hash',
+              name: phone,
+            ),
+          );
+
+      final user1 = await addBuyer('0599333001', '900111001');
+      final user2 = await addBuyer('0599333002', '900111002');
+
+      await queueRepo.reserveBag(userId: user1, storeId: store.id, date: date);
+      await queueRepo.reserveBag(userId: user2, storeId: store.id, date: date);
+
+      // Default batch size (20) groups both buyers into one batch.
+      var queue = await queueRepo.getQueueForStore(store.id, date);
+      expect(queue.map((p) => p.batchNumber), [1, 1]);
+
+      // Dropping batch size to 1 splits the *same already-reserved* buyers
+      // into two batches — nothing about them was re-purchased.
+      await queueRepo.saveStoreAllocation(
+        store.id,
+        dailyLimit: store.dailyBagLimit,
+        batchSize: 1,
+        date: date,
+      );
+      queue = await queueRepo.getQueueForStore(store.id, date);
+      expect(queue.map((p) => p.batchNumber), [1, 2]);
+
+      // Edge case: 5 buyers at batch size 2 split into 3 batches (2, 2, 1).
+      for (final n in [3, 4, 5]) {
+        final user = await addBuyer('059933300$n', '90011100$n');
+        await queueRepo.reserveBag(userId: user, storeId: store.id, date: date);
+      }
+      await queueRepo.saveStoreAllocation(
+        store.id,
+        dailyLimit: store.dailyBagLimit,
+        batchSize: 2,
+        date: date,
+      );
+      queue = await queueRepo.getQueueForStore(store.id, date);
+      expect(queue.map((p) => p.batchNumber), [1, 1, 2, 2, 3]);
+    },
+  );
+
+  test(
     'getCustomersForStore returns distinct customers aggregated across all dates',
     () async {
       final user1 = await db

@@ -159,7 +159,6 @@ class QueueController extends ChangeNotifier {
     required dynamic userId,
     required dynamic storeId,
     required String date,
-    int batchSize = 20,
   }) async {
     final uId = _parseInt(userId);
     final sId = _parseInt(storeId);
@@ -167,10 +166,14 @@ class QueueController extends ChangeNotifier {
       userId: uId,
       storeId: sId,
       date: date,
-      batchSize: batchSize,
     );
     _purchaseCache[purchase.id] = purchase;
     notifyListeners();
+    final storeName = purchase.storeName ?? storeById(sId)?.name ?? '';
+    await NotificationService.instance.showNotification(
+      title: Strings.purchaseConfirmedNotificationTitle(storeName),
+      body: Strings.purchaseConfirmedNotificationBody(purchase.batchNumber),
+    );
     return purchase;
   }
 
@@ -199,12 +202,6 @@ class QueueController extends ChangeNotifier {
     if (purchase == null) return;
     final newStatus = toggleArrivalStatus(purchase.status);
     await _repository.updatePurchaseStatus(pId, newStatus);
-    notifyListeners();
-  }
-
-  Future<void> setPurchaseWindowOpen(dynamic storeId, bool open) async {
-    final sId = _parseInt(storeId);
-    await _repository.setStoreOpen(sId, open);
     notifyListeners();
   }
 

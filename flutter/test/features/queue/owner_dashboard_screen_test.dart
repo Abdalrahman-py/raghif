@@ -69,8 +69,10 @@ void main() {
     (tester) async {
       await pumpDashboard(tester, 1); // مخبز الرمال — seeded 08:00-10:00
 
-      expect(find.text('${Strings.openTimeLabel}: 08:00'), findsOneWidget);
-      expect(find.text('${Strings.closeTimeLabel}: 10:00'), findsOneWidget);
+      expect(find.text(Strings.openTimeLabel), findsOneWidget);
+      expect(find.text(Strings.closeTimeLabel), findsOneWidget);
+      expect(find.text('08:00'), findsOneWidget);
+      expect(find.text('10:00'), findsOneWidget);
     },
   );
 
@@ -79,14 +81,9 @@ void main() {
     (tester) async {
       await pumpDashboard(tester, 3); // مخبز النصيرات — no window seeded
 
-      expect(
-        find.text('${Strings.openTimeLabel}: ${Strings.notSetLabel}'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('${Strings.closeTimeLabel}: ${Strings.notSetLabel}'),
-        findsOneWidget,
-      );
+      expect(find.text(Strings.openTimeLabel), findsOneWidget);
+      expect(find.text(Strings.closeTimeLabel), findsOneWidget);
+      expect(find.text(Strings.notSetLabel), findsNWidgets(2));
     },
   );
 

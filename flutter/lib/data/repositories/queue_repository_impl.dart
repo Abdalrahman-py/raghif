@@ -22,7 +22,22 @@ class QueueRepositoryImpl implements QueueRepository {
       ownerPhone: store.ownerPhone,
       openTime: store.openTime,
       closeTime: store.closeTime,
+      batchSize: store.batchSize,
     );
+  }
+
+  /// Batch numbers aren't stored per purchase — they're derived from queue
+  /// position and the store's *current* batch size, so changing the batch
+  /// size immediately regroups everyone already waiting.
+  List<PurchaseModel> _withDynamicBatchNumbers(
+    List<PurchaseModel> queueOrderedByPosition,
+    int batchSize,
+  ) {
+    final size = batchSize < 1 ? 1 : batchSize;
+    return [
+      for (var i = 0; i < queueOrderedByPosition.length; i++)
+        queueOrderedByPosition[i].copyWith(batchNumber: (i ~/ size) + 1),
+    ];
   }
 
   @override
@@ -127,10 +142,10 @@ class QueueRepositoryImpl implements QueueRepository {
             _db.purchases.storeId.equals(storeId) &
                 _db.purchases.purchaseDate.equals(date),
           )
-          ..orderBy([OrderingTerm.asc(_db.purchases.createdAt)]);
+          ..orderBy([OrderingTerm.asc(_db.purchases.id)]);
 
     return query.watch().map((rows) {
-      return rows.map((row) {
+      final queue = rows.map((row) {
         final p = row.readTable(_db.purchases);
         final u = row.readTable(_db.users);
         final s = row.readTable(_db.stores);
@@ -147,6 +162,10 @@ class QueueRepositoryImpl implements QueueRepository {
           storeName: s.name,
         );
       }).toList();
+      final batchSize = rows.isEmpty
+          ? 20
+          : rows.first.readTable(_db.stores).batchSize;
+      return _withDynamicBatchNumbers(queue, batchSize);
     });
   }
 
@@ -164,10 +183,10 @@ class QueueRepositoryImpl implements QueueRepository {
             _db.purchases.storeId.equals(storeId) &
                 _db.purchases.purchaseDate.equals(date),
           )
-          ..orderBy([OrderingTerm.asc(_db.purchases.createdAt)]);
+          ..orderBy([OrderingTerm.asc(_db.purchases.id)]);
 
     final rows = await query.get();
-    return rows.map((row) {
+    final queue = rows.map((row) {
       final p = row.readTable(_db.purchases);
       final u = row.readTable(_db.users);
       final s = row.readTable(_db.stores);
@@ -184,6 +203,10 @@ class QueueRepositoryImpl implements QueueRepository {
         storeName: s.name,
       );
     }).toList();
+    final batchSize = rows.isEmpty
+        ? 20
+        : rows.first.readTable(_db.stores).batchSize;
+    return _withDynamicBatchNumbers(queue, batchSize);
   }
 
   @override
@@ -212,20 +235,8 @@ class QueueRepositoryImpl implements QueueRepository {
     if (row == null) return null;
 
     final p = row.readTable(_db.purchases);
-    final u = row.readTable(_db.users);
-    final s = row.readTable(_db.stores);
-    return PurchaseModel(
-      id: p.id,
-      storeId: p.storeId,
-      userId: p.userId,
-      purchaseDate: p.purchaseDate,
-      batchNumber: p.batchNumber,
-      status: p.status,
-      createdAtMillis: p.createdAt,
-      userName: u.name,
-      userPhone: u.phone,
-      storeName: s.name,
-    );
+    final queue = await getQueueForStore(p.storeId, p.purchaseDate);
+    return queue.firstWhere((q) => q.id == p.id);
   }
 
   @override
@@ -245,20 +256,8 @@ class QueueRepositoryImpl implements QueueRepository {
     if (row == null) return null;
 
     final p = row.readTable(_db.purchases);
-    final u = row.readTable(_db.users);
-    final s = row.readTable(_db.stores);
-    return PurchaseModel(
-      id: p.id,
-      storeId: p.storeId,
-      userId: p.userId,
-      purchaseDate: p.purchaseDate,
-      batchNumber: p.batchNumber,
-      status: p.status,
-      createdAtMillis: p.createdAt,
-      userName: u.name,
-      userPhone: u.phone,
-      storeName: s.name,
-    );
+    final queue = await getQueueForStore(p.storeId, p.purchaseDate);
+    return queue.firstWhere((q) => q.id == p.id);
   }
 
   @override
@@ -274,23 +273,11 @@ class QueueRepositoryImpl implements QueueRepository {
           ..where(_db.purchases.id.equals(purchaseId))
           ..limit(1);
 
-    return query.watchSingleOrNull().map((row) {
+    return query.watchSingleOrNull().asyncMap((row) async {
       if (row == null) return null;
       final p = row.readTable(_db.purchases);
-      final u = row.readTable(_db.users);
-      final s = row.readTable(_db.stores);
-      return PurchaseModel(
-        id: p.id,
-        storeId: p.storeId,
-        userId: p.userId,
-        purchaseDate: p.purchaseDate,
-        batchNumber: p.batchNumber,
-        status: p.status,
-        createdAtMillis: p.createdAt,
-        userName: u.name,
-        userPhone: u.phone,
-        storeName: s.name,
-      );
+      final queue = await getQueueForStore(p.storeId, p.purchaseDate);
+      return queue.firstWhere((q) => q.id == p.id);
     });
   }
 
@@ -299,7 +286,6 @@ class QueueRepositoryImpl implements QueueRepository {
     required int userId,
     required int storeId,
     required String date,
-    int batchSize = 20,
   }) async {
     return _db.transaction(() async {
       final store = await (_db.select(
@@ -317,6 +303,7 @@ class QueueRepositoryImpl implements QueueRepository {
               .get();
 
       final position = existingQueue.length + 1;
+      final batchSize = store.batchSize < 1 ? 1 : store.batchSize;
       final batchNumber = ((position - 1) ~/ batchSize) + 1;
       final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -362,26 +349,19 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<bool> notifyNextBatch(int storeId, String date) async {
-    final waiting =
-        await (_db.select(_db.purchases)
-              ..where(
-                (p) =>
-                    p.storeId.equals(storeId) &
-                    p.purchaseDate.equals(date) &
-                    p.status.equalsValue(PurchaseStatus.waiting),
-              )
-              ..orderBy([(p) => OrderingTerm.asc(p.batchNumber)]))
-            .get();
-
+    final queue = await getQueueForStore(storeId, date);
+    final waiting = queue.where((p) => p.status == PurchaseStatus.waiting);
     if (waiting.isEmpty) return false;
-    final nextBatch = waiting.first.batchNumber;
+    final nextBatch = waiting
+        .map((p) => p.batchNumber)
+        .reduce((a, b) => a < b ? a : b);
+
+    final waitingInNextBatch = waiting
+        .where((p) => p.batchNumber == nextBatch)
+        .toList();
 
     await (_db.update(_db.purchases)..where(
-          (p) =>
-              p.storeId.equals(storeId) &
-              p.purchaseDate.equals(date) &
-              p.batchNumber.equals(nextBatch) &
-              p.status.equalsValue(PurchaseStatus.waiting),
+          (p) => p.id.isIn(waitingInNextBatch.map((p) => p.id)),
         ))
         .write(
           const PurchasesCompanion(status: Value(PurchaseStatus.notified)),
@@ -428,6 +408,7 @@ class QueueRepositoryImpl implements QueueRepository {
           bagsRemaining: Value(newRemaining),
           openTime: Value(openTime),
           closeTime: Value(closeTime),
+          batchSize: Value(batchSize),
         ),
       );
     });

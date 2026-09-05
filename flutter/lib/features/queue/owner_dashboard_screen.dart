@@ -14,8 +14,9 @@ import 'queue_controller.dart';
 import 'queue_logic.dart';
 
 /// UI_SPEC.md OwnerDashboardScreen: "Remaining: X / Y" is the single largest
-/// element on screen; purchase-window is a large labeled switch, not an
-/// icon-only toggle; batch size uses a stepper over free-text entry.
+/// element on screen. Purchase window is set by open/close times, not a
+/// manual switch. Batch size lives on [OwnerQueueScreen] — it groups the
+/// queue, so it's edited next to the queue rather than here.
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({
     super.key,
@@ -34,7 +35,6 @@ class OwnerDashboardScreen extends StatefulWidget {
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _allocation = 300;
-  int _batchSize = 20;
   String? _openTime;
   String? _closeTime;
   bool _stepperInitialized = false;
@@ -82,179 +82,191 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               widget.controller.storesLoaded &&
               store != null) {
             _allocation = store.dailyBagLimit;
-            _batchSize = store.batchSize;
             _openTime = store.openTime;
             _closeTime = store.closeTime;
             _stepperInitialized = true;
           }
           return SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        store?.name ?? '',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      AppCard(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            BigStatDisplay(
-                              label: Strings.remainingLabel,
-                              value:
-                                  '${store?.bagsRemaining ?? 0} / ${store?.dailyBagLimit ?? 0}',
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  Strings.purchaseWindowOpen,
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                Switch(
-                                  value: store?.isOpen ?? false,
-                                  onChanged: (value) =>
-                                      widget.controller.setPurchaseWindowOpen(
-                                        widget.storeId,
-                                        value,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.md),
                             Text(
-                              Strings.purchaseWindowTimesLabel,
+                              store?.name ?? '',
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  BigStatDisplay(
+                                    label: Strings.remainingLabel,
+                                    value:
+                                        '${store?.bagsRemaining ?? 0} / ${store?.dailyBagLimit ?? 0}',
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
+                                  Text(
+                                    Strings.purchaseWindowTimesLabel,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _TimePickerField(
+                                          label: Strings.openTimeLabel,
+                                          time: _openTime,
+                                          onTap: () =>
+                                              _pickTime(isOpenTime: true),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      Expanded(
+                                        child: _TimePickerField(
+                                          label: Strings.closeTimeLabel,
+                                          time: _closeTime,
+                                          onTap: () =>
+                                              _pickTime(isOpenTime: false),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppCard(
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      Strings.allocationLabel,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                  NumberStepper(
+                                    value: _allocation,
+                                    onChanged: (v) =>
+                                        setState(() => _allocation = v),
+                                    decrementLabel: Strings.decreaseValue,
+                                    incrementLabel: Strings.increaseValue,
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: AppSpacing.sm),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () =>
-                                        _pickTime(isOpenTime: true),
-                                    child: Text(
-                                      '${Strings.openTimeLabel}: '
-                                      '${_openTime ?? Strings.notSetLabel}',
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () =>
-                                        _pickTime(isOpenTime: false),
-                                    child: Text(
-                                      '${Strings.closeTimeLabel}: '
-                                      '${_closeTime ?? Strings.notSetLabel}',
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            SecondaryButton(
+                              text: Strings.saveAllocation,
+                              onPressed: () => widget.controller.saveAllocation(
+                                widget.storeId,
+                                dailyBagLimit: _allocation,
+                                batchSize: store?.batchSize ?? 20,
+                                today: todayDateString(),
+                                openTime: _openTime,
+                                closeTime: _closeTime,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      AppCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    Strings.allocationLabel,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                ),
-                                NumberStepper(
-                                  value: _allocation,
-                                  onChanged: (v) =>
-                                      setState(() => _allocation = v),
-                                  decrementLabel: Strings.decreaseValue,
-                                  incrementLabel: Strings.increaseValue,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    Strings.batchSizeLabel,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                ),
-                                NumberStepper(
-                                  value: _batchSize,
-                                  onChanged: (v) =>
-                                      setState(() => _batchSize = v),
-                                  decrementLabel: Strings.decreaseValue,
-                                  incrementLabel: Strings.increaseValue,
-                                  min: 1,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      SecondaryButton(
-                        text: Strings.saveAllocation,
-                        onPressed: () => widget.controller.saveAllocation(
-                          widget.storeId,
-                          dailyBagLimit: _allocation,
-                          batchSize: _batchSize,
-                          today: todayDateString(),
-                          openTime: _openTime,
-                          closeTime: _closeTime,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      PrimaryButton(
-                        text: Strings.goToQueue,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => OwnerQueueScreen(
-                              controller: widget.controller,
-                              storeId: widget.storeId,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      SecondaryButton(
-                        text: Strings.customersButton,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => OwnerCustomersScreen(
-                              controller: widget.controller,
-                              storeId: widget.storeId,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          PrimaryButton(
+                            text: Strings.goToQueue,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OwnerQueueScreen(
+                                  controller: widget.controller,
+                                  storeId: widget.storeId,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          SecondaryButton(
+                            text: Strings.customersButton,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OwnerCustomersScreen(
+                                  controller: widget.controller,
+                                  storeId: widget.storeId,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Label above the picked time, so long Arabic labels don't wrap the value
+/// onto its own line the way an inline "label: value" button did.
+class _TimePickerField extends StatelessWidget {
+  const _TimePickerField({
+    required this.label,
+    required this.time,
+    required this.onTap,
+  });
+
+  final String label;
+  final String? time;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(time ?? Strings.notSetLabel, style: textTheme.titleMedium),
+        ],
       ),
     );
   }
