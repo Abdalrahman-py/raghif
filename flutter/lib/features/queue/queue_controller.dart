@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/auth/demo_accounts.dart';
 import '../../core/database/app_database.dart';
@@ -9,6 +8,8 @@ import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
+import 'memory_database_native.dart'
+    if (dart.library.html) 'memory_database_web.dart';
 import 'queue_logic.dart';
 
 /// Pilot store identifier matching the seeded demo owner's store (store #1).
@@ -22,7 +23,7 @@ class QueueController extends ChangeNotifier {
     if (sl.isRegistered<QueueRepository>()) {
       return QueueController._(sl<QueueRepository>(), null);
     }
-    final db = AppDatabase(NativeDatabase.memory());
+    final db = AppDatabase(inMemoryExecutor());
     final repo = QueueRepositoryImpl(db);
     unawaited(repo.ensureSeeded());
     return QueueController._(repo, db);
