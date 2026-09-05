@@ -116,10 +116,6 @@ void main() {
     testWidgets(
       'tapping buy pushes payment flow; completing payment creates reservation',
       (tester) async {
-        addTearDown(() async {
-          await tester.pumpWidget(const SizedBox());
-          await tester.pump();
-        });
         final store = controller.stores.first;
 
         await tester.pumpWidget(
@@ -186,16 +182,19 @@ void main() {
           todayDateString(),
         );
         expect(blocker, isNotNull);
+
+        // Unmount here (not via addTearDown, which runs after Flutter's
+        // own end-of-test invariant check) so PurchaseScreen/ConfirmationScreen's
+        // drift .watch() subscriptions cancel — and their internal cleanup
+        // Timer fires via the follow-up pump() — before that check runs.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump();
       },
     );
 
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
-      addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
       final store = controller.stores.first;
 
       await tester.pumpWidget(
@@ -226,6 +225,9 @@ void main() {
         todayDateString(),
       );
       expect(blocker, isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
   });
 }

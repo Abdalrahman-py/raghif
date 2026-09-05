@@ -21,15 +21,6 @@ void main() {
       authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
       sessionStore: sessionStore,
     );
-    // RaghifApp's own State.dispose() closes the bloc it's given. Unmount
-    // it (rather than calling authBloc.close() ourselves) so that happens
-    // while nothing is still subscribed — closing a bloc a live
-    // BlocBuilder is listening to deadlocks pumpAndSettle-style teardown.
-    addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
-
     await tester.pumpWidget(RaghifApp(authBloc: authBloc));
     await tester.pumpAndSettle();
 
@@ -43,6 +34,15 @@ void main() {
       ),
       findsWidgets,
     );
+
+    // RaghifApp's own State.dispose() closes the bloc/queue controller it's
+    // given. Unmount it here — as the test's own last step, rather than in
+    // addTearDown (which runs after Flutter's own end-of-test invariant
+    // check, too late to matter) — and pump once more so any Timer that
+    // dispose schedules internally (e.g. drift's stream-cancellation
+    // cleanup) gets to fire before that check runs.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
   });
 
   testWidgets('RaghifApp renders the login screen once onboarding is done',
@@ -56,11 +56,6 @@ void main() {
       authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
       sessionStore: sessionStore,
     );
-    addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
-
     await tester.pumpWidget(RaghifApp(authBloc: authBloc));
     await tester.pumpAndSettle();
 
@@ -68,5 +63,9 @@ void main() {
     expect(find.text(Strings.requestOtpButton), findsOneWidget);
     expect(find.text(Strings.personalIdLabel), findsOneWidget);
     expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
+
+    // See the first test's comment: unmount inline, not via addTearDown.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
   });
 }

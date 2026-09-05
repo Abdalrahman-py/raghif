@@ -41,10 +41,6 @@ void main() {
 
   group('OwnerCustomersScreen', () {
     testWidgets('displays empty state when no purchases exist', (tester) async {
-      addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
       await tester.pumpWidget(
         wrapWithMaterial(
           OwnerCustomersScreen(
@@ -57,13 +53,16 @@ void main() {
 
       expect(find.text(Strings.customersTitle), findsOneWidget);
       expect(find.text(Strings.customersEmpty), findsOneWidget);
+
+      // Unmount here (not via addTearDown, which runs after Flutter's own
+      // end-of-test invariant check) so the StreamBuilder's drift .watch()
+      // subscription cancels — and its internal cleanup Timer fires via
+      // the follow-up pump() — before that check runs.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('displays customer info when purchases exist', (tester) async {
-      addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
       final user = await db.into(db.users).insert(
         UsersCompanion.insert(
           phone: '0599888777',
@@ -95,13 +94,12 @@ void main() {
       expect(find.text(Strings.totalPurchasesCount(1)), findsOneWidget);
       expect(find.text(Strings.lastPurchaseDate('2026-09-02')), findsOneWidget);
       expect(find.text(Strings.customersEmpty), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (tester) async {
-      addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump();
-      });
       final mockAuthBloc = MockAuthBloc();
       when(() => mockAuthBloc.state).thenReturn(const Authenticated(
         UserModel(
@@ -134,6 +132,9 @@ void main() {
 
       expect(find.byType(OwnerCustomersScreen), findsOneWidget);
       expect(find.text(Strings.customersTitle), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
   });
 }
