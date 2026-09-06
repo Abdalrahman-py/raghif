@@ -306,6 +306,14 @@ class _ResultView extends StatelessWidget {
                   '${payload.storeName} · ${payload.purchaseDate}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                if (payload.nationalId != null &&
+                    payload.nationalId!.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '${Strings.idShortLabel}: ${payload.nationalId}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   payload.purchaseId,

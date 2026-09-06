@@ -34,6 +34,16 @@ Workflow rules this changelog lives by:
 
 ### Changed
 
+- Receipt QR payload is now versioned (`v: 1`) and carries `national_id` +
+  `store_id` (both optional, so codes minted before the change still decode).
+  The scanner can now report a wrong-store code from the code's own store
+  claim — no local purchase needed — and shows the buyer's national ID on
+  the scan result card. A `qr_payload.dart` header comment (Farid's) records
+  the production roadmap: opaque signed server-issued token, no PII in the
+  code, server-side redemption.
+- Receipt QRs (on-screen, saved, shared) now render at error-correction
+  level H (~30% recovery) instead of the default L — codes survive glare,
+  blur, and screen reflections from photographed/phone-screen receipts.
 - QR redemption scanner gains a torch (flashlight) toggle overlaid on the
   camera preview for low-light pickup counters — hidden automatically on
   devices without a torch; torch switches off when the camera stops.

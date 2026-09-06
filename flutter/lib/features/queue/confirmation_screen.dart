@@ -77,11 +77,18 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               final queue = queueSnapshot.data ?? [];
               final position = queue.indexWhere((p) => p.id == purchase.id) + 1;
               final store = controller.storeById(purchase.storeId);
+              // Farid's comment — PRODUCTION: this is where the receipt QR is
+              // minted CLIENT-side today (prototype). In production the code
+              // must come from the backend as an opaque signed token — see
+              // the full production roadmap in qr_payload.dart. When that
+              // lands, delete encode()/QrImageView usage here.
               final qrPayload = QrPayload(
                 purchaseId: purchase.id.toString(),
                 userName: purchase.userName ?? currentUser.name,
                 storeName: purchase.storeName ?? store?.name ?? '',
                 purchaseDate: purchase.purchaseDate,
+                nationalId: purchase.userNationalId,
+                storeId: purchase.storeId,
               );
 
           return SafeArea(
@@ -170,6 +177,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                 child: QrImageView(
                                   data: qrPayload.encode(),
                                   version: QrVersions.auto,
+                                  errorCorrectionLevel: QrErrorCorrectLevel.H,
                                   size: 200.0,
                                 ),
                               ),
@@ -211,6 +219,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
         data: payload.encode(),
         version: QrVersions.auto,
         gapless: true,
+        errorCorrectionLevel: QrErrorCorrectLevel.H,
       );
       final picData = await painter.toImageData(600);
       return picData?.buffer.asUint8List();

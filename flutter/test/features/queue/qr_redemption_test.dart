@@ -72,6 +72,41 @@ void main() {
       expect(result.purchase, isNull);
     });
 
+    test('code claims another store, no local match -> wrongStore', () {
+      const foreignPayload = QrPayload(
+        purchaseId: '77',
+        userName: 'ليلى',
+        storeName: 'مخبز النور',
+        purchaseDate: '2026-09-05',
+        storeId: 2,
+      );
+      final result = evaluateQrRedemption(
+        payload: foreignPayload,
+        purchase: null,
+        ownerStoreId: 1,
+      );
+      expect(result.outcome, QrRedemptionOutcome.wrongStore);
+      expect(result.purchase, isNull);
+      // Falls back to the store name the code itself claims.
+      expect(result.actualStoreName, 'مخبز النور');
+    });
+
+    test('code claims another store, even with local match -> wrongStore', () {
+      const foreignPayload = QrPayload(
+        purchaseId: '7',
+        userName: 'أحمد',
+        storeName: 'مخبز النور',
+        purchaseDate: '2026-09-05',
+        storeId: 2,
+      );
+      final result = evaluateQrRedemption(
+        payload: foreignPayload,
+        purchase: purchase(),
+        ownerStoreId: 1,
+      );
+      expect(result.outcome, QrRedemptionOutcome.wrongStore);
+    });
+
     test('purchase belonging to another store -> wrongStore', () {
       final result = evaluateQrRedemption(
         payload: payload,

@@ -16,7 +16,9 @@ enum QrRedemptionOutcome {
   /// (expected in the prototype — no cross-device sync; see issue #28).
   notFoundHere,
 
-  /// Matches a purchase, but one belonging to a different store.
+  /// Matches a purchase of a different store, or — since the v1 payload
+  /// carries `store_id` — the code itself claims another store even when no
+  /// local purchase exists.
   wrongStore,
 }
 
@@ -34,7 +36,10 @@ class QrRedemptionResult {
   final PurchaseModel? purchase;
 
   int? get batchNumber => purchase?.batchNumber;
-  String? get actualStoreName => purchase?.storeName;
+
+  /// Store name to show on a wrong-store result: prefer the local record
+  /// when we have one, otherwise fall back to the store the code claims.
+  String? get actualStoreName => purchase?.storeName ?? payload.storeName;
 }
 
 /// Pure decode-and-match logic, deliberately separated from the camera widget
@@ -46,6 +51,17 @@ QrRedemptionResult evaluateQrRedemption({
   required PurchaseModel? purchase,
   required int ownerStoreId,
 }) {
+  // The v1 code's own store claim is checked FIRST: it is decidable without
+  // any local data, so a receipt from another bakery scanned on a device
+  // that never saw the purchase reports wrongStore instead of notFoundHere.
+  if (payload.storeId != null && payload.storeId != ownerStoreId) {
+    return QrRedemptionResult(
+      outcome: QrRedemptionOutcome.wrongStore,
+      payload: payload,
+      purchase: purchase,
+    );
+  }
+
   if (purchase == null) {
     return QrRedemptionResult(
       outcome: QrRedemptionOutcome.notFoundHere,
