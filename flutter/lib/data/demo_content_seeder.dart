@@ -3,7 +3,6 @@ import 'package:drift/drift.dart';
 import '../core/auth/demo_accounts.dart';
 import '../core/auth/pin_hash.dart';
 import '../core/database/app_database.dart';
-import '../core/database/tables/converters.dart';
 import '../features/queue/queue_logic.dart';
 
 /// Richer demo content for the prototype walkthrough (P0-1).

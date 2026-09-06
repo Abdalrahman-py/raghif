@@ -1,8 +1,8 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raghif/core/auth/demo_accounts.dart';
 import 'package:raghif/core/database/app_database.dart';
-import 'package:raghif/core/database/tables/converters.dart';
 import 'package:raghif/data/demo_content_seeder.dart';
 import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
