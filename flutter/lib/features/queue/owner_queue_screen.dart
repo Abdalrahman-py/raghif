@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/number_stepper.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
 import 'qr_scanner_screen.dart';
+import '../../domain/models/store_model.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 
@@ -115,6 +118,21 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                     ),
+                    if (store != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                          AppSpacing.md,
+                          0,
+                        ),
+                        child: _BatchSizeControl(
+                          controller: widget.controller,
+                          storeId: widget.storeId,
+                          store: store,
+                          date: date,
+                        ),
+                      ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.md,
@@ -288,6 +306,73 @@ class _BuyerRow extends StatelessWidget {
                     : Strings.undoReceived,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Batch size groups this queue into notify-able chunks; it lives here
+/// (rather than the store dashboard) since it only makes sense next to
+/// the queue it groups.
+class _BatchSizeControl extends StatefulWidget {
+  const _BatchSizeControl({
+    required this.controller,
+    required this.storeId,
+    required this.store,
+    required this.date,
+  });
+
+  final QueueController controller;
+  final dynamic storeId;
+  final StoreModel store;
+  final String date;
+
+  @override
+  State<_BatchSizeControl> createState() => _BatchSizeControlState();
+}
+
+class _BatchSizeControlState extends State<_BatchSizeControl> {
+  late int _batchSize = widget.store.batchSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  Strings.batchSizeLabel,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              NumberStepper(
+                value: _batchSize,
+                onChanged: (v) => setState(() => _batchSize = v),
+                decrementLabel: Strings.decreaseValue,
+                incrementLabel: Strings.increaseValue,
+                min: 1,
+              ),
+            ],
+          ),
+          if (_batchSize != widget.store.batchSize) ...[
+            const SizedBox(height: AppSpacing.sm),
+            SecondaryButton(
+              text: Strings.saveBatchSize,
+              onPressed: () => widget.controller.saveAllocation(
+                widget.storeId,
+                dailyBagLimit: widget.store.dailyBagLimit,
+                batchSize: _batchSize,
+                today: widget.date,
+                openTime: widget.store.openTime,
+                closeTime: widget.store.closeTime,
+              ),
+            ),
+          ],
         ],
       ),
     );

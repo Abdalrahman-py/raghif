@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import '../../core/auth/demo_accounts.dart';
 import '../../core/database/app_database.dart';
 import '../../core/di/injection.dart';
+import '../../core/i18n/strings.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
@@ -72,14 +74,22 @@ class QueueController extends ChangeNotifier {
   final QueueRepository _repository;
   StreamSubscription<List<StoreModel>>? _storesSub;
   List<StoreModel> _stores = [];
+  bool _storesLoaded = false;
   final Map<int, PurchaseModel> _purchaseCache = {};
 
   List<StoreModel> get stores => _stores;
+
+  /// True once the repository's real store data has arrived at least once —
+  /// [stores] holds [defaultStores] (a same-shaped placeholder) until then,
+  /// so widgets that sync local edit state from a store "once on load"
+  /// should gate that sync on this rather than on `storeById(...) != null`.
+  bool get storesLoaded => _storesLoaded;
 
   void _init() {
     _storesSub = _repository.watchStores().listen((stores) {
       if (stores.isNotEmpty) {
         _stores = stores;
+        _storesLoaded = true;
         notifyListeners();
       }
     });
@@ -149,7 +159,6 @@ class QueueController extends ChangeNotifier {
     required dynamic userId,
     required dynamic storeId,
     required String date,
-    int batchSize = 20,
   }) async {
     final uId = _parseInt(userId);
     final sId = _parseInt(storeId);
@@ -157,18 +166,33 @@ class QueueController extends ChangeNotifier {
       userId: uId,
       storeId: sId,
       date: date,
-      batchSize: batchSize,
     );
     _purchaseCache[purchase.id] = purchase;
     notifyListeners();
+    final storeName = purchase.storeName ?? storeById(sId)?.name ?? '';
+    await NotificationService.instance.showNotification(
+      title: Strings.purchaseConfirmedNotificationTitle(storeName),
+      body: Strings.purchaseConfirmedNotificationBody(purchase.batchNumber),
+    );
     return purchase;
   }
 
   /// Owner action: notify every waiting buyer in the next un-notified batch.
+  ///
+  /// There's no push backend in this prototype, so the "notification" a
+  /// buyer would get in production is simulated here: firing a real OS
+  /// notification directly on whatever device runs this action.
   Future<void> notifyNextBatch(dynamic storeId, String date) async {
     final sId = _parseInt(storeId);
-    await _repository.notifyNextBatch(sId, date);
+    final notified = await _repository.notifyNextBatch(sId, date);
     notifyListeners();
+    if (notified) {
+      final storeName = storeById(sId)?.name ?? '';
+      await NotificationService.instance.showNotification(
+        title: Strings.batchReadyNotificationTitle(storeName),
+        body: Strings.batchReadyNotificationBody,
+      );
+    }
   }
 
   /// Owner action: notified <-> collected check-in toggle.
@@ -181,18 +205,14 @@ class QueueController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setPurchaseWindowOpen(dynamic storeId, bool open) async {
-    final sId = _parseInt(storeId);
-    await _repository.setStoreOpen(sId, open);
-    notifyListeners();
-  }
-
-  /// Owner action: top up today's allocation.
+  /// Owner action: top up today's allocation and purchase window.
   Future<void> saveAllocation(
     dynamic storeId, {
     required int dailyBagLimit,
     required int batchSize,
     required String today,
+    String? openTime,
+    String? closeTime,
   }) async {
     final sId = _parseInt(storeId);
     await _repository.saveStoreAllocation(
@@ -200,6 +220,8 @@ class QueueController extends ChangeNotifier {
       dailyLimit: dailyBagLimit,
       batchSize: batchSize,
       date: today,
+      openTime: openTime,
+      closeTime: closeTime,
     );
     notifyListeners();
   }

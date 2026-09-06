@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/auth/session_store.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -78,6 +79,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       _pendingOtp = otp;
       _pendingNationalId = nationalId;
+      await NotificationService.instance.showNotification(
+        title: Strings.otpNotificationTitle,
+        body: Strings.otpNotificationBody(otp),
+      );
       emit(AuthOtpSent(
         nationalId: nationalId,
         phone: user.phone,

@@ -11,6 +11,8 @@ class StoreModel extends Equatable {
     this.batchSize = 20,
     this.batchRound = 1,
     this.allocationDate = '',
+    this.openTime,
+    this.closeTime,
   });
 
   final int id;
@@ -23,9 +25,15 @@ class StoreModel extends Equatable {
   final int batchRound;
   final String allocationDate;
 
+  /// Today's purchase window, "HH:mm" 24h, set by the owner. Null when not
+  /// set yet — informational only, doesn't itself gate [isOpen].
+  final String? openTime;
+  final String? closeTime;
+
   bool get isSoldOut => bagsRemaining <= 0;
   bool get canPurchase => isOpen && !isSoldOut;
   bool get isAvailable => canPurchase;
+  bool get hasPurchaseWindow => openTime != null && closeTime != null;
 
   StoreModel copyWith({
     int? id,
@@ -37,6 +45,8 @@ class StoreModel extends Equatable {
     int? batchSize,
     int? batchRound,
     String? allocationDate,
+    String? openTime,
+    String? closeTime,
   }) {
     return StoreModel(
       id: id ?? this.id,
@@ -48,19 +58,23 @@ class StoreModel extends Equatable {
       batchSize: batchSize ?? this.batchSize,
       batchRound: batchRound ?? this.batchRound,
       allocationDate: allocationDate ?? this.allocationDate,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        isOpen,
-        dailyBagLimit,
-        bagsRemaining,
-        ownerPhone,
-        batchSize,
-        batchRound,
-        allocationDate,
-      ];
+    id,
+    name,
+    isOpen,
+    dailyBagLimit,
+    bagsRemaining,
+    ownerPhone,
+    batchSize,
+    batchRound,
+    allocationDate,
+    openTime,
+    closeTime,
+  ];
 }

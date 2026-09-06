@@ -72,4 +72,26 @@ Workflow rules this changelog lives by:
   isn't available on web, even though that fallback never runs once
   `main()` sets up DI. The native import is now conditional so web builds
   compile and behavior is unchanged elsewhere.
+- PurchaseScreen no longer centers its content in the middle of the screen
+  (leaving large dead space above and below on short content) — the store
+  detail block now sits directly under the app bar and the buy/back buttons
+  are anchored to the bottom.
+- PurchaseScreen no longer shows the price twice — removed the separate
+  price row since the buy button already states the amount.
+- `OwnerDashboardScreen`'s allocation/batch-size fields could silently sync
+  from stale placeholder data (`QueueController`'s hardcoded `defaultStores`)
+  instead of the real repository values, because the widget couldn't tell
+  the two apart once loaded. Added an explicit `storesLoaded` signal to
+  `QueueController` so the one-time sync waits for real data.
+
+### Added
+
+- Store owners can now set today's purchase window (start/end time), shown
+  to buyers on the store list and purchase screen alongside the existing
+  bags-remaining count.
+- Notifying the next batch now fires a real OS notification, simulating the
+  push notification a buyer would get in production — there's no backend
+  in this prototype, so it fires directly on whatever device runs the
+  owner's "Notify Next Batch" action. Uses `flutter_local_notifications`
+  (previously an unused dependency); no-op on web.
 

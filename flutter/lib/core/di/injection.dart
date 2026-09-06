@@ -4,6 +4,7 @@ import '../auth/session_store.dart';
 import '../database/app_database.dart';
 import '../network/api_client.dart';
 import '../network/api_service.dart';
+import '../notifications/notification_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -20,6 +21,9 @@ Future<void> initDependencies() async {
 
   final sessionStore = SessionStore();
   sl.registerSingleton<SessionStore>(sessionStore);
+
+  sl.registerSingleton<NotificationService>(NotificationService.instance);
+  await sl<NotificationService>().init();
 
   // Network Layer
   final dio = ApiClient.createDio();

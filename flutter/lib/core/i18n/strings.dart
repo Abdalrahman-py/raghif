@@ -19,7 +19,10 @@ class Strings {
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
-  static String demoOtpBanner(String code) => 'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
+  static String demoOtpBanner(String code) =>
+      'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
+  static const otpNotificationTitle = 'رمز التحقق';
+  static String otpNotificationBody(String code) => 'رمز التحقق الخاص بك: $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -84,6 +87,8 @@ class Strings {
   static const soldOut = 'نفدت الكمية';
   static String bagsRemaining(int remaining, int total) =>
       'المتبقي: $remaining من $total';
+  static String purchaseWindowRange(String openTime, String closeTime) =>
+      'وقت الشراء: $openTime - $closeTime';
 
   // Purchase
   static const purchaseTitle = 'الشراء';
@@ -98,6 +103,7 @@ class Strings {
     final prefix = name.startsWith('مخبز') ? '' : 'مخبز ';
     return 'لقد قمت بالحجز من $prefix$name اليوم بالفعل';
   }
+
   static const viewOrder = 'عرض الطلب';
   static const payButton = 'ادفع 3 شيكل';
 
@@ -109,6 +115,14 @@ class Strings {
   static const waitingReassurance = 'سيتم إشعارك عندما يحين دورك';
   static const estimatedTime = 'الوقت التقديري للجاهزية';
   static const statusNotified = 'خبزك جاهز!';
+  static String batchReadyNotificationTitle(String storeName) =>
+      'خبزك جاهز في $storeName';
+  static const batchReadyNotificationBody =
+      'حان دورك، توجه إلى المخبز لاستلام طلبك';
+  static String purchaseConfirmedNotificationTitle(String storeName) =>
+      'تم تأكيد حجزك في $storeName';
+  static String purchaseConfirmedNotificationBody(int batch) =>
+      'أنت الآن في الدفعة رقم $batch، سنشعرك عندما يحين دورك';
   static const returnToStores = 'العودة إلى المخابز';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
@@ -118,16 +132,24 @@ class Strings {
   static const shareQrText = 'رمز استلام الخبز';
   static const qrSavedSuccess = 'تم حفظ رمز الاستلام في المعرض';
   static const qrSaveFailed = 'تعذر حفظ رمز الاستلام في المعرض';
+  static const receiptPurchaseIdLabel = 'رقم الطلب';
+  static const receiptDateLabel = 'التاريخ';
+  static const receiptBatchLabel = 'الدفعة';
+  static const receiptNameLabel = 'الاسم';
 
   // Owner dashboard
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';
   static const remainingLabel = 'المتبقي';
-  static const purchaseWindowOpen = 'نافذة الشراء مفتوحة';
+  static const purchaseWindowTimesLabel = 'أوقات الشراء';
+  static const openTimeLabel = 'وقت البدء';
+  static const closeTimeLabel = 'وقت الانتهاء';
+  static const notSetLabel = 'غير محدد';
   static const allocationLabel = 'الكمية اليومية';
   static const batchSizeLabel = 'حجم الدفعة';
   static const decreaseValue = 'إنقاص';
   static const increaseValue = 'زيادة';
   static const saveAllocation = 'حفظ الكمية';
+  static const saveBatchSize = 'حفظ حجم الدفعة';
   static const goToQueue = 'عرض طابور المشترين';
 
   // Owner queue
