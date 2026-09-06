@@ -72,4 +72,8 @@ Workflow rules this changelog lives by:
   collaboration rulings recorded there: app is Arabic-only for now (no
   EN/bilingual work), and the bag limit is one per national ID per day
   across all stores.
+- TASKS.md collaboration rules hardened (agreed 2026-09-06): all work lands
+  on feature branches only; `master` is never pushed to or merged to locally
+  — it changes only via reviewed PRs; when `master` gains new code it is
+  merged/rebased into working branches, never extended directly.
 
