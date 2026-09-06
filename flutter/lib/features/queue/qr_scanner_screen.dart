@@ -147,18 +147,24 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: MobileScanner(
-                controller: _scanner,
-                onDetect: _onDetect,
-                errorBuilder: (context, error) {
-                  // Permission denied / camera unavailable — surface once.
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && !_cameraError) {
-                      setState(() => _cameraError = true);
-                    }
-                  });
-                  return const SizedBox.shrink();
-                },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  MobileScanner(
+                    controller: _scanner,
+                    onDetect: _onDetect,
+                    errorBuilder: (context, error) {
+                      // Permission denied / camera unavailable — surface once.
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && !_cameraError) {
+                          setState(() => _cameraError = true);
+                        }
+                      });
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  if (!_cameraError) _TorchButton(scanner: _scanner),
+                ],
               ),
             ),
           ),
@@ -170,6 +176,48 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Low-light aid: a torch (flashlight) toggle floating over the camera
+/// preview. Hidden on devices without a torch (state stays `unavailable`).
+/// The controller notifies through its [MobileScannerState.torchState] — the
+/// platform turns the torch off again as soon as the camera stops.
+class _TorchButton extends StatelessWidget {
+  const _TorchButton({required this.scanner});
+
+  final MobileScannerController scanner;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<MobileScannerState>(
+      valueListenable: scanner,
+      builder: (context, state, _) {
+        final torch = state.torchState;
+        final hasTorch =
+            state.isRunning && torch != TorchState.unavailable;
+        if (!hasTorch) return const SizedBox.shrink();
+        final isOn = torch == TorchState.on;
+        return Align(
+          alignment: AlignmentDirectional.bottomEnd,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Material(
+              color: Colors.black54,
+              shape: const CircleBorder(),
+              child: IconButton(
+                tooltip: isOn ? Strings.scanTorchOff : Strings.scanTorchOn,
+                icon: Icon(
+                  isOn ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white,
+                ),
+                onPressed: () => scanner.toggleTorch(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

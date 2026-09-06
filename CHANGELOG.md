@@ -34,6 +34,9 @@ Workflow rules this changelog lives by:
 
 ### Changed
 
+- QR redemption scanner gains a torch (flashlight) toggle overlaid on the
+  camera preview for low-light pickup counters — hidden automatically on
+  devices without a torch; torch switches off when the camera stops.
 - Owner queue buyer rows now show national ID + phone so pickup identity can
   be verified, with a live search field matching ID/phone suffix or name;
   the Notify-Next-Batch action is hidden during a search so a lookup can

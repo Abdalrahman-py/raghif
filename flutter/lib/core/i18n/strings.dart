@@ -162,6 +162,8 @@ class Strings {
   static String scanBatchNotCalledYet(int batch) =>
       'لم يحن دور الدفعة رقم $batch بعد';
   static const scanAgain = 'مسح رمز آخر';
+  static const scanTorchOn = 'تشغيل الإضاءة';
+  static const scanTorchOff = 'إطفاء الإضاءة';
 
   // Payment (Jawwal Pay mock)
   static const paymentTitle = 'الدفع عبر جوال باي';
