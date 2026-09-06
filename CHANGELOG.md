@@ -31,6 +31,9 @@ Workflow rules this changelog lives by:
   `qr_redemption.dart` with unit tests.
 - docs/AUDIT-2026-09-05.md — code review report against `master` with a
   per-screen findings matrix and a prioritized P0–P2 task inventory.
+- docs/PROTOTYPE-WALKTHROUGH.md — presentation script for the prototype
+  demo (buyer + owner story), with each beat tagged READY / PARTIAL /
+  BUILD / PRODUCTION, a build-order roadmap, and presenter guardrails.
 
 ### Changed
 
