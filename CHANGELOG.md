@@ -29,6 +29,8 @@ Workflow rules this changelog lives by:
   queue screen — new `qr_scanner_screen.dart` (mobile_scanner dependency +
   CAMERA permission) and camera-free decode/match logic in
   `qr_redemption.dart` with unit tests.
+- docs/AUDIT-2026-09-05.md — code review report against `master` with a
+  per-screen findings matrix and a prioritized P0–P2 task inventory.
 
 ### Changed
 
