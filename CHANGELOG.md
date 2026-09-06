@@ -95,6 +95,15 @@ Workflow rules this changelog lives by:
 
 ### Added
 
+- Richer demo content for the walkthrough (P0-1) — new
+  `lib/data/demo_content_seeder.dart` runs once after the base seed on fresh
+  installs: 7 stores total (4 extra bakeries), 9 dummy registered buyers,
+  and today's demo-store queue spanning all pickup states (3 collected /
+  3 notified / 3 waiting across three visible batches). Kept separate from
+  `ensureSeeded()` so existing tests see the old minimal footprint; the live
+  demo buyer أحمد gets no seeded purchase (one-bag rule). Unit tests cover
+  the seed, its idempotency, and the no-op-on-used-install guard.
+
 - Store owners can now set today's purchase window (start/end time), shown
   to buyers on the store list and purchase screen alongside the existing
   bags-remaining count.
