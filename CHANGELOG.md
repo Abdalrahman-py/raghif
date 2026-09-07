@@ -59,6 +59,9 @@ Workflow rules this changelog lives by:
 
 ### Fixed
 
+- Store list golden (`store_list_screen.png`) regenerated — it was stale
+  against the current store card layout, failing CI (0.02%, 58px diff) on
+  every branch regardless of its own changes.
 - Owner allocation save no longer resets today's remaining bags to the full
   daily limit, wiping out bags already sold before the save.
 - Buying a bag after a store sells out is now rejected instead of silently
