@@ -6,10 +6,13 @@ catches broader work that isn't issue-shaped. One item at a time, top to bottom.
 Every push/PR is verified by Flutter CI (`.github/workflows/flutter-ci.yml`):
 `flutter analyze`, `flutter test`, and a debug APK build must all pass.
 
-Git workflow (collaboration rules): all changes land on GitHub as **clean PRs**
-— branch off `master`, small reviewable commits, CI green, then merge via PR.
-Never push to `master` directly. Each completed task is logged in
-`CHANGELOG.md` **before** its commit.
+Git workflow (collaboration rules — hard, agreed 2026-09-06): all work is
+pushed to **feature branches only** — branch off `master`, small reviewable
+commits, CI green. **Never push to `master` directly and never merge to it
+locally**; `master` changes only via reviewed PRs. When `master` gains new
+code (owner PRs/merges or direct pushes), merge/rebase it into your working
+branch — but never add anything to `master` yourself. Each completed task is
+logged in `CHANGELOG.md` **before** its commit.
 
 Source of truth for *what* to build: `spec.md` (product + schema), `UI_SPEC.md` (design tokens).
 The original Kotlin/Compose prototype under `app/` has been removed — the Flutter app is the
@@ -29,11 +32,17 @@ only implementation now (see #10).
       reworked with the domain/data layers in the Sep 2026 refactor).
 - [x] Build the bread-queue list/pre-order screens per UI_SPEC.md, wired to mock data first.
       Done in #13.
-- [ ] Replace mock data with real `drift` queries (#7, open).
-- [ ] Add widget tests for the queue/pre-order flow (#8, open).
+- [x] Replace mock data with real drift queries. Done — #7 closed (COMPLETED,
+      2026-09-05). Store list/purchase flow reads the drift DB via repositories
+      (Sep 2026 refactor).
+- [x] Add widget tests for the queue/pre-order flow. Done — #8 closed (COMPLETED,
+      2026-09-05). Coverage under `flutter/test/features/queue/` and
+      `flutter/test/data/repositories/`.
 - [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly.
       Done: Flutter CI (`flutter-ci.yml`) runs analyze + test + debug APK build on
       every push/PR.
+- [ ] Store owner QR redemption scanner on the buyer queue screen (#28, open) —
+      the only open issue; full spec on GitHub.
 
 ## Notes
 
@@ -47,3 +56,9 @@ only implementation now (see #10).
   no `sqldelight` package exists on pub.dev). See spec.md's Technical Decisions callout and
   issue #4 for the full history of this substitution. Never add Supabase or any hosted
   backend.
+- Language ruling (2026-09-06): the app is Arabic-only for now — no EN/bilingual-toggle
+  work. spec.md/README.md still say "Bilingual", but those are owner files; Arabic-only
+  wins until the owner updates them.
+- Bag-limit ruling (2026-09-06): one bag per national ID per day, across all stores.
+  spec.md is authoritative; README.md's "per store per day" wording is outdated (owner
+  file) — don't build to it.

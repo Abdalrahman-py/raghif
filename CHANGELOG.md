@@ -64,3 +64,16 @@ Workflow rules this changelog lives by:
   owner's "Notify Next Batch" action. Uses `flutter_local_notifications`
   (previously an unused dependency); no-op on web.
 
+### Changed
+
+- TASKS.md backlog synced with reality: #7 (real drift queries) and #8
+  (widget tests) marked done — both closed COMPLETED on 2026-09-05; #28
+  (store-owner QR redemption scanner) added as the only open item. Two
+  collaboration rulings recorded there: app is Arabic-only for now (no
+  EN/bilingual work), and the bag limit is one per national ID per day
+  across all stores.
+- TASKS.md collaboration rules hardened (agreed 2026-09-06): all work lands
+  on feature branches only; `master` is never pushed to or merged to locally
+  — it changes only via reviewed PRs; when `master` gains new code it is
+  merged/rebased into working branches, never extended directly.
+
