@@ -41,8 +41,9 @@ only implementation now (see #10).
 - [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly.
       Done: Flutter CI (`flutter-ci.yml`) runs analyze + test + debug APK build on
       every push/PR.
-- [ ] Store owner QR redemption scanner on the buyer queue screen (#28, open) —
-      the only open issue; full spec on GitHub.
+- [x] Store owner QR redemption scanner on the buyer queue screen. Done — #28
+      closed (COMPLETED, 2026-09-07), shipped in #39: `qr_scanner_screen.dart`
+      (camera) + `qr_redemption.dart` (decode/match, unit tested).
 
 ## Notes
 
