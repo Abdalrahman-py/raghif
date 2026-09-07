@@ -25,6 +25,37 @@ Workflow rules this changelog lives by:
 - PR-only GitHub workflow convention: work happens on a branch, CI
   (`flutter analyze` + `flutter test` + release APK) must pass, and merges
   to `master` happen only via reviewed pull requests.
+- Owner pickup flow (#28 + audit items): QR redemption scanner on the buyer
+  queue screen — new `qr_scanner_screen.dart` (mobile_scanner dependency +
+  CAMERA permission) and camera-free decode/match logic in
+  `qr_redemption.dart` with unit tests.
+- docs/AUDIT-2026-09-05.md — code review report against `master` with a
+  per-screen findings matrix and a prioritized P0–P2 task inventory.
+- docs/PROTOTYPE-WALKTHROUGH.md — presentation script for the prototype
+  demo (buyer + owner story), with each beat tagged READY / PARTIAL /
+  BUILD / PRODUCTION, a build-order roadmap, and presenter guardrails.
+
+### Changed
+
+- Receipt QR payload is now versioned (`v: 1`) and carries `national_id` +
+  `store_id` (both optional, so codes minted before the change still decode).
+  The scanner can now report a wrong-store code from the code's own store
+  claim — no local purchase needed — and shows the buyer's national ID on
+  the scan result card. A `qr_payload.dart` header comment (Farid's) records
+  the production roadmap: opaque signed server-issued token, no PII in the
+  code, server-side redemption.
+- Receipt QRs (on-screen, saved, shared) now render at error-correction
+  level H (~30% recovery) instead of the default L — codes survive glare,
+  blur, and screen reflections from photographed/phone-screen receipts.
+- QR redemption scanner gains a torch (flashlight) toggle overlaid on the
+  camera preview for low-light pickup counters — hidden automatically on
+  devices without a torch; torch switches off when the camera stops.
+- Owner queue buyer rows now show national ID + phone so pickup identity can
+  be verified, with a live search field matching ID/phone suffix or name;
+  the Notify-Next-Batch action is hidden during a search so a lookup can
+  never release a batch accidentally.
+- `PurchaseModel` and all repository row mappings now carry the buyer's
+  national ID (users table join).
 
 ### Fixed
 

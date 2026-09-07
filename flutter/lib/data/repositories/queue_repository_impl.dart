@@ -159,6 +159,7 @@ class QueueRepositoryImpl implements QueueRepository {
           createdAtMillis: p.createdAt,
           userName: u.name,
           userPhone: u.phone,
+          userNationalId: u.nationalId,
           storeName: s.name,
         );
       }).toList();
@@ -200,6 +201,7 @@ class QueueRepositoryImpl implements QueueRepository {
         createdAtMillis: p.createdAt,
         userName: u.name,
         userPhone: u.phone,
+        userNationalId: u.nationalId,
         storeName: s.name,
       );
     }).toList();
@@ -342,6 +344,7 @@ class QueueRepositoryImpl implements QueueRepository {
         createdAtMillis: now,
         userName: user.name,
         userPhone: user.phone,
+        userNationalId: user.nationalId,
         storeName: store.name,
       );
     });

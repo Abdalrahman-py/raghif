@@ -15,6 +15,7 @@ class PurchaseModel extends Equatable {
     this.batchRoundAtPurchase = 1,
     this.userName,
     this.userPhone,
+    this.userNationalId,
     this.storeName,
   });
 
@@ -28,6 +29,7 @@ class PurchaseModel extends Equatable {
   final int batchRoundAtPurchase;
   final String? userName;
   final String? userPhone;
+  final String? userNationalId;
   final String? storeName;
 
   PurchaseModel copyWith({
@@ -41,6 +43,7 @@ class PurchaseModel extends Equatable {
     int? batchRoundAtPurchase,
     String? userName,
     String? userPhone,
+    String? userNationalId,
     String? storeName,
   }) {
     return PurchaseModel(
@@ -54,6 +57,7 @@ class PurchaseModel extends Equatable {
       batchRoundAtPurchase: batchRoundAtPurchase ?? this.batchRoundAtPurchase,
       userName: userName ?? this.userName,
       userPhone: userPhone ?? this.userPhone,
+      userNationalId: userNationalId ?? this.userNationalId,
       storeName: storeName ?? this.storeName,
     );
   }
@@ -70,6 +74,7 @@ class PurchaseModel extends Equatable {
         batchRoundAtPurchase,
         userName,
         userPhone,
+        userNationalId,
         storeName,
       ];
 }

@@ -98,6 +98,7 @@ class ReceiptCard extends StatelessWidget {
                       child: QrImageView(
                         data: qrData,
                         version: QrVersions.auto,
+                        errorCorrectionLevel: QrErrorCorrectLevel.H,
                         size: 180,
                         gapless: true,
                       ),
