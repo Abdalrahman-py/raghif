@@ -159,6 +159,15 @@ class Strings {
   static const receiptBatchLabel = 'الدفعة';
   static const receiptNameLabel = 'الاسم';
 
+  // Owner history
+  static const historyTitle = 'سجل المبيعات';
+  static const historyButton = 'سجل المبيعات';
+  static const historyEmpty = 'لا يوجد سجل بعد';
+  static String historyDayTitle(String date) => 'مبيعات $date';
+  static String historySold(int count) => 'المبيعات: $count';
+  static String historyCollected(int count) => 'مستلم: $count';
+  static String historyNotCollected(int count) => 'لم يستلم: $count';
+
   // Owner dashboard
   static const ownerDashboardTitle = 'لوحة صاحب المخبز';
   static const remainingLabel = 'المتبقي';

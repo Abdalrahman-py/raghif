@@ -10,6 +10,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../auth/bloc/auth_bloc.dart';
 import 'owner_customers_screen.dart';
+import 'owner_history_screen.dart';
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -262,6 +263,18 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => OwnerCustomersScreen(
+                                  controller: widget.controller,
+                                  storeId: widget.storeId,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          SecondaryButton(
+                            text: Strings.historyButton,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OwnerHistoryScreen(
                                   controller: widget.controller,
                                   storeId: widget.storeId,
                                 ),

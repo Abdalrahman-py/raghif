@@ -136,14 +136,11 @@ storage (Settings → Apps → Raghif) to re-seed.
 - ✅ "Remaining didn't pick" visual: every batch header now carries the
   called / picked / still-waiting tallies.
 
-**10. History page.** 🚧 NOT BUILT — answer to the question
-- There is NO per-day sales history page today. The owner sees today's
-  queue, and a Customers screen (all customers ever + their totals), but
-  cannot look back at yesterday's or last week's queues.
-- 🚧 Recommend: a date browser over the same queue query (repo already
-  queries by date) — past days list, then a day's buyers with statuses,
-  ending in collected/uncollected counts. Cheap to build, strong demo
-  closer ("yesterday: 120 sold, 3 never picked up").
+**10. History page.** ✅ BUILT
+- The owner dashboard now has "سجل المبيعات": a day browser over the same
+  queue query. Each day shows sold / collected / outstanding — the demo closer
+  ("أمس: 120 مبيعاً، 3 لم يستلموا") — and tapping a day lists its buyers with
+  their status. One grouped per-day query, no full-table scans.
 
 **11. QR scan at pickup.** ✅ READY / 🚧 sound + audit log
 - Scan the buyer's receipt → five honest outcomes (checked in / already
@@ -181,7 +178,7 @@ P0 demo-critical (before presenting the enriched story):
    ✅ DONE — "طلبي" is the buyer's landing screen now.
 3. Scan sound (success/fail + haptic) and scan audit log table.
 4. Owner history page: date browser over the queue (incl. collected/
-   uncollected end-of-day).
+   uncollected end-of-day). ✅ DONE — "سجل المبيعات" on the dashboard.
 
 P1 (sharpens the demo):
 5. Store list: favorites pin-to-top + name search (+ store number if we

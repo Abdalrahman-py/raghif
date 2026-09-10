@@ -5,6 +5,7 @@ import '../../core/database/app_database.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/scan_event_model.dart';
+import '../../domain/models/store_day_summary.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -634,5 +635,40 @@ class QueueRepositoryImpl implements QueueRepository {
         lastPurchaseDate: row.read<String>('last_purchase_date'),
       );
     }).toList();
+  }
+
+  @override
+  Future<List<StoreDaySummary>> getDailySummaries(
+    int storeId, {
+    int limit = 30,
+  }) async {
+    // One row per day: totals plus the two buckets the owner cares about —
+    // handed over, and still outstanding at the end of the day.
+    final rows = await _db
+        .customSelect(
+          'SELECT p.purchase_date AS date, COUNT(*) AS sold, '
+          "SUM(CASE WHEN p.status = 'collected' THEN 1 ELSE 0 END) AS collected, "
+          "SUM(CASE WHEN p.status IN ('waiting','notified') THEN 1 ELSE 0 END) "
+          'AS not_collected '
+          'FROM purchases p '
+          'WHERE p.store_id = ? '
+          'GROUP BY p.purchase_date '
+          'ORDER BY p.purchase_date DESC '
+          'LIMIT ?',
+          variables: [Variable.withInt(storeId), Variable.withInt(limit)],
+          readsFrom: {_db.purchases},
+        )
+        .get();
+
+    return rows
+        .map(
+          (row) => StoreDaySummary(
+            date: row.read<String>('date'),
+            sold: row.read<int>('sold'),
+            collected: row.read<int>('collected'),
+            notCollected: row.read<int>('not_collected'),
+          ),
+        )
+        .toList();
   }
 }
