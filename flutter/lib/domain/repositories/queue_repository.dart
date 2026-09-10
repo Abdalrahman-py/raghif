@@ -1,5 +1,6 @@
 import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
+import '../models/scan_event_model.dart';
 import '../models/store_list_entry.dart';
 import '../models/store_model.dart';
 
@@ -30,6 +31,18 @@ abstract class QueueRepository {
     required int storeId,
     required bool pinned,
   });
+
+  /// Audit trail: records one QR scan attempt at pickup.
+  Future<void> recordScan({
+    required int storeId,
+    required String outcome,
+    int? purchaseId,
+    String? scannedName,
+    String? scannedNationalId,
+  });
+
+  /// Scan history for a store, newest first.
+  Future<List<ScanEventModel>> getScansForStore(int storeId, {int limit = 100});
 
   Stream<List<PurchaseModel>> watchQueueForStore(int storeId, String date);
 

@@ -4,6 +4,7 @@ import '../../core/auth/pin_hash.dart';
 import '../../core/database/app_database.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/scan_event_model.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -244,6 +245,51 @@ class QueueRepositoryImpl implements QueueRepository {
           ))
           .go();
     }
+  }
+
+  @override
+  Future<void> recordScan({
+    required int storeId,
+    required String outcome,
+    int? purchaseId,
+    String? scannedName,
+    String? scannedNationalId,
+  }) async {
+    await _db.into(_db.scanEvents).insert(
+          ScanEventsCompanion.insert(
+            storeId: storeId,
+            outcome: outcome,
+            scannedAt: DateTime.now().millisecondsSinceEpoch,
+            purchaseId: Value(purchaseId),
+            scannedName: Value(scannedName),
+            scannedNationalId: Value(scannedNationalId),
+          ),
+        );
+  }
+
+  @override
+  Future<List<ScanEventModel>> getScansForStore(
+    int storeId, {
+    int limit = 100,
+  }) async {
+    final rows = await (_db.select(_db.scanEvents)
+          ..where((s) => s.storeId.equals(storeId))
+          ..orderBy([(s) => OrderingTerm.desc(s.scannedAt)])
+          ..limit(limit))
+        .get();
+    return rows
+        .map(
+          (row) => ScanEventModel(
+            id: row.id,
+            storeId: row.storeId,
+            purchaseId: row.purchaseId,
+            outcome: row.outcome,
+            scannedName: row.scannedName,
+            scannedNationalId: row.scannedNationalId,
+            scannedAtMillis: row.scannedAt,
+          ),
+        )
+        .toList();
   }
 
   @override

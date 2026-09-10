@@ -1,0 +1,17 @@
+import 'purchases.drift';
+import 'stores.drift';
+
+-- One row per QR scan attempt at pickup. This is the owner's "scan writes
+-- every detail to DB": who was scanned, what the app decided, and when.
+-- `outcome` holds the QrRedemptionOutcome name (checkedIn, alreadyCollected,
+-- batchNotCalledYet, notFoundHere, wrongStore) or 'invalidCode' when the code
+-- couldn't be parsed at all — those two cases leave `purchase_id` null.
+CREATE TABLE scan_events (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL REFERENCES stores (id),
+    purchase_id INTEGER NULL REFERENCES purchases (id),
+    outcome TEXT NOT NULL,
+    scanned_name TEXT NULL,
+    scanned_national_id TEXT NULL,
+    scanned_at INTEGER NOT NULL
+);

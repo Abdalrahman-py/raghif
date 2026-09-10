@@ -18,13 +18,14 @@ part 'app_database.g.dart';
     'tables/users.drift',
     'tables/purchases.drift',
     'tables/store_pins.drift',
+    'tables/scan_events.drift',
   },
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +41,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.addColumn(stores, stores.area);
         await m.createTable(storePins);
+      }
+      if (from < 5) {
+        await m.createTable(scanEvents);
       }
     },
   );

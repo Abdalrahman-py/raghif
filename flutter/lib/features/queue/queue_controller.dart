@@ -8,6 +8,7 @@ import '../../core/notifications/notification_service.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/scan_event_model.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -152,6 +153,32 @@ class QueueController extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  /// Owner action: append one QR scan attempt to the audit trail.
+  Future<void> recordScan({
+    required dynamic storeId,
+    required String outcome,
+    dynamic purchaseId,
+    String? scannedName,
+    String? scannedNationalId,
+  }) async {
+    final sId = _parseInt(storeId, -1);
+    if (sId < 0) return;
+    await _repository.recordScan(
+      storeId: sId,
+      outcome: outcome,
+      purchaseId: purchaseId == null ? null : _parseInt(purchaseId, -1),
+      scannedName: scannedName,
+      scannedNationalId: scannedNationalId,
+    );
+    notifyListeners();
+  }
+
+  /// Scan history for a store, newest first (audit trail).
+  Future<List<ScanEventModel>> scansForStore(
+    dynamic storeId, {
+    int limit = 100,
+  }) => _repository.getScansForStore(_parseInt(storeId, -1), limit: limit);
 
   Stream<PurchaseModel?> watchPurchase(dynamic id) {
     final pId = _parseInt(id);
