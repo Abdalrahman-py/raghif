@@ -3,568 +3,6 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class Stores extends Table with TableInfo<Stores, Store> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  Stores(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  static const VerificationMeta _ownerPhoneMeta = const VerificationMeta(
-    'ownerPhone',
-  );
-  late final GeneratedColumn<String> ownerPhone = GeneratedColumn<String>(
-    'owner_phone',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  static const VerificationMeta _isOpenMeta = const VerificationMeta('isOpen');
-  late final GeneratedColumn<bool> isOpen = GeneratedColumn<bool>(
-    'is_open',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL DEFAULT FALSE',
-    defaultValue: const CustomExpression('FALSE'),
-  );
-  static const VerificationMeta _dailyBagLimitMeta = const VerificationMeta(
-    'dailyBagLimit',
-  );
-  late final GeneratedColumn<int> dailyBagLimit = GeneratedColumn<int>(
-    'daily_bag_limit',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  static const VerificationMeta _bagsRemainingMeta = const VerificationMeta(
-    'bagsRemaining',
-  );
-  late final GeneratedColumn<int> bagsRemaining = GeneratedColumn<int>(
-    'bags_remaining',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  static const VerificationMeta _openTimeMeta = const VerificationMeta(
-    'openTime',
-  );
-  late final GeneratedColumn<String> openTime = GeneratedColumn<String>(
-    'open_time',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  static const VerificationMeta _closeTimeMeta = const VerificationMeta(
-    'closeTime',
-  );
-  late final GeneratedColumn<String> closeTime = GeneratedColumn<String>(
-    'close_time',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  static const VerificationMeta _batchSizeMeta = const VerificationMeta(
-    'batchSize',
-  );
-  late final GeneratedColumn<int> batchSize = GeneratedColumn<int>(
-    'batch_size',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL DEFAULT 20',
-    defaultValue: const CustomExpression('20'),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    ownerPhone,
-    isOpen,
-    dailyBagLimit,
-    bagsRemaining,
-    openTime,
-    closeTime,
-    batchSize,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'stores';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Store> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('owner_phone')) {
-      context.handle(
-        _ownerPhoneMeta,
-        ownerPhone.isAcceptableOrUnknown(data['owner_phone']!, _ownerPhoneMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_ownerPhoneMeta);
-    }
-    if (data.containsKey('is_open')) {
-      context.handle(
-        _isOpenMeta,
-        isOpen.isAcceptableOrUnknown(data['is_open']!, _isOpenMeta),
-      );
-    }
-    if (data.containsKey('daily_bag_limit')) {
-      context.handle(
-        _dailyBagLimitMeta,
-        dailyBagLimit.isAcceptableOrUnknown(
-          data['daily_bag_limit']!,
-          _dailyBagLimitMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_dailyBagLimitMeta);
-    }
-    if (data.containsKey('bags_remaining')) {
-      context.handle(
-        _bagsRemainingMeta,
-        bagsRemaining.isAcceptableOrUnknown(
-          data['bags_remaining']!,
-          _bagsRemainingMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_bagsRemainingMeta);
-    }
-    if (data.containsKey('open_time')) {
-      context.handle(
-        _openTimeMeta,
-        openTime.isAcceptableOrUnknown(data['open_time']!, _openTimeMeta),
-      );
-    }
-    if (data.containsKey('close_time')) {
-      context.handle(
-        _closeTimeMeta,
-        closeTime.isAcceptableOrUnknown(data['close_time']!, _closeTimeMeta),
-      );
-    }
-    if (data.containsKey('batch_size')) {
-      context.handle(
-        _batchSizeMeta,
-        batchSize.isAcceptableOrUnknown(data['batch_size']!, _batchSizeMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Store map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Store(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      ownerPhone: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}owner_phone'],
-      )!,
-      isOpen: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_open'],
-      )!,
-      dailyBagLimit: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}daily_bag_limit'],
-      )!,
-      bagsRemaining: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}bags_remaining'],
-      )!,
-      openTime: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}open_time'],
-      ),
-      closeTime: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}close_time'],
-      ),
-      batchSize: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}batch_size'],
-      )!,
-    );
-  }
-
-  @override
-  Stores createAlias(String alias) {
-    return Stores(attachedDatabase, alias);
-  }
-
-  @override
-  bool get dontWriteConstraints => true;
-}
-
-class Store extends DataClass implements Insertable<Store> {
-  final int id;
-  final String name;
-  final String ownerPhone;
-  final bool isOpen;
-  final int dailyBagLimit;
-  final int bagsRemaining;
-
-  /// Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
-  /// purely informational for buyers, doesn't itself gate `is_open`.
-  final String? openTime;
-  final String? closeTime;
-
-  /// How many queue positions make up one notify-able batch. Purchases don't
-  /// store their own batch number: it's derived from queue position and this
-  /// value at read time, so changing it regroups the whole queue immediately.
-  final int batchSize;
-  const Store({
-    required this.id,
-    required this.name,
-    required this.ownerPhone,
-    required this.isOpen,
-    required this.dailyBagLimit,
-    required this.bagsRemaining,
-    this.openTime,
-    this.closeTime,
-    required this.batchSize,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['name'] = Variable<String>(name);
-    map['owner_phone'] = Variable<String>(ownerPhone);
-    map['is_open'] = Variable<bool>(isOpen);
-    map['daily_bag_limit'] = Variable<int>(dailyBagLimit);
-    map['bags_remaining'] = Variable<int>(bagsRemaining);
-    if (!nullToAbsent || openTime != null) {
-      map['open_time'] = Variable<String>(openTime);
-    }
-    if (!nullToAbsent || closeTime != null) {
-      map['close_time'] = Variable<String>(closeTime);
-    }
-    map['batch_size'] = Variable<int>(batchSize);
-    return map;
-  }
-
-  StoresCompanion toCompanion(bool nullToAbsent) {
-    return StoresCompanion(
-      id: Value(id),
-      name: Value(name),
-      ownerPhone: Value(ownerPhone),
-      isOpen: Value(isOpen),
-      dailyBagLimit: Value(dailyBagLimit),
-      bagsRemaining: Value(bagsRemaining),
-      openTime: openTime == null && nullToAbsent
-          ? const Value.absent()
-          : Value(openTime),
-      closeTime: closeTime == null && nullToAbsent
-          ? const Value.absent()
-          : Value(closeTime),
-      batchSize: Value(batchSize),
-    );
-  }
-
-  factory Store.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Store(
-      id: serializer.fromJson<int>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      ownerPhone: serializer.fromJson<String>(json['owner_phone']),
-      isOpen: serializer.fromJson<bool>(json['is_open']),
-      dailyBagLimit: serializer.fromJson<int>(json['daily_bag_limit']),
-      bagsRemaining: serializer.fromJson<int>(json['bags_remaining']),
-      openTime: serializer.fromJson<String?>(json['open_time']),
-      closeTime: serializer.fromJson<String?>(json['close_time']),
-      batchSize: serializer.fromJson<int>(json['batch_size']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'name': serializer.toJson<String>(name),
-      'owner_phone': serializer.toJson<String>(ownerPhone),
-      'is_open': serializer.toJson<bool>(isOpen),
-      'daily_bag_limit': serializer.toJson<int>(dailyBagLimit),
-      'bags_remaining': serializer.toJson<int>(bagsRemaining),
-      'open_time': serializer.toJson<String?>(openTime),
-      'close_time': serializer.toJson<String?>(closeTime),
-      'batch_size': serializer.toJson<int>(batchSize),
-    };
-  }
-
-  Store copyWith({
-    int? id,
-    String? name,
-    String? ownerPhone,
-    bool? isOpen,
-    int? dailyBagLimit,
-    int? bagsRemaining,
-    Value<String?> openTime = const Value.absent(),
-    Value<String?> closeTime = const Value.absent(),
-    int? batchSize,
-  }) => Store(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    ownerPhone: ownerPhone ?? this.ownerPhone,
-    isOpen: isOpen ?? this.isOpen,
-    dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
-    bagsRemaining: bagsRemaining ?? this.bagsRemaining,
-    openTime: openTime.present ? openTime.value : this.openTime,
-    closeTime: closeTime.present ? closeTime.value : this.closeTime,
-    batchSize: batchSize ?? this.batchSize,
-  );
-  Store copyWithCompanion(StoresCompanion data) {
-    return Store(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      ownerPhone: data.ownerPhone.present
-          ? data.ownerPhone.value
-          : this.ownerPhone,
-      isOpen: data.isOpen.present ? data.isOpen.value : this.isOpen,
-      dailyBagLimit: data.dailyBagLimit.present
-          ? data.dailyBagLimit.value
-          : this.dailyBagLimit,
-      bagsRemaining: data.bagsRemaining.present
-          ? data.bagsRemaining.value
-          : this.bagsRemaining,
-      openTime: data.openTime.present ? data.openTime.value : this.openTime,
-      closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
-      batchSize: data.batchSize.present ? data.batchSize.value : this.batchSize,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Store(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('ownerPhone: $ownerPhone, ')
-          ..write('isOpen: $isOpen, ')
-          ..write('dailyBagLimit: $dailyBagLimit, ')
-          ..write('bagsRemaining: $bagsRemaining, ')
-          ..write('openTime: $openTime, ')
-          ..write('closeTime: $closeTime, ')
-          ..write('batchSize: $batchSize')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    ownerPhone,
-    isOpen,
-    dailyBagLimit,
-    bagsRemaining,
-    openTime,
-    closeTime,
-    batchSize,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Store &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.ownerPhone == this.ownerPhone &&
-          other.isOpen == this.isOpen &&
-          other.dailyBagLimit == this.dailyBagLimit &&
-          other.bagsRemaining == this.bagsRemaining &&
-          other.openTime == this.openTime &&
-          other.closeTime == this.closeTime &&
-          other.batchSize == this.batchSize);
-}
-
-class StoresCompanion extends UpdateCompanion<Store> {
-  final Value<int> id;
-  final Value<String> name;
-  final Value<String> ownerPhone;
-  final Value<bool> isOpen;
-  final Value<int> dailyBagLimit;
-  final Value<int> bagsRemaining;
-  final Value<String?> openTime;
-  final Value<String?> closeTime;
-  final Value<int> batchSize;
-  const StoresCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.ownerPhone = const Value.absent(),
-    this.isOpen = const Value.absent(),
-    this.dailyBagLimit = const Value.absent(),
-    this.bagsRemaining = const Value.absent(),
-    this.openTime = const Value.absent(),
-    this.closeTime = const Value.absent(),
-    this.batchSize = const Value.absent(),
-  });
-  StoresCompanion.insert({
-    this.id = const Value.absent(),
-    required String name,
-    required String ownerPhone,
-    this.isOpen = const Value.absent(),
-    required int dailyBagLimit,
-    required int bagsRemaining,
-    this.openTime = const Value.absent(),
-    this.closeTime = const Value.absent(),
-    this.batchSize = const Value.absent(),
-  }) : name = Value(name),
-       ownerPhone = Value(ownerPhone),
-       dailyBagLimit = Value(dailyBagLimit),
-       bagsRemaining = Value(bagsRemaining);
-  static Insertable<Store> custom({
-    Expression<int>? id,
-    Expression<String>? name,
-    Expression<String>? ownerPhone,
-    Expression<bool>? isOpen,
-    Expression<int>? dailyBagLimit,
-    Expression<int>? bagsRemaining,
-    Expression<String>? openTime,
-    Expression<String>? closeTime,
-    Expression<int>? batchSize,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (ownerPhone != null) 'owner_phone': ownerPhone,
-      if (isOpen != null) 'is_open': isOpen,
-      if (dailyBagLimit != null) 'daily_bag_limit': dailyBagLimit,
-      if (bagsRemaining != null) 'bags_remaining': bagsRemaining,
-      if (openTime != null) 'open_time': openTime,
-      if (closeTime != null) 'close_time': closeTime,
-      if (batchSize != null) 'batch_size': batchSize,
-    });
-  }
-
-  StoresCompanion copyWith({
-    Value<int>? id,
-    Value<String>? name,
-    Value<String>? ownerPhone,
-    Value<bool>? isOpen,
-    Value<int>? dailyBagLimit,
-    Value<int>? bagsRemaining,
-    Value<String?>? openTime,
-    Value<String?>? closeTime,
-    Value<int>? batchSize,
-  }) {
-    return StoresCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      ownerPhone: ownerPhone ?? this.ownerPhone,
-      isOpen: isOpen ?? this.isOpen,
-      dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
-      bagsRemaining: bagsRemaining ?? this.bagsRemaining,
-      openTime: openTime ?? this.openTime,
-      closeTime: closeTime ?? this.closeTime,
-      batchSize: batchSize ?? this.batchSize,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (ownerPhone.present) {
-      map['owner_phone'] = Variable<String>(ownerPhone.value);
-    }
-    if (isOpen.present) {
-      map['is_open'] = Variable<bool>(isOpen.value);
-    }
-    if (dailyBagLimit.present) {
-      map['daily_bag_limit'] = Variable<int>(dailyBagLimit.value);
-    }
-    if (bagsRemaining.present) {
-      map['bags_remaining'] = Variable<int>(bagsRemaining.value);
-    }
-    if (openTime.present) {
-      map['open_time'] = Variable<String>(openTime.value);
-    }
-    if (closeTime.present) {
-      map['close_time'] = Variable<String>(closeTime.value);
-    }
-    if (batchSize.present) {
-      map['batch_size'] = Variable<int>(batchSize.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('StoresCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('ownerPhone: $ownerPhone, ')
-          ..write('isOpen: $isOpen, ')
-          ..write('dailyBagLimit: $dailyBagLimit, ')
-          ..write('bagsRemaining: $bagsRemaining, ')
-          ..write('openTime: $openTime, ')
-          ..write('closeTime: $closeTime, ')
-          ..write('batchSize: $batchSize')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class Users extends Table with TableInfo<Users, User> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1073,6 +511,885 @@ class UsersCompanion extends UpdateCompanion<User> {
   }
 }
 
+class Stores extends Table with TableInfo<Stores, Store> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  Stores(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _ownerPhoneMeta = const VerificationMeta(
+    'ownerPhone',
+  );
+  late final GeneratedColumn<String> ownerPhone = GeneratedColumn<String>(
+    'owner_phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _isOpenMeta = const VerificationMeta('isOpen');
+  late final GeneratedColumn<bool> isOpen = GeneratedColumn<bool>(
+    'is_open',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT FALSE',
+    defaultValue: const CustomExpression('FALSE'),
+  );
+  static const VerificationMeta _dailyBagLimitMeta = const VerificationMeta(
+    'dailyBagLimit',
+  );
+  late final GeneratedColumn<int> dailyBagLimit = GeneratedColumn<int>(
+    'daily_bag_limit',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _bagsRemainingMeta = const VerificationMeta(
+    'bagsRemaining',
+  );
+  late final GeneratedColumn<int> bagsRemaining = GeneratedColumn<int>(
+    'bags_remaining',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _openTimeMeta = const VerificationMeta(
+    'openTime',
+  );
+  late final GeneratedColumn<String> openTime = GeneratedColumn<String>(
+    'open_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  static const VerificationMeta _closeTimeMeta = const VerificationMeta(
+    'closeTime',
+  );
+  late final GeneratedColumn<String> closeTime = GeneratedColumn<String>(
+    'close_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  static const VerificationMeta _batchSizeMeta = const VerificationMeta(
+    'batchSize',
+  );
+  late final GeneratedColumn<int> batchSize = GeneratedColumn<int>(
+    'batch_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 20',
+    defaultValue: const CustomExpression('20'),
+  );
+  static const VerificationMeta _areaMeta = const VerificationMeta('area');
+  late final GeneratedColumn<String> area = GeneratedColumn<String>(
+    'area',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    ownerPhone,
+    isOpen,
+    dailyBagLimit,
+    bagsRemaining,
+    openTime,
+    closeTime,
+    batchSize,
+    area,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stores';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Store> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('owner_phone')) {
+      context.handle(
+        _ownerPhoneMeta,
+        ownerPhone.isAcceptableOrUnknown(data['owner_phone']!, _ownerPhoneMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerPhoneMeta);
+    }
+    if (data.containsKey('is_open')) {
+      context.handle(
+        _isOpenMeta,
+        isOpen.isAcceptableOrUnknown(data['is_open']!, _isOpenMeta),
+      );
+    }
+    if (data.containsKey('daily_bag_limit')) {
+      context.handle(
+        _dailyBagLimitMeta,
+        dailyBagLimit.isAcceptableOrUnknown(
+          data['daily_bag_limit']!,
+          _dailyBagLimitMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dailyBagLimitMeta);
+    }
+    if (data.containsKey('bags_remaining')) {
+      context.handle(
+        _bagsRemainingMeta,
+        bagsRemaining.isAcceptableOrUnknown(
+          data['bags_remaining']!,
+          _bagsRemainingMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_bagsRemainingMeta);
+    }
+    if (data.containsKey('open_time')) {
+      context.handle(
+        _openTimeMeta,
+        openTime.isAcceptableOrUnknown(data['open_time']!, _openTimeMeta),
+      );
+    }
+    if (data.containsKey('close_time')) {
+      context.handle(
+        _closeTimeMeta,
+        closeTime.isAcceptableOrUnknown(data['close_time']!, _closeTimeMeta),
+      );
+    }
+    if (data.containsKey('batch_size')) {
+      context.handle(
+        _batchSizeMeta,
+        batchSize.isAcceptableOrUnknown(data['batch_size']!, _batchSizeMeta),
+      );
+    }
+    if (data.containsKey('area')) {
+      context.handle(
+        _areaMeta,
+        area.isAcceptableOrUnknown(data['area']!, _areaMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Store map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Store(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      ownerPhone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_phone'],
+      )!,
+      isOpen: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_open'],
+      )!,
+      dailyBagLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_bag_limit'],
+      )!,
+      bagsRemaining: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bags_remaining'],
+      )!,
+      openTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}open_time'],
+      ),
+      closeTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}close_time'],
+      ),
+      batchSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}batch_size'],
+      )!,
+      area: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}area'],
+      )!,
+    );
+  }
+
+  @override
+  Stores createAlias(String alias) {
+    return Stores(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class Store extends DataClass implements Insertable<Store> {
+  final int id;
+  final String name;
+  final String ownerPhone;
+  final bool isOpen;
+  final int dailyBagLimit;
+  final int bagsRemaining;
+
+  /// Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
+  /// purely informational for buyers, doesn't itself gate `is_open`.
+  final String? openTime;
+  final String? closeTime;
+
+  /// How many queue positions make up one notify-able batch. Purchases don't
+  /// store their own batch number: it's derived from queue position and this
+  /// value at read time, so changing it regroups the whole queue immediately.
+  final int batchSize;
+
+  /// Neighborhood/area the bakery sits in, used to group and filter the buyer
+  /// store list (e.g. مخبز الرمال → الرمال). Free text in the prototype; the
+  /// buyer sees it as a filter chip, not as an exact address.
+  final String area;
+  const Store({
+    required this.id,
+    required this.name,
+    required this.ownerPhone,
+    required this.isOpen,
+    required this.dailyBagLimit,
+    required this.bagsRemaining,
+    this.openTime,
+    this.closeTime,
+    required this.batchSize,
+    required this.area,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['owner_phone'] = Variable<String>(ownerPhone);
+    map['is_open'] = Variable<bool>(isOpen);
+    map['daily_bag_limit'] = Variable<int>(dailyBagLimit);
+    map['bags_remaining'] = Variable<int>(bagsRemaining);
+    if (!nullToAbsent || openTime != null) {
+      map['open_time'] = Variable<String>(openTime);
+    }
+    if (!nullToAbsent || closeTime != null) {
+      map['close_time'] = Variable<String>(closeTime);
+    }
+    map['batch_size'] = Variable<int>(batchSize);
+    map['area'] = Variable<String>(area);
+    return map;
+  }
+
+  StoresCompanion toCompanion(bool nullToAbsent) {
+    return StoresCompanion(
+      id: Value(id),
+      name: Value(name),
+      ownerPhone: Value(ownerPhone),
+      isOpen: Value(isOpen),
+      dailyBagLimit: Value(dailyBagLimit),
+      bagsRemaining: Value(bagsRemaining),
+      openTime: openTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openTime),
+      closeTime: closeTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closeTime),
+      batchSize: Value(batchSize),
+      area: Value(area),
+    );
+  }
+
+  factory Store.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Store(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      ownerPhone: serializer.fromJson<String>(json['owner_phone']),
+      isOpen: serializer.fromJson<bool>(json['is_open']),
+      dailyBagLimit: serializer.fromJson<int>(json['daily_bag_limit']),
+      bagsRemaining: serializer.fromJson<int>(json['bags_remaining']),
+      openTime: serializer.fromJson<String?>(json['open_time']),
+      closeTime: serializer.fromJson<String?>(json['close_time']),
+      batchSize: serializer.fromJson<int>(json['batch_size']),
+      area: serializer.fromJson<String>(json['area']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'owner_phone': serializer.toJson<String>(ownerPhone),
+      'is_open': serializer.toJson<bool>(isOpen),
+      'daily_bag_limit': serializer.toJson<int>(dailyBagLimit),
+      'bags_remaining': serializer.toJson<int>(bagsRemaining),
+      'open_time': serializer.toJson<String?>(openTime),
+      'close_time': serializer.toJson<String?>(closeTime),
+      'batch_size': serializer.toJson<int>(batchSize),
+      'area': serializer.toJson<String>(area),
+    };
+  }
+
+  Store copyWith({
+    int? id,
+    String? name,
+    String? ownerPhone,
+    bool? isOpen,
+    int? dailyBagLimit,
+    int? bagsRemaining,
+    Value<String?> openTime = const Value.absent(),
+    Value<String?> closeTime = const Value.absent(),
+    int? batchSize,
+    String? area,
+  }) => Store(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    ownerPhone: ownerPhone ?? this.ownerPhone,
+    isOpen: isOpen ?? this.isOpen,
+    dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
+    bagsRemaining: bagsRemaining ?? this.bagsRemaining,
+    openTime: openTime.present ? openTime.value : this.openTime,
+    closeTime: closeTime.present ? closeTime.value : this.closeTime,
+    batchSize: batchSize ?? this.batchSize,
+    area: area ?? this.area,
+  );
+  Store copyWithCompanion(StoresCompanion data) {
+    return Store(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      ownerPhone: data.ownerPhone.present
+          ? data.ownerPhone.value
+          : this.ownerPhone,
+      isOpen: data.isOpen.present ? data.isOpen.value : this.isOpen,
+      dailyBagLimit: data.dailyBagLimit.present
+          ? data.dailyBagLimit.value
+          : this.dailyBagLimit,
+      bagsRemaining: data.bagsRemaining.present
+          ? data.bagsRemaining.value
+          : this.bagsRemaining,
+      openTime: data.openTime.present ? data.openTime.value : this.openTime,
+      closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
+      batchSize: data.batchSize.present ? data.batchSize.value : this.batchSize,
+      area: data.area.present ? data.area.value : this.area,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Store(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('ownerPhone: $ownerPhone, ')
+          ..write('isOpen: $isOpen, ')
+          ..write('dailyBagLimit: $dailyBagLimit, ')
+          ..write('bagsRemaining: $bagsRemaining, ')
+          ..write('openTime: $openTime, ')
+          ..write('closeTime: $closeTime, ')
+          ..write('batchSize: $batchSize, ')
+          ..write('area: $area')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    ownerPhone,
+    isOpen,
+    dailyBagLimit,
+    bagsRemaining,
+    openTime,
+    closeTime,
+    batchSize,
+    area,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Store &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.ownerPhone == this.ownerPhone &&
+          other.isOpen == this.isOpen &&
+          other.dailyBagLimit == this.dailyBagLimit &&
+          other.bagsRemaining == this.bagsRemaining &&
+          other.openTime == this.openTime &&
+          other.closeTime == this.closeTime &&
+          other.batchSize == this.batchSize &&
+          other.area == this.area);
+}
+
+class StoresCompanion extends UpdateCompanion<Store> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String> ownerPhone;
+  final Value<bool> isOpen;
+  final Value<int> dailyBagLimit;
+  final Value<int> bagsRemaining;
+  final Value<String?> openTime;
+  final Value<String?> closeTime;
+  final Value<int> batchSize;
+  final Value<String> area;
+  const StoresCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.ownerPhone = const Value.absent(),
+    this.isOpen = const Value.absent(),
+    this.dailyBagLimit = const Value.absent(),
+    this.bagsRemaining = const Value.absent(),
+    this.openTime = const Value.absent(),
+    this.closeTime = const Value.absent(),
+    this.batchSize = const Value.absent(),
+    this.area = const Value.absent(),
+  });
+  StoresCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required String ownerPhone,
+    this.isOpen = const Value.absent(),
+    required int dailyBagLimit,
+    required int bagsRemaining,
+    this.openTime = const Value.absent(),
+    this.closeTime = const Value.absent(),
+    this.batchSize = const Value.absent(),
+    this.area = const Value.absent(),
+  }) : name = Value(name),
+       ownerPhone = Value(ownerPhone),
+       dailyBagLimit = Value(dailyBagLimit),
+       bagsRemaining = Value(bagsRemaining);
+  static Insertable<Store> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? ownerPhone,
+    Expression<bool>? isOpen,
+    Expression<int>? dailyBagLimit,
+    Expression<int>? bagsRemaining,
+    Expression<String>? openTime,
+    Expression<String>? closeTime,
+    Expression<int>? batchSize,
+    Expression<String>? area,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (ownerPhone != null) 'owner_phone': ownerPhone,
+      if (isOpen != null) 'is_open': isOpen,
+      if (dailyBagLimit != null) 'daily_bag_limit': dailyBagLimit,
+      if (bagsRemaining != null) 'bags_remaining': bagsRemaining,
+      if (openTime != null) 'open_time': openTime,
+      if (closeTime != null) 'close_time': closeTime,
+      if (batchSize != null) 'batch_size': batchSize,
+      if (area != null) 'area': area,
+    });
+  }
+
+  StoresCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String>? ownerPhone,
+    Value<bool>? isOpen,
+    Value<int>? dailyBagLimit,
+    Value<int>? bagsRemaining,
+    Value<String?>? openTime,
+    Value<String?>? closeTime,
+    Value<int>? batchSize,
+    Value<String>? area,
+  }) {
+    return StoresCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      ownerPhone: ownerPhone ?? this.ownerPhone,
+      isOpen: isOpen ?? this.isOpen,
+      dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
+      bagsRemaining: bagsRemaining ?? this.bagsRemaining,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
+      batchSize: batchSize ?? this.batchSize,
+      area: area ?? this.area,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (ownerPhone.present) {
+      map['owner_phone'] = Variable<String>(ownerPhone.value);
+    }
+    if (isOpen.present) {
+      map['is_open'] = Variable<bool>(isOpen.value);
+    }
+    if (dailyBagLimit.present) {
+      map['daily_bag_limit'] = Variable<int>(dailyBagLimit.value);
+    }
+    if (bagsRemaining.present) {
+      map['bags_remaining'] = Variable<int>(bagsRemaining.value);
+    }
+    if (openTime.present) {
+      map['open_time'] = Variable<String>(openTime.value);
+    }
+    if (closeTime.present) {
+      map['close_time'] = Variable<String>(closeTime.value);
+    }
+    if (batchSize.present) {
+      map['batch_size'] = Variable<int>(batchSize.value);
+    }
+    if (area.present) {
+      map['area'] = Variable<String>(area.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StoresCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('ownerPhone: $ownerPhone, ')
+          ..write('isOpen: $isOpen, ')
+          ..write('dailyBagLimit: $dailyBagLimit, ')
+          ..write('bagsRemaining: $bagsRemaining, ')
+          ..write('openTime: $openTime, ')
+          ..write('closeTime: $closeTime, ')
+          ..write('batchSize: $batchSize, ')
+          ..write('area: $area')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class StorePins extends Table with TableInfo<StorePins, StorePin> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  StorePins(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES users(id)',
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  late final GeneratedColumn<int> storeId = GeneratedColumn<int>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES stores(id)',
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [userId, storeId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'store_pins';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StorePin> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {userId, storeId};
+  @override
+  StorePin map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StorePin(
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}user_id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}store_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  StorePins createAlias(String alias) {
+    return StorePins(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const [
+    'PRIMARY KEY(user_id, store_id)',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class StorePin extends DataClass implements Insertable<StorePin> {
+  final int userId;
+  final int storeId;
+  final int createdAt;
+  const StorePin({
+    required this.userId,
+    required this.storeId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['user_id'] = Variable<int>(userId);
+    map['store_id'] = Variable<int>(storeId);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  StorePinsCompanion toCompanion(bool nullToAbsent) {
+    return StorePinsCompanion(
+      userId: Value(userId),
+      storeId: Value(storeId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory StorePin.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StorePin(
+      userId: serializer.fromJson<int>(json['user_id']),
+      storeId: serializer.fromJson<int>(json['store_id']),
+      createdAt: serializer.fromJson<int>(json['created_at']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'user_id': serializer.toJson<int>(userId),
+      'store_id': serializer.toJson<int>(storeId),
+      'created_at': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  StorePin copyWith({int? userId, int? storeId, int? createdAt}) => StorePin(
+    userId: userId ?? this.userId,
+    storeId: storeId ?? this.storeId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  StorePin copyWithCompanion(StorePinsCompanion data) {
+    return StorePin(
+      userId: data.userId.present ? data.userId.value : this.userId,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StorePin(')
+          ..write('userId: $userId, ')
+          ..write('storeId: $storeId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(userId, storeId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StorePin &&
+          other.userId == this.userId &&
+          other.storeId == this.storeId &&
+          other.createdAt == this.createdAt);
+}
+
+class StorePinsCompanion extends UpdateCompanion<StorePin> {
+  final Value<int> userId;
+  final Value<int> storeId;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const StorePinsCompanion({
+    this.userId = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StorePinsCompanion.insert({
+    required int userId,
+    required int storeId,
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : userId = Value(userId),
+       storeId = Value(storeId),
+       createdAt = Value(createdAt);
+  static Insertable<StorePin> custom({
+    Expression<int>? userId,
+    Expression<int>? storeId,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (userId != null) 'user_id': userId,
+      if (storeId != null) 'store_id': storeId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StorePinsCompanion copyWith({
+    Value<int>? userId,
+    Value<int>? storeId,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return StorePinsCompanion(
+      userId: userId ?? this.userId,
+      storeId: storeId ?? this.storeId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (userId.present) {
+      map['user_id'] = Variable<int>(userId.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<int>(storeId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StorePinsCompanion(')
+          ..write('userId: $userId, ')
+          ..write('storeId: $storeId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class Purchases extends Table with TableInfo<Purchases, Purchase> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1545,383 +1862,22 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final Stores stores = Stores(this);
   late final Users users = Users(this);
+  late final Stores stores = Stores(this);
+  late final StorePins storePins = StorePins(this);
   late final Purchases purchases = Purchases(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    stores,
     users,
+    stores,
+    storePins,
     purchases,
   ];
 }
 
-typedef $StoresCreateCompanionBuilder =
-    StoresCompanion Function({
-      Value<int> id,
-      required String name,
-      required String ownerPhone,
-      Value<bool> isOpen,
-      required int dailyBagLimit,
-      required int bagsRemaining,
-      Value<String?> openTime,
-      Value<String?> closeTime,
-      Value<int> batchSize,
-    });
-typedef $StoresUpdateCompanionBuilder =
-    StoresCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String> ownerPhone,
-      Value<bool> isOpen,
-      Value<int> dailyBagLimit,
-      Value<int> bagsRemaining,
-      Value<String?> openTime,
-      Value<String?> closeTime,
-      Value<int> batchSize,
-    });
-
-final class $StoresReferences
-    extends BaseReferences<_$AppDatabase, Stores, Store> {
-  $StoresReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<Purchases, List<Purchase>> _purchasesRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.purchases,
-    aliasName: 'stores__id__purchases__store_id',
-  );
-
-  $PurchasesProcessedTableManager get purchasesRefs {
-    final manager = $PurchasesTableManager(
-      $_db,
-      $_db.purchases,
-    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_purchasesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
-  $StoresFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isOpen => $composableBuilder(
-    column: $table.isOpen,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get dailyBagLimit => $composableBuilder(
-    column: $table.dailyBagLimit,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get bagsRemaining => $composableBuilder(
-    column: $table.bagsRemaining,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get openTime => $composableBuilder(
-    column: $table.openTime,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get closeTime => $composableBuilder(
-    column: $table.closeTime,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get batchSize => $composableBuilder(
-    column: $table.batchSize,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> purchasesRefs(
-    Expression<bool> Function($PurchasesFilterComposer f) f,
-  ) {
-    final $PurchasesFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.purchases,
-      getReferencedColumn: (t) => t.storeId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $PurchasesFilterComposer(
-            $db: $db,
-            $table: $db.purchases,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
-  $StoresOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isOpen => $composableBuilder(
-    column: $table.isOpen,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get dailyBagLimit => $composableBuilder(
-    column: $table.dailyBagLimit,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get bagsRemaining => $composableBuilder(
-    column: $table.bagsRemaining,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get openTime => $composableBuilder(
-    column: $table.openTime,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get closeTime => $composableBuilder(
-    column: $table.closeTime,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get batchSize => $composableBuilder(
-    column: $table.batchSize,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
-  $StoresAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isOpen =>
-      $composableBuilder(column: $table.isOpen, builder: (column) => column);
-
-  GeneratedColumn<int> get dailyBagLimit => $composableBuilder(
-    column: $table.dailyBagLimit,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get bagsRemaining => $composableBuilder(
-    column: $table.bagsRemaining,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get openTime =>
-      $composableBuilder(column: $table.openTime, builder: (column) => column);
-
-  GeneratedColumn<String> get closeTime =>
-      $composableBuilder(column: $table.closeTime, builder: (column) => column);
-
-  GeneratedColumn<int> get batchSize =>
-      $composableBuilder(column: $table.batchSize, builder: (column) => column);
-
-  Expression<T> purchasesRefs<T extends Object>(
-    Expression<T> Function($PurchasesAnnotationComposer a) f,
-  ) {
-    final $PurchasesAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.purchases,
-      getReferencedColumn: (t) => t.storeId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $PurchasesAnnotationComposer(
-            $db: $db,
-            $table: $db.purchases,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $StoresTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          Stores,
-          Store,
-          $StoresFilterComposer,
-          $StoresOrderingComposer,
-          $StoresAnnotationComposer,
-          $StoresCreateCompanionBuilder,
-          $StoresUpdateCompanionBuilder,
-          (Store, $StoresReferences),
-          Store,
-          PrefetchHooks Function({bool purchasesRefs})
-        > {
-  $StoresTableManager(_$AppDatabase db, Stores table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $StoresFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $StoresOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $StoresAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> ownerPhone = const Value.absent(),
-                Value<bool> isOpen = const Value.absent(),
-                Value<int> dailyBagLimit = const Value.absent(),
-                Value<int> bagsRemaining = const Value.absent(),
-                Value<String?> openTime = const Value.absent(),
-                Value<String?> closeTime = const Value.absent(),
-                Value<int> batchSize = const Value.absent(),
-              }) => StoresCompanion(
-                id: id,
-                name: name,
-                ownerPhone: ownerPhone,
-                isOpen: isOpen,
-                dailyBagLimit: dailyBagLimit,
-                bagsRemaining: bagsRemaining,
-                openTime: openTime,
-                closeTime: closeTime,
-                batchSize: batchSize,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String name,
-                required String ownerPhone,
-                Value<bool> isOpen = const Value.absent(),
-                required int dailyBagLimit,
-                required int bagsRemaining,
-                Value<String?> openTime = const Value.absent(),
-                Value<String?> closeTime = const Value.absent(),
-                Value<int> batchSize = const Value.absent(),
-              }) => StoresCompanion.insert(
-                id: id,
-                name: name,
-                ownerPhone: ownerPhone,
-                isOpen: isOpen,
-                dailyBagLimit: dailyBagLimit,
-                bagsRemaining: bagsRemaining,
-                openTime: openTime,
-                closeTime: closeTime,
-                batchSize: batchSize,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: ({purchasesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (purchasesRefs) db.purchases],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (purchasesRefs)
-                    await $_getPrefetchedData<Store, Stores, Purchase>(
-                      currentTable: table,
-                      referencedTable: $StoresReferences._purchasesRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $StoresReferences(db, table, p0).purchasesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.storeId == item.id),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $StoresProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      Stores,
-      Store,
-      $StoresFilterComposer,
-      $StoresOrderingComposer,
-      $StoresAnnotationComposer,
-      $StoresCreateCompanionBuilder,
-      $StoresUpdateCompanionBuilder,
-      (Store, $StoresReferences),
-      Store,
-      PrefetchHooks Function({bool purchasesRefs})
-    >;
 typedef $UsersCreateCompanionBuilder =
     UsersCompanion Function({
       Value<int> id,
@@ -1948,6 +1904,25 @@ typedef $UsersUpdateCompanionBuilder =
 final class $UsersReferences
     extends BaseReferences<_$AppDatabase, Users, User> {
   $UsersReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<StorePins, List<StorePin>> _storePinsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.storePins,
+    aliasName: 'users__id__store_pins__user_id',
+  );
+
+  $StorePinsProcessedTableManager get storePinsRefs {
+    final manager = $StorePinsTableManager(
+      $_db,
+      $_db.storePins,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_storePinsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 
   static MultiTypedResultKey<Purchases, List<Purchase>> _purchasesRefsTable(
     _$AppDatabase db,
@@ -2016,6 +1991,31 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
     column: $table.verificationStatus,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> storePinsRefs(
+    Expression<bool> Function($StorePinsFilterComposer f) f,
+  ) {
+    final $StorePinsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.storePins,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StorePinsFilterComposer(
+            $db: $db,
+            $table: $db.storePins,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> purchasesRefs(
     Expression<bool> Function($PurchasesFilterComposer f) f,
@@ -2130,6 +2130,31 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
     builder: (column) => column,
   );
 
+  Expression<T> storePinsRefs<T extends Object>(
+    Expression<T> Function($StorePinsAnnotationComposer a) f,
+  ) {
+    final $StorePinsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.storePins,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StorePinsAnnotationComposer(
+            $db: $db,
+            $table: $db.storePins,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
   ) {
@@ -2169,7 +2194,7 @@ class $UsersTableManager
           $UsersUpdateCompanionBuilder,
           (User, $UsersReferences),
           User,
-          PrefetchHooks Function({bool purchasesRefs})
+          PrefetchHooks Function({bool storePinsRefs, bool purchasesRefs})
         > {
   $UsersTableManager(_$AppDatabase db, Users table)
     : super(
@@ -2225,27 +2250,49 @@ class $UsersTableManager
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $UsersReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({purchasesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (purchasesRefs) db.purchases],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (purchasesRefs)
-                    await $_getPrefetchedData<User, Users, Purchase>(
-                      currentTable: table,
-                      referencedTable: $UsersReferences._purchasesRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $UsersReferences(db, table, p0).purchasesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.userId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({storePinsRefs = false, purchasesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (storePinsRefs) db.storePins,
+                    if (purchasesRefs) db.purchases,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (storePinsRefs)
+                        await $_getPrefetchedData<User, Users, StorePin>(
+                          currentTable: table,
+                          referencedTable: $UsersReferences._storePinsRefsTable(
+                            db,
+                          ),
+                          managerFromTypedResult: (p0) =>
+                              $UsersReferences(db, table, p0).storePinsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (purchasesRefs)
+                        await $_getPrefetchedData<User, Users, Purchase>(
+                          currentTable: table,
+                          referencedTable: $UsersReferences._purchasesRefsTable(
+                            db,
+                          ),
+                          managerFromTypedResult: (p0) =>
+                              $UsersReferences(db, table, p0).purchasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -2262,7 +2309,835 @@ typedef $UsersProcessedTableManager =
       $UsersUpdateCompanionBuilder,
       (User, $UsersReferences),
       User,
-      PrefetchHooks Function({bool purchasesRefs})
+      PrefetchHooks Function({bool storePinsRefs, bool purchasesRefs})
+    >;
+typedef $StoresCreateCompanionBuilder =
+    StoresCompanion Function({
+      Value<int> id,
+      required String name,
+      required String ownerPhone,
+      Value<bool> isOpen,
+      required int dailyBagLimit,
+      required int bagsRemaining,
+      Value<String?> openTime,
+      Value<String?> closeTime,
+      Value<int> batchSize,
+      Value<String> area,
+    });
+typedef $StoresUpdateCompanionBuilder =
+    StoresCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<String> ownerPhone,
+      Value<bool> isOpen,
+      Value<int> dailyBagLimit,
+      Value<int> bagsRemaining,
+      Value<String?> openTime,
+      Value<String?> closeTime,
+      Value<int> batchSize,
+      Value<String> area,
+    });
+
+final class $StoresReferences
+    extends BaseReferences<_$AppDatabase, Stores, Store> {
+  $StoresReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<StorePins, List<StorePin>> _storePinsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.storePins,
+    aliasName: 'stores__id__store_pins__store_id',
+  );
+
+  $StorePinsProcessedTableManager get storePinsRefs {
+    final manager = $StorePinsTableManager(
+      $_db,
+      $_db.storePins,
+    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_storePinsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<Purchases, List<Purchase>> _purchasesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.purchases,
+    aliasName: 'stores__id__purchases__store_id',
+  );
+
+  $PurchasesProcessedTableManager get purchasesRefs {
+    final manager = $PurchasesTableManager(
+      $_db,
+      $_db.purchases,
+    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_purchasesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
+  $StoresFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerPhone => $composableBuilder(
+    column: $table.ownerPhone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOpen => $composableBuilder(
+    column: $table.isOpen,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyBagLimit => $composableBuilder(
+    column: $table.dailyBagLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bagsRemaining => $composableBuilder(
+    column: $table.bagsRemaining,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get openTime => $composableBuilder(
+    column: $table.openTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closeTime => $composableBuilder(
+    column: $table.closeTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get batchSize => $composableBuilder(
+    column: $table.batchSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get area => $composableBuilder(
+    column: $table.area,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> storePinsRefs(
+    Expression<bool> Function($StorePinsFilterComposer f) f,
+  ) {
+    final $StorePinsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.storePins,
+      getReferencedColumn: (t) => t.storeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StorePinsFilterComposer(
+            $db: $db,
+            $table: $db.storePins,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> purchasesRefs(
+    Expression<bool> Function($PurchasesFilterComposer f) f,
+  ) {
+    final $PurchasesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.purchases,
+      getReferencedColumn: (t) => t.storeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PurchasesFilterComposer(
+            $db: $db,
+            $table: $db.purchases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
+  $StoresOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerPhone => $composableBuilder(
+    column: $table.ownerPhone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOpen => $composableBuilder(
+    column: $table.isOpen,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyBagLimit => $composableBuilder(
+    column: $table.dailyBagLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bagsRemaining => $composableBuilder(
+    column: $table.bagsRemaining,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get openTime => $composableBuilder(
+    column: $table.openTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closeTime => $composableBuilder(
+    column: $table.closeTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get batchSize => $composableBuilder(
+    column: $table.batchSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get area => $composableBuilder(
+    column: $table.area,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
+  $StoresAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerPhone => $composableBuilder(
+    column: $table.ownerPhone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isOpen =>
+      $composableBuilder(column: $table.isOpen, builder: (column) => column);
+
+  GeneratedColumn<int> get dailyBagLimit => $composableBuilder(
+    column: $table.dailyBagLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get bagsRemaining => $composableBuilder(
+    column: $table.bagsRemaining,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get openTime =>
+      $composableBuilder(column: $table.openTime, builder: (column) => column);
+
+  GeneratedColumn<String> get closeTime =>
+      $composableBuilder(column: $table.closeTime, builder: (column) => column);
+
+  GeneratedColumn<int> get batchSize =>
+      $composableBuilder(column: $table.batchSize, builder: (column) => column);
+
+  GeneratedColumn<String> get area =>
+      $composableBuilder(column: $table.area, builder: (column) => column);
+
+  Expression<T> storePinsRefs<T extends Object>(
+    Expression<T> Function($StorePinsAnnotationComposer a) f,
+  ) {
+    final $StorePinsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.storePins,
+      getReferencedColumn: (t) => t.storeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StorePinsAnnotationComposer(
+            $db: $db,
+            $table: $db.storePins,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> purchasesRefs<T extends Object>(
+    Expression<T> Function($PurchasesAnnotationComposer a) f,
+  ) {
+    final $PurchasesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.purchases,
+      getReferencedColumn: (t) => t.storeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $PurchasesAnnotationComposer(
+            $db: $db,
+            $table: $db.purchases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $StoresTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          Stores,
+          Store,
+          $StoresFilterComposer,
+          $StoresOrderingComposer,
+          $StoresAnnotationComposer,
+          $StoresCreateCompanionBuilder,
+          $StoresUpdateCompanionBuilder,
+          (Store, $StoresReferences),
+          Store,
+          PrefetchHooks Function({bool storePinsRefs, bool purchasesRefs})
+        > {
+  $StoresTableManager(_$AppDatabase db, Stores table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $StoresFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $StoresOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $StoresAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> ownerPhone = const Value.absent(),
+                Value<bool> isOpen = const Value.absent(),
+                Value<int> dailyBagLimit = const Value.absent(),
+                Value<int> bagsRemaining = const Value.absent(),
+                Value<String?> openTime = const Value.absent(),
+                Value<String?> closeTime = const Value.absent(),
+                Value<int> batchSize = const Value.absent(),
+                Value<String> area = const Value.absent(),
+              }) => StoresCompanion(
+                id: id,
+                name: name,
+                ownerPhone: ownerPhone,
+                isOpen: isOpen,
+                dailyBagLimit: dailyBagLimit,
+                bagsRemaining: bagsRemaining,
+                openTime: openTime,
+                closeTime: closeTime,
+                batchSize: batchSize,
+                area: area,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required String ownerPhone,
+                Value<bool> isOpen = const Value.absent(),
+                required int dailyBagLimit,
+                required int bagsRemaining,
+                Value<String?> openTime = const Value.absent(),
+                Value<String?> closeTime = const Value.absent(),
+                Value<int> batchSize = const Value.absent(),
+                Value<String> area = const Value.absent(),
+              }) => StoresCompanion.insert(
+                id: id,
+                name: name,
+                ownerPhone: ownerPhone,
+                isOpen: isOpen,
+                dailyBagLimit: dailyBagLimit,
+                bagsRemaining: bagsRemaining,
+                openTime: openTime,
+                closeTime: closeTime,
+                batchSize: batchSize,
+                area: area,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({storePinsRefs = false, purchasesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (storePinsRefs) db.storePins,
+                    if (purchasesRefs) db.purchases,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (storePinsRefs)
+                        await $_getPrefetchedData<Store, Stores, StorePin>(
+                          currentTable: table,
+                          referencedTable: $StoresReferences
+                              ._storePinsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $StoresReferences(db, table, p0).storePinsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.storeId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (purchasesRefs)
+                        await $_getPrefetchedData<Store, Stores, Purchase>(
+                          currentTable: table,
+                          referencedTable: $StoresReferences
+                              ._purchasesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $StoresReferences(db, table, p0).purchasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.storeId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $StoresProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      Stores,
+      Store,
+      $StoresFilterComposer,
+      $StoresOrderingComposer,
+      $StoresAnnotationComposer,
+      $StoresCreateCompanionBuilder,
+      $StoresUpdateCompanionBuilder,
+      (Store, $StoresReferences),
+      Store,
+      PrefetchHooks Function({bool storePinsRefs, bool purchasesRefs})
+    >;
+typedef $StorePinsCreateCompanionBuilder =
+    StorePinsCompanion Function({
+      required int userId,
+      required int storeId,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $StorePinsUpdateCompanionBuilder =
+    StorePinsCompanion Function({
+      Value<int> userId,
+      Value<int> storeId,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+final class $StorePinsReferences
+    extends BaseReferences<_$AppDatabase, StorePins, StorePin> {
+  $StorePinsReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static Users _userIdTable(_$AppDatabase db) =>
+      db.users.createAlias('store_pins__user_id__users__id');
+
+  $UsersProcessedTableManager get userId {
+    final $_column = $_itemColumn<int>('user_id')!;
+
+    final manager = $UsersTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static Stores _storeIdTable(_$AppDatabase db) =>
+      db.stores.createAlias('store_pins__store_id__stores__id');
+
+  $StoresProcessedTableManager get storeId {
+    final $_column = $_itemColumn<int>('store_id')!;
+
+    final manager = $StoresTableManager(
+      $_db,
+      $_db.stores,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_storeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $StorePinsFilterComposer extends Composer<_$AppDatabase, StorePins> {
+  $StorePinsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $UsersFilterComposer get userId {
+    final $UsersFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $UsersFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $StoresFilterComposer get storeId {
+    final $StoresFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.storeId,
+      referencedTable: $db.stores,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StoresFilterComposer(
+            $db: $db,
+            $table: $db.stores,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $StorePinsOrderingComposer extends Composer<_$AppDatabase, StorePins> {
+  $StorePinsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $UsersOrderingComposer get userId {
+    final $UsersOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $UsersOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $StoresOrderingComposer get storeId {
+    final $StoresOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.storeId,
+      referencedTable: $db.stores,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StoresOrderingComposer(
+            $db: $db,
+            $table: $db.stores,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $StorePinsAnnotationComposer extends Composer<_$AppDatabase, StorePins> {
+  $StorePinsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $UsersAnnotationComposer get userId {
+    final $UsersAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $UsersAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $StoresAnnotationComposer get storeId {
+    final $StoresAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.storeId,
+      referencedTable: $db.stores,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $StoresAnnotationComposer(
+            $db: $db,
+            $table: $db.stores,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $StorePinsTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          StorePins,
+          StorePin,
+          $StorePinsFilterComposer,
+          $StorePinsOrderingComposer,
+          $StorePinsAnnotationComposer,
+          $StorePinsCreateCompanionBuilder,
+          $StorePinsUpdateCompanionBuilder,
+          (StorePin, $StorePinsReferences),
+          StorePin,
+          PrefetchHooks Function({bool userId, bool storeId})
+        > {
+  $StorePinsTableManager(_$AppDatabase db, StorePins table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $StorePinsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $StorePinsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $StorePinsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> userId = const Value.absent(),
+                Value<int> storeId = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StorePinsCompanion(
+                userId: userId,
+                storeId: storeId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int userId,
+                required int storeId,
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => StorePinsCompanion.insert(
+                userId: userId,
+                storeId: storeId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (e.readTable(table), $StorePinsReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({userId = false, storeId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (userId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.userId,
+                                referencedTable: $StorePinsReferences
+                                    ._userIdTable(db),
+                                referencedColumn: $StorePinsReferences
+                                    ._userIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (storeId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.storeId,
+                                referencedTable: $StorePinsReferences
+                                    ._storeIdTable(db),
+                                referencedColumn: $StorePinsReferences
+                                    ._storeIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $StorePinsProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      StorePins,
+      StorePin,
+      $StorePinsFilterComposer,
+      $StorePinsOrderingComposer,
+      $StorePinsAnnotationComposer,
+      $StorePinsCreateCompanionBuilder,
+      $StorePinsUpdateCompanionBuilder,
+      (StorePin, $StorePinsReferences),
+      StorePin,
+      PrefetchHooks Function({bool userId, bool storeId})
     >;
 typedef $PurchasesCreateCompanionBuilder =
     PurchasesCompanion Function({
@@ -2702,8 +3577,10 @@ typedef $PurchasesProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
-  $StoresTableManager get stores => $StoresTableManager(_db, _db.stores);
   $UsersTableManager get users => $UsersTableManager(_db, _db.users);
+  $StoresTableManager get stores => $StoresTableManager(_db, _db.stores);
+  $StorePinsTableManager get storePins =>
+      $StorePinsTableManager(_db, _db.storePins);
   $PurchasesTableManager get purchases =>
       $PurchasesTableManager(_db, _db.purchases);
 }

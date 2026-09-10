@@ -4,6 +4,7 @@ import '../../core/auth/pin_hash.dart';
 import '../../core/database/app_database.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
 
@@ -23,6 +24,7 @@ class QueueRepositoryImpl implements QueueRepository {
       openTime: store.openTime,
       closeTime: store.closeTime,
       batchSize: store.batchSize,
+      area: store.area,
     );
   }
 
@@ -56,6 +58,7 @@ class QueueRepositoryImpl implements QueueRepository {
             bagsRemaining: 45,
             openTime: const Value('08:00'),
             closeTime: const Value('10:00'),
+            area: const Value('الرمال'),
           ),
           StoresCompanion.insert(
             name: 'مخبز الشاطئ',
@@ -65,6 +68,7 @@ class QueueRepositoryImpl implements QueueRepository {
             bagsRemaining: 120,
             openTime: const Value('07:30'),
             closeTime: const Value('09:30'),
+            area: const Value('الشاطئ'),
           ),
           StoresCompanion.insert(
             name: 'مخبز النصيرات',
@@ -72,6 +76,7 @@ class QueueRepositoryImpl implements QueueRepository {
             isOpen: const Value(false),
             dailyBagLimit: 300,
             bagsRemaining: 0,
+            area: const Value('النصيرات'),
           ),
         ]);
       });
@@ -126,6 +131,108 @@ class QueueRepositoryImpl implements QueueRepository {
       _db.stores,
     )..where((s) => s.id.equals(storeId))).getSingleOrNull();
     return store == null ? null : _storeToDomain(store);
+  }
+
+  @override
+  Stream<List<StoreListEntry>> watchStoreListForUser({
+    required int userId,
+    required String today,
+  }) {
+    // One row per store with three per-buyer sub-selects: whether they pinned
+    // it, today's order status, and their most recent purchase date. Kept as
+    // one query so the list reacts to pins, purchases and store edits alike.
+    final query = _db.customSelect(
+      '''
+      SELECT
+        s.id              AS store_id,
+        s.name            AS name,
+        s.owner_phone     AS owner_phone,
+        s.is_open         AS is_open,
+        s.daily_bag_limit AS daily_bag_limit,
+        s.bags_remaining  AS bags_remaining,
+        s.open_time       AS open_time,
+        s.close_time      AS close_time,
+        s.batch_size      AS batch_size,
+        s.area            AS area,
+        EXISTS(
+          SELECT 1 FROM store_pins pin
+          WHERE pin.store_id = s.id AND pin.user_id = ?
+        ) AS pinned,
+        (
+          SELECT p.status FROM purchases p
+          WHERE p.store_id = s.id
+            AND p.user_id = ?
+            AND p.purchase_date = ?
+          ORDER BY p.id DESC
+          LIMIT 1
+        ) AS today_status,
+        (
+          SELECT p.purchase_date FROM purchases p
+          WHERE p.store_id = s.id AND p.user_id = ?
+          ORDER BY p.purchase_date DESC, p.id DESC
+          LIMIT 1
+        ) AS last_purchase_date
+      FROM stores s
+      ORDER BY s.name
+      ''',
+      variables: [
+        Variable.withInt(userId),
+        Variable.withInt(userId),
+        Variable.withString(today),
+        Variable.withInt(userId),
+      ],
+      readsFrom: {_db.stores, _db.purchases, _db.storePins},
+    );
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        final statusRaw = row.readNullable<String>('today_status');
+        return StoreListEntry(
+          store: StoreModel(
+            id: row.read<int>('store_id'),
+            name: row.read<String>('name'),
+            ownerPhone: row.read<String>('owner_phone'),
+            isOpen: row.read<int>('is_open') != 0,
+            dailyBagLimit: row.read<int>('daily_bag_limit'),
+            bagsRemaining: row.read<int>('bags_remaining'),
+            openTime: row.readNullable<String>('open_time'),
+            closeTime: row.readNullable<String>('close_time'),
+            batchSize: row.read<int>('batch_size'),
+            area: row.read<String>('area'),
+          ),
+          pinned: row.read<int>('pinned') != 0,
+          todayStatus: statusRaw == null
+              ? null
+              : PurchaseStatus.values.byName(statusRaw),
+          lastPurchaseDate: row.readNullable<String>('last_purchase_date'),
+        );
+      }).toList();
+    });
+  }
+
+  @override
+  Future<void> setStorePinned({
+    required int userId,
+    required int storeId,
+    required bool pinned,
+  }) async {
+    if (pinned) {
+      await _db
+          .into(_db.storePins)
+          .insert(
+            StorePinsCompanion.insert(
+              userId: userId,
+              storeId: storeId,
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    } else {
+      await (_db.delete(_db.storePins)..where(
+            (row) => row.userId.equals(userId) & row.storeId.equals(storeId),
+          ))
+          .go();
+    }
   }
 
   @override

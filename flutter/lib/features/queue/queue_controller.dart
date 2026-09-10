@@ -8,6 +8,7 @@ import '../../core/notifications/notification_service.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
 import 'memory_database_native.dart'
@@ -75,6 +76,8 @@ class QueueController extends ChangeNotifier {
   StreamSubscription<List<StoreModel>>? _storesSub;
   List<StoreModel> _stores = [];
   bool _storesLoaded = false;
+  StreamSubscription<List<StoreListEntry>>? _storeListSub;
+  List<StoreListEntry> _storeList = [];
   final Map<int, PurchaseModel> _purchaseCache = {};
 
   List<StoreModel> get stores => _stores;
@@ -114,6 +117,41 @@ class QueueController extends ChangeNotifier {
   PurchaseModel? cachedPurchase(dynamic id) => _purchaseCache[_parseInt(id)];
 
   Stream<List<StoreModel>> watchStores() => _repository.watchStores();
+
+  /// Buyer's store list: every store plus this buyer's own context for it
+  /// (pinned, today's order, last purchase) — the list floats the stores they
+  /// actually use to the top and shows extra detail on those cards.
+  ///
+  /// Subscribed by [watchStoreListFor] rather than owned by the screen, so the
+  /// widget layer has no stream lifecycle of its own (same pattern as
+  /// [stores]); rebuilds come through [notifyListeners].
+  List<StoreListEntry> get storeList => _storeList;
+
+  /// Points the store-list watch at [userId]. Call once the signed-in buyer is
+  /// known — safe to call again if the user changes (the old watch is dropped).
+  void watchStoreListFor(int userId) {
+    _storeListSub?.cancel();
+    _storeListSub = _repository
+        .watchStoreListForUser(userId: userId, today: todayDateString())
+        .listen((entries) {
+          _storeList = entries;
+          notifyListeners();
+        });
+  }
+
+  /// Buyer action: pin/un-pin a store so it always sits at the top.
+  Future<void> setStorePinned(
+    int userId,
+    dynamic storeId,
+    bool pinned,
+  ) async {
+    await _repository.setStorePinned(
+      userId: userId,
+      storeId: _parseInt(storeId, 1),
+      pinned: pinned,
+    );
+    notifyListeners();
+  }
 
   Stream<PurchaseModel?> watchPurchase(dynamic id) {
     final pId = _parseInt(id);
@@ -241,6 +279,7 @@ class QueueController extends ChangeNotifier {
   @override
   void dispose() {
     _storesSub?.cancel();
+    _storeListSub?.cancel();
     _ownedDatabase?.close();
     super.dispose();
   }

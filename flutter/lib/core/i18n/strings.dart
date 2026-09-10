@@ -90,6 +90,19 @@ class Strings {
   static String purchaseWindowRange(String openTime, String closeTime) =>
       'وقت الشراء: $openTime - $closeTime';
 
+  // Store list — search, area filter, pinning, buyer context
+  static const storeSearchHint = 'ابحث باسم المخبز أو المنطقة';
+  static const areaAllLabel = 'كل المناطق';
+  static const noMatchingStores = 'لا يوجد مخبز مطابق';
+  static const pinStore = 'تثبيت في الأعلى';
+  static const unpinStore = 'إلغاء التثبيت';
+  static const myStoreBadge = 'مخبزي';
+  static const orderWaiting = 'بانتظار دورك';
+  static const orderReady = 'جاهز للاستلام';
+  static const orderCollected = 'تم الاستلام';
+  static const paidBadge = 'مدفوع';
+  static String lastPurchaseFrom(String when) => 'آخر شراء: $when';
+
   // Purchase
   static const purchaseTitle = 'الشراء';
   static const priceLabel = 'السعر';

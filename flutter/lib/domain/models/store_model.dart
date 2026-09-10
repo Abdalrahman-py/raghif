@@ -13,6 +13,7 @@ class StoreModel extends Equatable {
     this.allocationDate = '',
     this.openTime,
     this.closeTime,
+    this.area = '',
   });
 
   final int id;
@@ -29,6 +30,10 @@ class StoreModel extends Equatable {
   /// set yet — informational only, doesn't itself gate [isOpen].
   final String? openTime;
   final String? closeTime;
+
+  /// Neighborhood the bakery sits in (e.g. الرمال). Empty when unknown —
+  /// shown as a filter chip on the buyer store list, not an address.
+  final String area;
 
   bool get isSoldOut => bagsRemaining <= 0;
   bool get canPurchase => isOpen && !isSoldOut;
@@ -47,6 +52,7 @@ class StoreModel extends Equatable {
     String? allocationDate,
     String? openTime,
     String? closeTime,
+    String? area,
   }) {
     return StoreModel(
       id: id ?? this.id,
@@ -60,6 +66,7 @@ class StoreModel extends Equatable {
       allocationDate: allocationDate ?? this.allocationDate,
       openTime: openTime ?? this.openTime,
       closeTime: closeTime ?? this.closeTime,
+      area: area ?? this.area,
     );
   }
 
@@ -76,5 +83,6 @@ class StoreModel extends Equatable {
     allocationDate,
     openTime,
     closeTime,
+    area,
   ];
 }

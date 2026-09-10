@@ -41,6 +41,7 @@ class DemoContentSeeder {
       bagsRemaining: 60,
       openTime: '07:00',
       closeTime: '09:00',
+      area: 'تل الهوا',
     ),
     (
       name: 'مخبز الزيتون',
@@ -50,6 +51,7 @@ class DemoContentSeeder {
       bagsRemaining: 150,
       openTime: '07:30',
       closeTime: '09:30',
+      area: 'الزيتون',
     ),
     (
       name: 'مخبز النور',
@@ -59,6 +61,7 @@ class DemoContentSeeder {
       bagsRemaining: 0,
       openTime: '06:30',
       closeTime: '08:30',
+      area: 'الشيخ رضوان',
     ),
     (
       name: 'مخبز السلام',
@@ -68,6 +71,7 @@ class DemoContentSeeder {
       bagsRemaining: 200,
       openTime: '08:00',
       closeTime: '10:00',
+      area: 'جباليا',
     ),
   ];
 
@@ -111,6 +115,7 @@ class DemoContentSeeder {
                 bagsRemaining: s.bagsRemaining,
                 openTime: Value(s.openTime),
                 closeTime: Value(s.closeTime),
+                area: Value(s.area),
               ),
             );
       }

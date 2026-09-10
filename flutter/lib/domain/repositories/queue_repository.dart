@@ -1,5 +1,6 @@
 import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
+import '../models/store_list_entry.dart';
 import '../models/store_model.dart';
 
 /// Thrown by [QueueRepository.reserveBag] when the store has no bags left.
@@ -13,6 +14,22 @@ abstract class QueueRepository {
   Future<List<StoreModel>> getStores();
 
   Future<StoreModel?> getStoreById(int storeId);
+
+  /// The buyer's store list: every store plus that buyer's own context for it
+  /// (pinned, today's order status, last purchase date), so the list can float
+  /// the stores they actually use to the top and show extra detail on them.
+  Stream<List<StoreListEntry>> watchStoreListForUser({
+    required int userId,
+    required String today,
+  });
+
+  /// Pins or un-pins [storeId] for [userId]. A pinned store always sorts to
+  /// the top of that buyer's list.
+  Future<void> setStorePinned({
+    required int userId,
+    required int storeId,
+    required bool pinned,
+  });
 
   Stream<List<PurchaseModel>> watchQueueForStore(int storeId, String date);
 
