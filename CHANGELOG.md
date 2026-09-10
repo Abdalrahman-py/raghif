@@ -95,6 +95,12 @@ Workflow rules this changelog lives by:
 
 ### Added
 
+- **Store details screen** — tapping a store now opens a hub before buying:
+  identity (name, area, availability, pin toggle), today's stock + purchase
+  window, "طلبي اليوم" (order state, paid badge, and "اعرض وصل الاستلام" to
+  reopen the receipt QR), the last visit, and the buy CTA. Cards stay tappable
+  when a store is sold out or closed, since the screen is where that's
+  explained.
 - Buyer store list: **search** (store name or area), **area filter chips**,
   and **pin-to-top** — a pinned store always sorts first. Stores the buyer
   actually uses (an order today, or any past purchase) float up on their own

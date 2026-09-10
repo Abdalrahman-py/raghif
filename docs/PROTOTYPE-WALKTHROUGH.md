@@ -60,11 +60,16 @@ storage (Settings → Apps → Raghif) to re-seed.
   escape yet.
 - Returning user: national ID → on-screen demo OTP → in (SMS is mocked).
 
-**2. Store list — "where can I buy bread today?"** ✅ READY / 🚧 richer
+**2. Store list — "where can I buy bread today?"** ✅ READY
 - Shows the stores; tappable when open + has stock; closed/sold-out show
   "نفدت الكمية". ⚠️ Closed-vs-sold-out text is conflated today.
-- 🚧 Sort & pin favorites on top; search by store name (and by a store
-  number if we introduce one — see Roadmap). No GPS by design (spec).
+- ✅ Search by store name or area, area filter chips, and pin-to-top. Stores
+  the buyer actually uses float up by themselves (order today → bought before)
+  and carry a richer card: order state, "مدفوع", last visit.
+- Tapping a card now opens a **store details** screen (availability, my order
+  + receipt QR, pin, last visit, buy CTA) instead of jumping straight to
+  purchase.
+- 🚧 Store numbers (for search-by-number) are still not a thing — see Roadmap.
 
 **3. Store is open → buy one bag (3 ILS).** ✅ READY
 - One-bag rule is checked BEFORE payment: same-day second bag anywhere →
@@ -181,7 +186,8 @@ P0 demo-critical (before presenting the enriched story):
 
 P1 (sharpens the demo):
 5. Store list: favorites pin-to-top + name search (+ store number if we
-   add one to stores).
+   add one to stores). ✅ DONE — search by name/area, area chips, pin-to-top,
+   buyer-context sorting, and a store details screen.
 6. Dashboard: pending count, low-stock in-app warning, confirm dialog on
    Notify, batch-release-after-collected enforcement.
 7. Per-batch "called/picked/left" summary on the queue.

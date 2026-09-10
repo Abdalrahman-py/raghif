@@ -103,6 +103,13 @@ class Strings {
   static const paidBadge = 'مدفوع';
   static String lastPurchaseFrom(String when) => 'آخر شراء: $when';
 
+  // Store details
+  static const storeDetailsTitle = 'تفاصيل المخبز';
+  static const myOrderTodayTitle = 'طلبي اليوم';
+  static const showReceiptButton = 'اعرض وصل الاستلام';
+  static const reserveBagButton = 'احجز كيس خبز';
+  static const storeClosedLabel = 'المخبز مغلق حالياً';
+
   // Purchase
   static const purchaseTitle = 'الشراء';
   static const priceLabel = 'السعر';

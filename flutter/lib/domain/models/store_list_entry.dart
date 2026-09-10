@@ -12,6 +12,7 @@ class StoreListEntry extends Equatable {
     required this.store,
     this.pinned = false,
     this.todayStatus,
+    this.todayPurchaseId,
     this.lastPurchaseDate,
   });
 
@@ -23,6 +24,9 @@ class StoreListEntry extends Equatable {
   /// Today's order at this store for this buyer, if any. A purchase row only
   /// exists after payment succeeded, so its presence also means "paid".
   final PurchaseStatus? todayStatus;
+
+  /// Id of that same order — lets the card/detail screen open its receipt.
+  final int? todayPurchaseId;
 
   /// Most recent purchase date at this store ("YYYY-MM-DD"), any day. Null
   /// when the buyer has never bought here.
@@ -44,9 +48,16 @@ class StoreListEntry extends Equatable {
     store: store,
     pinned: pinned ?? this.pinned,
     todayStatus: todayStatus,
+    todayPurchaseId: todayPurchaseId,
     lastPurchaseDate: lastPurchaseDate,
   );
 
   @override
-  List<Object?> get props => [store, pinned, todayStatus, lastPurchaseDate];
+  List<Object?> get props => [
+    store,
+    pinned,
+    todayStatus,
+    todayPurchaseId,
+    lastPurchaseDate,
+  ];
 }

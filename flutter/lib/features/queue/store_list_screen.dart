@@ -10,9 +10,9 @@ import '../auth/bloc/auth_bloc.dart';
 import '../auth/demo_accounts.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_list_entry.dart';
-import 'purchase_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
+import 'store_details_screen.dart';
 import 'store_list_logic.dart';
 
 /// UI_SPEC.md StoreListScreen: full-width cards, single column, no grid/map.
@@ -190,17 +190,15 @@ class _StoreListScreenState extends State<StoreListScreen> {
                                         entry.store.id,
                                         !entry.pinned,
                                       ),
-                                  onTap: entry.store.isAvailable
-                                      ? () => Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => PurchaseScreen(
-                                              controller: widget.controller,
-                                              storeId: entry.store.id,
-                                              currentUser: widget.currentUser,
-                                            ),
-                                          ),
-                                        )
-                                      : null,
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => StoreDetailsScreen(
+                                        controller: widget.controller,
+                                        currentUser: widget.currentUser,
+                                        entry: entry,
+                                      ),
+                                    ),
+                                  ),
                                 );
                               },
                             ),

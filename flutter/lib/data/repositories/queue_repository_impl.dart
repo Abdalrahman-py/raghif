@@ -167,6 +167,14 @@ class QueueRepositoryImpl implements QueueRepository {
           LIMIT 1
         ) AS today_status,
         (
+          SELECT p.id FROM purchases p
+          WHERE p.store_id = s.id
+            AND p.user_id = ?
+            AND p.purchase_date = ?
+          ORDER BY p.id DESC
+          LIMIT 1
+        ) AS today_purchase_id,
+        (
           SELECT p.purchase_date FROM purchases p
           WHERE p.store_id = s.id AND p.user_id = ?
           ORDER BY p.purchase_date DESC, p.id DESC
@@ -177,6 +185,8 @@ class QueueRepositoryImpl implements QueueRepository {
       ''',
       variables: [
         Variable.withInt(userId),
+        Variable.withInt(userId),
+        Variable.withString(today),
         Variable.withInt(userId),
         Variable.withString(today),
         Variable.withInt(userId),
@@ -204,6 +214,7 @@ class QueueRepositoryImpl implements QueueRepository {
           todayStatus: statusRaw == null
               ? null
               : PurchaseStatus.values.byName(statusRaw),
+          todayPurchaseId: row.readNullable<int>('today_purchase_id'),
           lastPurchaseDate: row.readNullable<String>('last_purchase_date'),
         );
       }).toList();
