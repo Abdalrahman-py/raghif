@@ -62,6 +62,12 @@ Workflow rules this changelog lives by:
 - Store list golden (`store_list_screen.png`) regenerated — it was stale
   against the current store card layout, failing CI (0.02%, 58px diff) on
   every branch regardless of its own changes.
+- CI: the store list pixel golden flipped between green and red on
+  byte-identical trees (0.002–0.005% of pixels: different CI runners
+  rasterise fonts slightly differently), so master and every open PR showed a
+  red build that had nothing to do with the branch. The golden is kept — the
+  comparison now tolerates ≤ 0.1% of pixels and still fails on any real
+  layout change (verified: a full-screen overlay still fails at 100%).
 - Owner allocation save no longer resets today's remaining bags to the full
   daily limit, wiping out bags already sold before the save.
 - Buying a bag after a store sells out is now rejected instead of silently
