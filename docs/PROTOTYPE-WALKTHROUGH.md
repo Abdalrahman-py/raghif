@@ -85,19 +85,16 @@ storage (Settings → Apps → Raghif) to re-seed.
   today a purchase only exists AFTER payment succeeds, so a buyer can never
   reserve without paying (nothing to over/under-pay in the mock).
 
-**5. Receipt QR.** ✅ READY / 🚧 restore
+**5. Receipt QR.** ✅ READY / ✅ restore
 - Confirmation shows the QR (v1 payload: store, national ID, purchase id;
   error-correction H), with Save-to-gallery and Share. The QR is the
   pickup ticket.
-- 🚧 MISSING for the story: a way to RESTORE the receipt later. Today the
-  QR lives on the confirmation screen and (if saved) the gallery — if the
-  buyer leaves the screen without saving, it's gone. Buyer home with "my
-  current order → show QR" is a roadmap build.
-- Buyer home with live status (waiting → batch called → picked up) and a
-  "how long until next batch" readout is 🚧 — currently you must re-enter
-  the confirmation screen to see status; there's no buyer dashboard.
-  ⚠️ A time-to-next-shipment value must come from a REAL owner-set batch
-  schedule, not the invented ETA we removed (decision C) — see Roadmap.
+- ✅ RESTORE: the buyer home ("طلبي") reopens the receipt at any time via
+  "اعرض وصل الاستلام" — the QR no longer dies with the confirmation screen.
+- ✅ Buyer home with live status (waiting → batch called → collected) exists
+  now; you no longer have to re-enter the confirmation screen to check.
+  ⚠️ No "how long until next batch" readout — that needs a REAL owner-set
+  batch schedule (decision C removed the invented ETA).
 
 **6. Pickup.** 🚧 (needs restore + sound)
 - Buyer opens the receipt QR at the counter → owner scans (Part 2).
@@ -179,6 +176,7 @@ P0 demo-critical (before presenting the enriched story):
 1. Richer seed: more stores + dummy registered buyers + today's mixed-
    status purchases at the demo store (this walkthrough's Part 0).
 2. Buyer "my current order" home: restore the receipt QR + live status.
+   ✅ DONE — "طلبي" is the buyer's landing screen now.
 3. Scan sound (success/fail + haptic) and scan audit log table.
 4. Owner history page: date browser over the queue (incl. collected/
    uncollected end-of-day).
@@ -214,6 +212,8 @@ dashboard save bug fixed; customers screen (all-time).
 - No cross-device sync — redemption matches same-device data only.
 - No owner history page, no buyer order home / QR restore, no scan sound,
   no cancellation, no selling hours, no payment record for owner.
+  (✅ history page, buyer order home / QR restore and scan sound now exist —
+  cancellation, selling hours and the owner payment record are still open.)
 - Production-only: real Jawwal API, signed server-issued QR tokens
   (no PII in code), server-side redemption, over/under-payment handling,
   identity check at pickup, FCM/SMS delivery.

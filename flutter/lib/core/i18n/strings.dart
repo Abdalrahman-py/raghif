@@ -234,4 +234,14 @@ class Strings {
   static const customersEmpty = 'لا يوجد زبائن مسجلون بعد';
   static String totalPurchasesCount(int count) => 'إجمالي المشتريات: $count';
   static String lastPurchaseDate(String date) => 'آخر شراء: $date';
+
+  // Buyer home ("my current order")
+  static const buyerHomeTitle = 'طلبي';
+  static const buyerHomeNoOrder = 'لا يوجد طلب اليوم';
+  static const buyerHomeNoOrderHint =
+      'احجز كيس خبز من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
+  static const browseStoresButton = 'تصفح المخابز';
+  static const showReceiptButton = 'اعرض وصل الاستلام';
+  static const paidLabel = 'مدفوع';
+  static String buyerHomeBatch(int batch) => 'الدفعة رقم $batch';
 }

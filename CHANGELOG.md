@@ -140,7 +140,14 @@ Workflow rules this changelog lives by:
   `ensureSeeded()` so existing tests see the old minimal footprint; the live
   demo buyer أحمد gets no seeded purchase (one-bag rule). Unit tests cover
   the seed, its idempotency, and the no-op-on-used-install guard.
-
+- Buyer home — "طلبي" (walkthrough P0 #2): the buyer now lands on their current
+  order instead of the store list: live status (waiting → ready → collected,
+  updating by itself), the paid badge, the batch number, and
+  "اعرض وصل الاستلام" which reopens the pickup QR at any time. Until now the
+  receipt only existed on the confirmation screen — leave it without saving and
+  the ticket was gone. No ETA is shown: a time-to-next-batch needs a real
+  owner-set batch schedule (decision C), so the screen stays honest with batch
+  + status.
 - Store owners can now set today's purchase window (start/end time), shown
   to buyers on the store list and purchase screen alongside the existing
   bags-remaining count.
