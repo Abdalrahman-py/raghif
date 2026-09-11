@@ -128,11 +128,13 @@ storage (Settings → Apps → Raghif) to re-seed.
   phone. Search filters by ID/phone/name and hides Notify while searching
   (a lookup can never release a batch by accident).
 - Statuses visible per row: waiting / notified / collected.
-- ⚠️ No confirm dialog before "Notify Next Batch" (audit open item);
-  ⚠️ waiting rows are amber, UI spec says gray; 🚧 release-next-batch-only-
-  after-collected discipline not enforced.
-- 🚧 "Remaining didn't pick" visual: a per-batch summary (called N, picked
-  M, M still to collect) so the owner sees who hasn't shown up.
+- ✅ Confirm dialog before "Notify Next Batch": the dialog says how many
+  buyers from earlier batches were called but never picked up (soft
+  enforcement — a hard block would deadlock the owner when someone simply
+  never shows up).
+- ⚠️ waiting rows are amber, UI spec says gray.
+- ✅ "Remaining didn't pick" visual: every batch header now carries the
+  called / picked / still-waiting tallies.
 
 **10. History page.** 🚧 NOT BUILT — answer to the question
 - There is NO per-day sales history page today. The owner sees today's
@@ -187,7 +189,10 @@ P1 (sharpens the demo):
    buyer-context sorting, and a store details screen.
 6. Dashboard: pending count, low-stock in-app warning, confirm dialog on
    Notify, batch-release-after-collected enforcement.
+   ✅ DONE — live "بانتظار الاستلام" count + in-app low-stock warning;
+   Notify confirms and warns about uncalled-for leftovers (soft, not a block).
 7. Per-batch "called/picked/left" summary on the queue.
+   ✅ DONE — tallies in every batch header.
 
 P2 (product decisions first, then build):
 8. Cancellation state + owner cancel action (decision needed — spec says
@@ -203,11 +208,15 @@ GLOBAL + checked before payment; purchases persist in drift; owner queue
 with batch math + guarded search + national ID/phone rows; confirmation
 plain-language (no fake ETA); QR receipt v1 (save/share, EC H) with
 five-outcome redemption incl. wrong-store-from-code and torch; owner
-dashboard save bug fixed; customers screen (all-time).
+dashboard save bug fixed; customers screen (all-time); owner sales history
+(date browser); buyer home ("طلبي") with the receipt QR restorable and live
+order status; per-batch called/picked/waiting tallies; Notify confirmation;
+dashboard pending-pickup count + in-app low-stock warning.
 
 ## What is MOCK / MISSING / PRODUCTION (don't overclaim)
 
-- Payment, OTP, verification photos, low-stock warnings: mock or missing.
+- Payment, OTP, verification photos: mock (low-stock warning is in-app only
+  — no SMS/push).
 - No SMS/push ever sent (decision D; package installed, unused).
 - No cross-device sync — redemption matches same-device data only.
 - No owner history page, no buyer order home / QR restore, no scan sound,

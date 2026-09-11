@@ -7,6 +7,7 @@ import '../../core/widgets/big_stat_display.dart';
 import '../../core/widgets/number_stepper.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../../core/widgets/status_chip.dart';
 import '../auth/bloc/auth_bloc.dart';
 import 'owner_customers_screen.dart';
 import 'owner_queue_screen.dart';
@@ -38,6 +39,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   String? _openTime;
   String? _closeTime;
   bool _stepperInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Controller-owned subscription for the live "بانتظار الاستلام" count.
+    widget.controller.watchTodayQueueFor(widget.storeId);
+  }
 
   Future<void> _pickTime({required bool isOpenTime}) async {
     final current = isOpenTime ? _openTime : _closeTime;
@@ -101,6 +109,44 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                             Text(
                               store?.name ?? '',
                               style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            if (store != null && isLowStock(store)) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              StatusChip(
+                                text: Strings.lowStockWarning(
+                                  store.bagsRemaining,
+                                ),
+                                tone: StatusTone.warning,
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.md),
+                            // Paid-and-not-yet-picked, live from the
+                            // controller's own queue subscription.
+                            AppCard(
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      Strings.pendingPickupLabel,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                  StatusChip(
+                                    text:
+                                        '${pendingPickupCount(widget.controller.todayQueue)}',
+                                    tone: pendingPickupCount(
+                                              widget.controller.todayQueue,
+                                            ) >
+                                            0
+                                        ? StatusTone.warning
+                                        : StatusTone.neutral,
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.lg),
                             AppCard(
