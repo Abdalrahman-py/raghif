@@ -283,9 +283,20 @@ class _StoreCard extends StatelessWidget {
                     style: textTheme.titleMedium,
                   ),
                 ),
+                // A closed bakery is not the same as one that sold out —
+                // saying "نفدت الكمية" for a store that never opened today
+                // reads as a stock problem the owner caused.
                 StatusChip(
-                  text: available ? Strings.available : Strings.soldOut,
-                  tone: available ? StatusTone.success : StatusTone.danger,
+                  text: available
+                      ? Strings.available
+                      : store.isOpen
+                          ? Strings.soldOut
+                          : Strings.storeClosedBadge,
+                  tone: available
+                      ? StatusTone.success
+                      : store.isOpen
+                          ? StatusTone.danger
+                          : StatusTone.neutral,
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 IconButton(

@@ -87,6 +87,8 @@ class Strings {
   static const noStores = 'لا توجد مخابز متاحة حالياً';
   static const available = 'متوفر';
   static const soldOut = 'نفدت الكمية';
+  /// Short badge form of [storeClosedLabel], for chips beside a store name.
+  static const storeClosedBadge = 'مغلق';
   static String bagsRemaining(int remaining, int total) =>
       'المتبقي: $remaining من $total';
   static String purchaseWindowRange(String openTime, String closeTime) =>

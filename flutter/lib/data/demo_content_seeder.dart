@@ -23,13 +23,18 @@ import '../features/queue/queue_logic.dart';
 /// - Kept OUT of `ensureSeeded()` on purpose, so existing tests that call
 ///   `ensureSeeded()` see the old minimal footprint and stay green.
 ///
-/// Guard: runs only when the database is still at the base footprint (no
-/// purchases ever, no extra stores/users) — i.e. right after a fresh install.
-/// Re-running on an already-seeded install is a no-op.
+/// Guard: seeds at most once per calendar day. Re-running on the same day is
+/// a no-op; opening the app on a later day lays down a fresh day's story and
+/// leaves earlier days in place for the owner history screen. That matters for
+/// a demo: a build installed today would otherwise show an empty queue
+/// tomorrow, because every queue read filters on today's date.
 class DemoContentSeeder {
   DemoContentSeeder(this._db);
 
   final AppDatabase _db;
+
+  /// Bags the demo store starts each day with, matching its base seed row.
+  static const _demoStoreDailyBags = 45;
 
   /// Extra bakeries beyond the 3 base ones (total = 7).
   static const _extraStores = [
@@ -90,14 +95,13 @@ class DemoContentSeeder {
 
   /// Seeded queue sizes per status at the demo store (batch size 3 ⇒ 3 batches).
   Future<void> seedIfFresh() async {
-    // No-op unless the DB is still at the base footprint: no purchases at
-    // all, and only the base stores/users present.
-    final purchases = await _db.select(_db.purchases).get();
-    if (purchases.isNotEmpty) return;
-    final stores = await _db.select(_db.stores).get();
-    if (stores.length > 3) return;
-    final users = await _db.select(_db.users).get();
-    if (users.length > 2) return;
+    // No-op if today's story is already seeded. Earlier days stay untouched.
+    final today = todayDateString();
+    final alreadySeededToday = await (_db.select(_db.purchases)
+          ..where((p) => p.purchaseDate.equals(today))
+          ..limit(1))
+        .getSingleOrNull();
+    if (alreadySeededToday != null) return;
 
     await _db.transaction(() async {
       // 1) Extra stores.
@@ -126,6 +130,13 @@ class DemoContentSeeder {
         if (b.nationalId == demoBuyerNationalId || b.phone == demoBuyerPhone) {
           continue; // never shadow the live demo buyer
         }
+        final existing = await (_db.select(_db.users)
+              ..where((u) => u.nationalId.equals(b.nationalId)))
+            .getSingleOrNull();
+        if (existing != null) {
+          buyerIds.add(existing.id);
+          continue; // seeded on an earlier day
+        }
         final id = await _db.into(_db.users).insert(
               UsersCompanion.insert(
                 phone: b.phone,
@@ -146,10 +157,17 @@ class DemoContentSeeder {
       final demoStore = await (_db.select(_db.stores)
             ..where((s) => s.ownerPhone.equals(demoOwnerPhone)))
           .getSingle();
+      // Batch size 3 so the seeded queue visibly spans 3 batches. Bags are
+      // restocked to the day's allocation minus the 9 seeded reservations —
+      // WFP delivers daily, so a new day starts from a full allocation.
       await (_db.update(_db.stores)..where((s) => s.id.equals(demoStore.id)))
-          .write(const StoresCompanion(batchSize: Value(3)));
+          .write(
+        const StoresCompanion(
+          batchSize: Value(3),
+          bagsRemaining: Value(_demoStoreDailyBags - 9),
+        ),
+      );
 
-      final today = todayDateString();
       final now = DateTime.now().millisecondsSinceEpoch;
       // Minutes ago per row, oldest first; index within each status group.
       var purchaseUserId = 0;
