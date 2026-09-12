@@ -239,18 +239,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             loading: isLoading,
                             onPressed: _requestOtp,
                           ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Center(
-                            child: TextButton(
-                              onPressed: _switchToPinMode,
-                              child: Text(
-                                Strings.loginWithPinInstead,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
+                          // PIN is an alternate path for an identified user,
+                          // so it stays hidden until a National ID is typed.
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _nationalIdController,
+                            builder: (context, value, _) {
+                              if (value.text.trim().isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              return Column(
+                                children: [
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Center(
+                                    child: TextButton(
+                                      onPressed: _switchToPinMode,
+                                      child: Text(
+                                        Strings.loginWithPinInstead,
+                                        style:
+                                            textTheme.bodyMedium?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          decoration:
+                                              TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ] else ...[
                           AppCard(
