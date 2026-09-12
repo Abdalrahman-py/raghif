@@ -250,8 +250,8 @@ class Strings {
   static const buyerHomeNoOrderHint =
       'احجز كيس خبز من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
   static const browseStoresButton = 'تصفح المخابز';
-  static const paidLabel = 'مدفوع';
   static String buyerHomeBatch(int batch) => 'الدفعة رقم $batch';
+
   // Owner queue & dashboard polish (walkthrough P1)
   static String batchSummary(int picked, int awaiting, int waiting) =>
       'تم الاستلام: $picked · بانتظار الاستلام: $awaiting · لم يُنادَ: $waiting';

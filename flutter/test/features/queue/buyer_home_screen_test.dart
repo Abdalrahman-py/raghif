@@ -102,7 +102,7 @@ void main() {
 
     expect(find.text('مخبز الرمال'), findsOneWidget);
     expect(find.text(Strings.statusNotified), findsOneWidget);
-    expect(find.text(Strings.paidLabel), findsOneWidget);
+    expect(find.text(Strings.paidBadge), findsOneWidget);
     expect(find.text(Strings.buyerHomeBatch(3)), findsOneWidget);
     // Ready-for-pickup reassurance, not an invented ETA.
     expect(find.text(Strings.batchReadyNotificationBody), findsOneWidget);
