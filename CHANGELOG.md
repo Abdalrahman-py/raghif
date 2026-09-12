@@ -163,7 +163,11 @@ Workflow rules this changelog lives by:
 - Owner queue buyer rows overflowed (yellow/black stripes) once a row reached
   تم الإشعار / تم الاستلام: the confirm button took the width from the buyer
   info column, which then couldn't fit the status chip and time.
-
+- Owner history page (walkthrough P0 #4): a day browser over the same queue the
+  owner already works with. One grouped query per store gives each day's totals
+  — sold, collected, and the end-of-day leftover (paid, never picked up) —
+  newest day first; tapping a day lists its buyers with their status. Reached
+  from a new "سجل المبيعات" button on the owner dashboard.
 - Store owners can now set today's purchase window (start/end time), shown
   to buyers on the store list and purchase screen alongside the existing
   bags-remaining count.

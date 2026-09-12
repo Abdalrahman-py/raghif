@@ -1,6 +1,7 @@
 import '../models/customer_summary_model.dart';
 import '../models/purchase_model.dart';
 import '../models/scan_event_model.dart';
+import '../models/store_day_summary.dart';
 import '../models/store_list_entry.dart';
 import '../models/store_model.dart';
 
@@ -84,4 +85,8 @@ abstract class QueueRepository {
   Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId);
 
   Future<List<CustomerSummaryModel>> getCustomersForStore(int storeId);
+
+  /// Per-day sales totals for a store, newest day first — the owner's history
+  /// browser. [notCollected] is the end-of-day leftover (paid, never picked up).
+  Future<List<StoreDaySummary>> getDailySummaries(int storeId, {int limit = 30});
 }

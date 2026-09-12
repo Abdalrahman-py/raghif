@@ -9,6 +9,7 @@ import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/scan_event_model.dart';
+import '../../domain/models/store_day_summary.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -315,6 +316,12 @@ class QueueController extends ChangeNotifier {
     final sId = _parseInt(storeId, 1);
     return _repository.watchCustomersForStore(sId);
   }
+
+  /// Owner history: per-day sales totals for a store, newest day first.
+  Future<List<StoreDaySummary>> dailySummariesForStore(
+    dynamic storeId, {
+    int limit = 30,
+  }) => _repository.getDailySummaries(_parseInt(storeId, -1), limit: limit);
 
   /// Get distinct customers for store across all dates.
   Future<List<CustomerSummaryModel>> getCustomersForStore(dynamic storeId) {
