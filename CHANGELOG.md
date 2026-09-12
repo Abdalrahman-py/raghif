@@ -76,6 +76,12 @@ Workflow rules this changelog lives by:
   login screen on top of the app.
 - Registering with a phone number or national ID already on file now shows
   an Arabic message instead of a raw database exception.
+- Registration form: the Jawwal Pay number now correctly defaults to the
+  phone number typed above it. The old listener compared the updated phone
+  against the wallet field's previous value, so it copied only the first
+  keystroke and never tracked later edits. It now mirrors the phone until
+  the user types their own wallet number (their value then wins; clearing
+  the field restores the phone default).
 - Flutter web build no longer fails to compile: `QueueController`'s no-DI
   fallback unconditionally imported `drift/native.dart` (`dart:ffi`), which
   isn't available on web, even though that fallback never runs once

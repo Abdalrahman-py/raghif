@@ -25,6 +25,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _personalIdController = TextEditingController();
   final _jawwalPayController = TextEditingController();
 
+  /// Set once the user types their own wallet number, so the phone-number
+  /// mirroring below stops overwriting their edit.
+  bool _jawwalEditedManually = false;
+
   String? _error;
 
   @override
@@ -32,16 +36,33 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.initState();
     // Jawwal Pay is SIM-tied — default it to the phone number being
     // registered, editable if the user's wallet number actually differs.
-    _phoneController.addListener(() {
-      if (_jawwalPayController.text.isEmpty ||
-          _jawwalPayController.text == _phoneController.text) {
-        _jawwalPayController.text = _phoneController.text;
-      }
-    });
+    _jawwalPayController.text = _phoneController.text;
+    _phoneController.addListener(_mirrorPhoneIntoJawwal);
+  }
+
+  /// Copies the phone number into the wallet field until the user edits the
+  /// wallet field directly (then their value wins).
+  void _mirrorPhoneIntoJawwal() {
+    if (_jawwalEditedManually) return;
+    if (_jawwalPayController.text != _phoneController.text) {
+      _jawwalPayController.text = _phoneController.text;
+    }
+  }
+
+  /// Clearing the wallet field hands control back to the phone default;
+  /// typing anything else marks it as the user's own number.
+  void _onJawwalChanged(String value) {
+    if (value.trim().isEmpty) {
+      _jawwalEditedManually = false;
+      _mirrorPhoneIntoJawwal();
+    } else {
+      _jawwalEditedManually = true;
+    }
   }
 
   @override
   void dispose() {
+    _phoneController.removeListener(_mirrorPhoneIntoJawwal);
     _phoneController.dispose();
     _pinController.dispose();
     _nameController.dispose();
@@ -131,6 +152,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       const SizedBox(height: AppSpacing.sm),
                       TextField(
                         controller: _jawwalPayController,
+                        onChanged: _onJawwalChanged,
                         keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(
                           labelText: Strings.jawwalPayNumberLabel,
