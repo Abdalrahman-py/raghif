@@ -95,6 +95,20 @@ Workflow rules this changelog lives by:
 
 ### Added
 
+- **Store details screen** — tapping a store now opens a hub before buying:
+  identity (name, area, availability, pin toggle), today's stock + purchase
+  window, "طلبي اليوم" (order state, paid badge, and "اعرض وصل الاستلام" to
+  reopen the receipt QR), the last visit, and the buy CTA. Cards stay tappable
+  when a store is sold out or closed, since the screen is where that's
+  explained.
+- Buyer store list: **search** (store name or area), **area filter chips**,
+  and **pin-to-top** — a pinned store always sorts first. Stores the buyer
+  actually uses (an order today, or any past purchase) float up on their own
+  and get a richer card: order state (بانتظار دورك / جاهز للاستلام /
+  تم الاستلام), a paid badge, and the last purchase date (اليوم / أمس /
+  date). Ordering/filtering lives in `store_list_logic.dart` (pure, unit
+  tested). Schema v4 adds a per-buyer `store_pins` table and a
+  `stores.area` column, both with migrations.
 - Richer demo content for the walkthrough (P0-1) — new
   `lib/data/demo_content_seeder.dart` runs once after the base seed on fresh
   installs: 7 stores total (4 extra bakeries), 9 dummy registered buyers,

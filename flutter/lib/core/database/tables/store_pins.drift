@@ -1,0 +1,13 @@
+import 'stores.drift';
+import 'users.drift';
+
+-- Stores a buyer pinned to the top of their own store list. Per user, not per
+-- store: the pin is the buyer's preference, and one device can host several
+-- accounts (demo/role switching). Composite PK keeps a single pin per
+-- (user, store); un-pinning deletes the row.
+CREATE TABLE store_pins (
+    user_id INTEGER NOT NULL REFERENCES users (id),
+    store_id INTEGER NOT NULL REFERENCES stores (id),
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, store_id)
+);

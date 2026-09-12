@@ -13,5 +13,9 @@ CREATE TABLE stores (
     -- How many queue positions make up one notify-able batch. Purchases don't
     -- store their own batch number: it's derived from queue position and this
     -- value at read time, so changing it regroups the whole queue immediately.
-    batch_size INTEGER NOT NULL DEFAULT 20
+    batch_size INTEGER NOT NULL DEFAULT 20,
+    -- Neighborhood/area the bakery sits in, used to group and filter the buyer
+    -- store list (e.g. مخبز الرمال → الرمال). Free text in the prototype; the
+    -- buyer sees it as a filter chip, not as an exact address.
+    area TEXT NOT NULL DEFAULT ''
 );
