@@ -3,8 +3,9 @@ name: Flutter CI
 on:
   push:
     branches: [master]
+  # No branch filter: stacked PRs target their parent branch, not master, so a
+  # `branches: [master]` filter left them with no CI at all (#43-#46).
   pull_request:
-    branches: [master]
   workflow_dispatch:
 
 permissions:
