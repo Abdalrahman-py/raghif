@@ -37,6 +37,12 @@ Workflow rules this changelog lives by:
 
 ### Changed
 
+- Identity verification photos (ID photo + selfie) are now captured live with
+  the camera — the selfie from the front camera, the ID from the rear. The
+  gallery/picker path is deliberately gone: an uploaded image could be a photo
+  of a photo or of someone else, which would defeat the identity check. A
+  camera failure (permission denied, no camera app) now shows an Arabic error
+  instead of a silent no-op.
 - Receipt QR payload is now versioned (`v: 1`) and carries `national_id` +
   `store_id` (both optional, so codes minted before the change still decode).
   The scanner can now report a wrong-store code from the code's own store

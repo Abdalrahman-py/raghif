@@ -68,8 +68,10 @@ class Strings {
   static const selfiePhotoTitle = 'صورة شخصية';
   static const selfiePhotoInstructions =
       'التقط صورة واضحة لوجهك للتأكد من مطابقتها مع بطاقة الهوية.';
-  static const capturePrompt = 'اضغط لاختيار صورة';
+  static const capturePrompt = 'اضغط لالتقاط صورة';
   static const retakePhoto = 'إعادة الالتقاط';
+  static const captureError =
+      'تعذر فتح الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
   static const continueLabel = 'متابعة';
   static const verifyingTitle = 'جاري التحقق من حسابك';
   static const verifyingBody =
