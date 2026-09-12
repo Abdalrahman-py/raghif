@@ -28,17 +28,24 @@ Current accounts (existing):
 | Buyer | أحمد ناصر | 900111222 | 0599111111 | 1234 | seeded `verified` → skips photo gate |
 | Owner | صاحب المخبز | 900333444 | 0599222222 | 1234 | owns مخبز الرمال |
 
-🚧 Planned richer seed (pending): 6–8 stores instead of 3; each with
-registered dummy buyers; today's purchases at the demo store spanning all
-pickup states so the queue tells the full story at first glance:
+Part 0 (richer seed) — ✅ BUILT (`feat/demo-seed`,
+`flutter/lib/data/demo_content_seeder.dart`): the demo store (مخبز الرمال)
+opens with today's queue already telling the full story at first glance:
 
-- several rows WAITING (paid, batch not called yet — didn't pick because not ready)
-- several rows NOTIFIED (paid, batch called — paid but hasn't picked up)
-- several rows COLLECTED (paid and picked up)
+- 3 rows COLLECTED (paid and picked up — batch 1)
+- 3 rows NOTIFIED (paid, batch called — paid but hasn't picked up — batch 2)
+- 3 rows WAITING (paid, batch not called yet — batch 3)
 
-⚠️ The live demo buyer (أحمد, 900111222) must NOT have a seeded purchase
-for today — the one-bag-per-ID-per-day rule would block the live buy.
-Dummy buyers carry their own IDs.
+Plus 7 stores total (4 extra bakeries: مخبز الأمل، الزيتون، النور، السلام)
+and 9 dummy registered buyers. The demo store's batch size seeds to 3 so the
+three states land on three visible batches.
+
+⚠️ The live demo buyer (أحمد, 900111222) has NO seeded purchase — the
+one-bag-per-ID-per-day rule would block the live buy. Dummy buyers carry
+their own IDs.
+
+ⓘ Seeds apply to a FRESH install only — on an existing install, clear
+storage (Settings → Apps → Raghif) to re-seed.
 
 ---
 

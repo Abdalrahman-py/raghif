@@ -6,6 +6,7 @@ import '../network/api_client.dart';
 import '../network/api_service.dart';
 import '../notifications/notification_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/demo_content_seeder.dart';
 import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/queue_repository.dart';
@@ -54,4 +55,7 @@ Future<void> initDependencies() async {
   // Seed default data
   await authRepository.ensureSeeded();
   await queueRepository.ensureSeeded();
+  // Richer demo content for the walkthrough (fresh installs only; no-op when
+  // the DB already carries purchases or more than the base footprint).
+  await DemoContentSeeder(db).seedIfFresh();
 }
