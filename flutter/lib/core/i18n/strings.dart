@@ -243,4 +243,17 @@ class Strings {
   static const browseStoresButton = 'تصفح المخابز';
   static const paidLabel = 'مدفوع';
   static String buyerHomeBatch(int batch) => 'الدفعة رقم $batch';
+  // Owner queue & dashboard polish (walkthrough P1)
+  static String batchSummary(int picked, int awaiting, int waiting) =>
+      'تم الاستلام: $picked · بانتظار الاستلام: $awaiting · لم يُنادَ: $waiting';
+  static const notifyConfirmTitle = 'تأكيد إشعار الدفعة';
+  static String notifyConfirmBody(int batch) =>
+      'سيتم إشعار جميع المترقّبين في الدفعة رقم $batch بأن خبزهم جاهز.';
+  static const notifyConfirmAction = 'إشعار الدفعة';
+  static const cancelLabel = 'إلغاء';
+  static String notifyOutstandingWarning(int count) =>
+      'تنبيه: $count ممن نودي عليهم في دفعات سابقة لم يستلموا بعد.';
+  static String lowStockWarning(int remaining) =>
+      'الكمية على وشك النفاد — المتبقي $remaining كيس فقط.';
+  static const pendingPickupLabel = 'بانتظار الاستلام';
 }

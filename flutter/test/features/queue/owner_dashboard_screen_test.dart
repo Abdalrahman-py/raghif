@@ -12,6 +12,7 @@ import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/queue/owner_dashboard_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
+import 'package:raghif/features/queue/queue_logic.dart';
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 
@@ -99,5 +100,31 @@ void main() {
     final store = controller.storeById(1);
     expect(store?.openTime, '08:00');
     expect(store?.closeTime, '10:00');
+  });
+
+  testWidgets('shows the live paid-but-not-picked count', (tester) async {
+    await pumpDashboard(tester, 1);
+
+    expect(find.text(Strings.pendingPickupLabel), findsOneWidget);
+    // Nothing sold yet in a fresh store.
+    expect(find.text('0'), findsOneWidget);
+  });
+
+  testWidgets('warns in-app when the store is low on bags', (tester) async {
+    final controller = await pumpDashboard(tester, 1);
+
+    // Shrink today's allocation below the low-stock threshold.
+    await controller.saveAllocation(
+      1,
+      dailyBagLimit: 10,
+      batchSize: 20,
+      today: todayDateString(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(Strings.lowStockWarning(controller.storeById(1)!.bagsRemaining)),
+      findsOneWidget,
+    );
   });
 }

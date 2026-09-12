@@ -148,6 +148,22 @@ Workflow rules this changelog lives by:
   the ticket was gone. No ETA is shown: a time-to-next-batch needs a real
   owner-set batch schedule (decision C), so the screen stays honest with batch
   + status.
+- Owner queue & dashboard polish (walkthrough P1 #6/#7):
+  - every batch header now shows its tallies — تم الاستلام / بانتظار الاستلام /
+    لم يُنادَ — so the owner sees who never showed up without counting rows.
+  - "إشعار الدفعة التالية" asks for confirmation first, and the dialog warns how
+    many buyers from earlier batches were called but never picked up (soft
+    release-after-collected discipline: a hard block would deadlock the owner
+    when someone simply never shows up).
+  - the dashboard shows the live "بانتظار الاستلام" count (paid, not picked) and
+    an in-app low-stock warning at ≤ 20 bags.
+
+### Fixed
+
+- Owner queue buyer rows overflowed (yellow/black stripes) once a row reached
+  تم الإشعار / تم الاستلام: the confirm button took the width from the buyer
+  info column, which then couldn't fit the status chip and time.
+
 - Store owners can now set today's purchase window (start/end time), shown
   to buyers on the store list and purchase screen alongside the existing
   bags-remaining count.

@@ -68,6 +68,52 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
     );
   }
 
+  /// Releasing a batch notifies real buyers, so the owner confirms first — and
+  /// if people from earlier batches never picked up, the dialog says how many
+  /// instead of silently calling another batch on top of them.
+  Future<void> _confirmNotify(
+    int batch,
+    List<PurchaseModel> queue,
+    String date,
+  ) async {
+    final outstanding = outstandingBefore(batch, queue);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(Strings.notifyConfirmTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(Strings.notifyConfirmBody(batch)),
+            if (outstanding > 0) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                Strings.notifyOutstandingWarning(outstanding),
+                style: TextStyle(
+                  color: Theme.of(dialogContext).colorScheme.error,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(Strings.cancelLabel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(Strings.notifyConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.controller.notifyNextBatch(widget.storeId, date);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final date = todayDateString();
@@ -95,6 +141,11 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
             grouped.putIfAbsent(p.batchNumber, () => []).add(p);
           }
           final batchNumbers = grouped.keys.toList()..sort();
+          // Tallies for the batch headers ("picked / awaiting / not called"),
+          // always from the FULL queue so a search can't change the numbers.
+          final progress = {
+            for (final p in batchProgressForQueue(queue)) p.batch: p,
+          };
           // Notify decision always uses the FULL queue; the button is hidden
           // while searching so a lookup can't accidentally release a batch.
           final nextBatch = searching ? null : nextBatchToNotify(queue);
@@ -186,11 +237,33 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                                         padding: const EdgeInsets.symmetric(
                                           vertical: AppSpacing.sm,
                                         ),
-                                        child: Text(
-                                          Strings.batchLabel(batch),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.titleMedium,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              Strings.batchLabel(batch),
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                            ),
+                                            if (progress[batch] != null) ...[
+                                              const SizedBox(
+                                                height: AppSpacing.xs,
+                                              ),
+                                              Text(
+                                                Strings.batchSummary(
+                                                  progress[batch]!.picked,
+                                                  progress[batch]!
+                                                      .awaitingPickup,
+                                                  progress[batch]!.waiting,
+                                                ),
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyMedium,
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ),
                                       for (final purchase
@@ -217,8 +290,7 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                         ),
                         child: PrimaryButton(
                           text: Strings.notifyNextBatch(nextBatch),
-                          onPressed: () => widget.controller
-                              .notifyNextBatch(widget.storeId, date),
+                          onPressed: () => _confirmNotify(nextBatch, queue, date),
                         ),
                       ),
                   ],
@@ -283,12 +355,16 @@ class _BuyerRow extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
-                    StatusChip(text: statusText, tone: tone),
+                    Flexible(
+                      child: StatusChip(text: statusText, tone: tone),
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         formatReadyTime(purchase.createdAtMillis),
                         style: Theme.of(context).textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -298,12 +374,18 @@ class _BuyerRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           if (purchase.status != PurchaseStatus.waiting)
-            FilledButton(
-              onPressed: onToggleArrival,
-              child: Text(
-                purchase.status == PurchaseStatus.notified
-                    ? Strings.markReceived
-                    : Strings.undoReceived,
+            // Flexible so this button yields width instead of squeezing the
+            // buyer info column (it overflowed notified/collected rows).
+            Flexible(
+              child: FilledButton(
+                onPressed: onToggleArrival,
+                child: Text(
+                  purchase.status == PurchaseStatus.notified
+                      ? Strings.markReceived
+                      : Strings.undoReceived,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
         ],

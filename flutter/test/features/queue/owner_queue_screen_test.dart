@@ -76,5 +76,61 @@ void main() {
 
       await db.close();
     });
+
+    testWidgets(
+      'shows per-batch progress and asks for confirmation before notifying',
+      (tester) async {
+        final db = AppDatabase(NativeDatabase.memory());
+        final repository = QueueRepositoryImpl(db);
+        await repository.ensureSeeded();
+        final controller = QueueController(repository);
+
+        final store = controller.stores.first;
+        final buyers = await db.select(db.users).get();
+        final buyer = buyers.firstWhere((u) => u.role == 'buyer');
+        final date = todayDateString();
+        final purchase = await controller.buy(
+          userId: buyer.id,
+          storeId: store.id,
+          date: date,
+        );
+
+        await tester.pumpWidget(
+          wrapWithMaterial(
+            OwnerQueueScreen(controller: controller, storeId: store.id),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Batch header tallies: nothing picked yet, one buyer not called.
+        expect(find.text(Strings.batchSummary(0, 0, 1)), findsOneWidget);
+
+        // Notifying is a confirmation, not a single tap.
+        await tester.tap(find.textContaining(Strings.notifyNextBatch(1)));
+        await tester.pumpAndSettle();
+        expect(find.text(Strings.notifyConfirmTitle), findsOneWidget);
+        expect(find.text(Strings.notifyConfirmBody(1)), findsOneWidget);
+
+        // Backing out leaves the batch untouched.
+        await tester.tap(find.text(Strings.cancelLabel));
+        await tester.pumpAndSettle();
+        expect(
+          (await repository.getPurchaseById(purchase.id))!.status,
+          PurchaseStatus.waiting,
+        );
+
+        // Confirming it actually calls the batch.
+        await tester.tap(find.textContaining(Strings.notifyNextBatch(1)));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(Strings.notifyConfirmAction));
+        await tester.pumpAndSettle();
+        expect(
+          (await repository.getPurchaseById(purchase.id))!.status,
+          PurchaseStatus.notified,
+        );
+
+        await db.close();
+      },
+    );
   });
 }

@@ -79,6 +79,8 @@ class QueueController extends ChangeNotifier {
   bool _storesLoaded = false;
   StreamSubscription<List<StoreListEntry>>? _storeListSub;
   List<StoreListEntry> _storeList = [];
+  StreamSubscription<List<PurchaseModel>>? _todayQueueSub;
+  List<PurchaseModel> _todayQueue = [];
   final Map<int, PurchaseModel> _purchaseCache = {};
 
   List<StoreModel> get stores => _stores;
@@ -188,6 +190,23 @@ class QueueController extends ChangeNotifier {
   Future<PurchaseModel?> purchaseById(dynamic id) {
     final pId = _parseInt(id);
     return _repository.getPurchaseById(pId);
+  }
+
+  /// Today's queue for a store, owned by the controller so widgets never hold a
+  /// drift stream of their own (a widget-owned drift stream leaks a pending
+  /// timer in tests and duplicates subscriptions across screens).
+  List<PurchaseModel> get todayQueue => _todayQueue;
+
+  /// Points the dashboard's today-queue watch at [storeId].
+  void watchTodayQueueFor(dynamic storeId) {
+    final sId = _parseInt(storeId, 1);
+    _todayQueueSub?.cancel();
+    _todayQueueSub = _repository
+        .watchQueueForStore(sId, todayDateString())
+        .listen((queue) {
+          _todayQueue = queue;
+          notifyListeners();
+        });
   }
 
   /// Chronological queue for one store/day as a stream.
@@ -307,6 +326,7 @@ class QueueController extends ChangeNotifier {
   void dispose() {
     _storesSub?.cancel();
     _storeListSub?.cancel();
+    _todayQueueSub?.cancel();
     _ownedDatabase?.close();
     super.dispose();
   }
