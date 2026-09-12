@@ -57,6 +57,10 @@ dependencies:
   share_plus: ^10.1.4
   gal: ^2.3.3
   mobile_scanner: ^7.4.0
+  # Scan feedback tones (success ding / error buzz). Held below 6.8.0 on
+  # purpose: that release needs Flutter >=3.44, while CI builds on the pinned
+  # 3.41.6 — a caret would resolve to it locally and break CI.
+  audioplayers: '>=6.7.1 <6.8.0'
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +90,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/sounds/
 
   fonts:
     - family: NotoSansArabic

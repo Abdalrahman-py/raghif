@@ -10,6 +10,7 @@ import '../../core/widgets/secondary_button.dart';
 import 'qr_payload.dart';
 import 'qr_redemption.dart';
 import 'queue_controller.dart';
+import 'scan_feedback.dart';
 
 /// Issue #28: in-app QR redemption scanner for [OwnerQueueScreen].
 ///
@@ -33,6 +34,7 @@ class QrScannerScreen extends StatefulWidget {
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
   final MobileScannerController _scanner = MobileScannerController();
+  final ScanFeedbackPlayer _feedback = ScanFeedbackPlayer();
 
   int? _ownerStoreId;
   bool _scanning = true;
@@ -50,6 +52,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   void dispose() {
     _scanner.dispose();
+    _feedback.dispose();
     super.dispose();
   }
 
@@ -65,6 +68,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
     final payload = QrPayload.tryDecode(raw);
     if (payload == null) {
+      // Not a receipt payload at all — still an audit-worthy attempt.
+      await _feedback.play(ScanFeedback.failure);
+      await widget.controller.recordScan(
+        storeId: widget.storeId,
+        outcome: 'invalidCode',
+      );
       if (!mounted) return;
       setState(() {
         _processing = false;
@@ -84,6 +93,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         result.purchase != null) {
       await widget.controller.toggleArrival(result.purchase!.id);
     }
+    await _feedback.play(scanFeedbackFor(result.outcome));
+    await widget.controller.recordScan(
+      storeId: widget.storeId,
+      outcome: result.outcome.name,
+      purchaseId: result.purchase?.id,
+      scannedName: payload.userName,
+      scannedNationalId: payload.nationalId,
+    );
     if (!mounted) return;
     setState(() {
       _processing = false;

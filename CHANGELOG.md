@@ -95,6 +95,17 @@ Workflow rules this changelog lives by:
 
 ### Added
 
+- Pickup scans now play a tone and a haptic: a two-note "ding" when a bag is
+  handed over, a low buzz for every other outcome (already collected, batch not
+  called, wrong store, not found on this device, unreadable code) — so the owner
+  can hear the result mid-queue without reading the screen. Tones ship as
+  `assets/sounds/scan_success.wav` / `scan_failure.wav` via `audioplayers`,
+  pinned below 6.8.0 because that release needs Flutter >=3.44 while CI builds
+  on the pinned 3.41.6.
+- Scan audit trail: new `scan_events` table (schema v5) records every attempt —
+  store, matched purchase when there is one, outcome, scanned name/national ID
+  and timestamp. This is the owner's "scan writes every detail to DB", and the
+  raw material for the day/history view.
 - **Store details screen** — tapping a store now opens a hub before buying:
   identity (name, area, availability, pin toggle), today's stock + purchase
   window, "طلبي اليوم" (order state, paid badge, and "اعرض وصل الاستلام" to

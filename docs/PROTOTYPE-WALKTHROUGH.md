@@ -151,12 +151,11 @@ storage (Settings → Apps → Raghif) to re-seed.
   collected / batch not called / wrong store / not found on this device).
   Wrong-store is now decided from the code itself, no sync needed. Torch
   button for low light. National ID shows on the result card.
-- 🚧 SOUND: a distinct success/fail tone on scan is not built (no audio
-  asset/plugin wired). Build: short success "ding" + error buzz + haptic.
-- 🚧 Scan audit log: today the scan only toggles the row's status; it does
-  not write a scan record. If we want "scan writes every detail to DB",
-  add a `scans` table (purchase, outcome, store, scanned_at) — also feeds
-  the history page.
+- ✅ SOUND: a distinct success/fail tone + haptic on scan (two-note "ding" for
+  a handover, low buzz otherwise) — `assets/sounds/`, wired in the scanner.
+- ✅ Scan audit log: every attempt is written to a `scan_events` table
+  (store, purchase when matched, outcome, scanned name/national ID, timestamp)
+  — "scan writes every detail to DB", and it feeds the history page.
 
 **12. Cancel a batch / tell buyers not to come.** ⚠️ CONFLICT — decide first
 - Current spec says NO cancellations ("bag is paid for and owed") and the
