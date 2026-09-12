@@ -7,9 +7,9 @@ import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/demo_accounts.dart';
 import 'features/auth/login_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/queue/buyer_home_screen.dart';
 import 'features/queue/owner_dashboard_screen.dart';
 import 'features/queue/queue_controller.dart';
-import 'features/queue/store_list_screen.dart';
 import 'features/verification/photo_capture_screen.dart';
 import 'features/verification/waiting_for_verification_screen.dart';
 
@@ -113,7 +113,7 @@ class _RaghifAppState extends State<RaghifApp> {
                       controller: _controller,
                       storeId: demoOwnerStoreId,
                     )
-                  : StoreListScreen(
+                  : BuyerHomeScreen(
                       controller: _controller,
                       currentUser: demoUser,
                     );
