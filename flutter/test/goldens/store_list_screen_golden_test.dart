@@ -7,8 +7,18 @@ import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 
 import 'test_fonts.dart';
+import 'tolerant_golden_comparator.dart';
 
 void main() {
+  setUpAll(() {
+    // Runners rasterise a few pixels differently on identical code; without
+    // this the golden flapped red/green on untouched commits. Real layout
+    // changes are far bigger than the 0.1% tolerance.
+    goldenFileComparator = TolerantGoldenComparator(
+      Uri.parse('test/goldens/store_list_screen_golden_test.dart'),
+    );
+  });
+
   testWidgets('StoreListScreen matches golden', (WidgetTester tester) async {
     await loadAppFonts(tester);
     tester.view.physicalSize = const Size(1080, 2400);
