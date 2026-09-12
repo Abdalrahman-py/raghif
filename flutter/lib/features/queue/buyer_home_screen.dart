@@ -220,7 +220,7 @@ class _CurrentOrderView extends StatelessWidget {
                     children: [
                       StatusChip(text: label, tone: tone),
                       StatusChip(
-                        text: Strings.paidLabel,
+                        text: Strings.paidBadge,
                         tone: StatusTone.success,
                       ),
                       StatusChip(
