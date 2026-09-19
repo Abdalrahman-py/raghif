@@ -52,11 +52,14 @@ only implementation now (see #10).
 - CI pins Flutter to 3.41.6 (the version the project was created with — see the workflow
   comment). Before upgrading Flutter locally, bump the Android Gradle wrapper to >= 8.14
   and re-check AGP/Kotlin compatibility, or `flutter build apk` will fail.
-- Prototype is LOCAL-ONLY: `drift` for persistence — the Dart-ecosystem equivalent of
-  SQLDelight (SQLDelight itself is Kotlin/KMP-only and has no Dart/Flutter codegen target;
-  no `sqldelight` package exists on pub.dev). See spec.md's Technical Decisions callout and
-  issue #4 for the full history of this substitution. Never add Supabase or any hosted
-  backend.
+- **Superseded (2026-09-19):** the app is migrating to a live Supabase backend
+  (Postgres + Realtime + Edge Functions), with `drift` kept permanently as the
+  offline cache/read layer — not replaced. See spec.md's Technical Decisions
+  section for the current architecture and the migration plan's phased
+  rollout. `drift` is still the Dart-ecosystem equivalent of SQLDelight
+  (Kotlin/KMP-only, no Dart/Flutter codegen target; see issue #4) and remains
+  in use as the local cache — this note only retracts the old "never add
+  Supabase" ruling from 2026-09-06.
 - Language ruling (2026-09-06): the app is Arabic-only for now — no EN/bilingual-toggle
   work. spec.md/README.md still say "Bilingual", but those are owner files; Arabic-only
   wins until the owner updates them.

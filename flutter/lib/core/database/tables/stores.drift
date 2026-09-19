@@ -17,5 +17,9 @@ CREATE TABLE stores (
     -- Neighborhood/area the bakery sits in, used to group and filter the buyer
     -- store list (e.g. مخبز الرمال → الرمال). Free text in the prototype; the
     -- buyer sees it as a filter chip, not as an exact address.
-    area TEXT NOT NULL DEFAULT ''
+    area TEXT NOT NULL DEFAULT '',
+    -- Supabase `stores` UUID once this store has been linked to the backend
+    -- (see data/sync/queue_sync_service.dart). NULL until the owner's
+    -- device links it (lazily, on first online allocation save).
+    remote_id TEXT
 );

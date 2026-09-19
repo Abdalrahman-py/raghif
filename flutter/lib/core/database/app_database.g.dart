@@ -114,6 +114,17 @@ class Stores extends Table with TableInfo<Stores, Store> {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -126,6 +137,7 @@ class Stores extends Table with TableInfo<Stores, Store> {
     closeTime,
     batchSize,
     area,
+    remoteId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -210,6 +222,12 @@ class Stores extends Table with TableInfo<Stores, Store> {
         area.isAcceptableOrUnknown(data['area']!, _areaMeta),
       );
     }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
     return context;
   }
 
@@ -259,6 +277,10 @@ class Stores extends Table with TableInfo<Stores, Store> {
         DriftSqlType.string,
         data['${effectivePrefix}area'],
       )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
     );
   }
 
@@ -293,6 +315,11 @@ class Store extends DataClass implements Insertable<Store> {
   /// store list (e.g. مخبز الرمال → الرمال). Free text in the prototype; the
   /// buyer sees it as a filter chip, not as an exact address.
   final String area;
+
+  /// Supabase `stores` UUID once this store has been linked to the backend
+  /// (see data/sync/queue_sync_service.dart). NULL until the owner's
+  /// device links it (lazily, on first online allocation save).
+  final String? remoteId;
   const Store({
     required this.id,
     required this.name,
@@ -304,6 +331,7 @@ class Store extends DataClass implements Insertable<Store> {
     this.closeTime,
     required this.batchSize,
     required this.area,
+    this.remoteId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -322,6 +350,9 @@ class Store extends DataClass implements Insertable<Store> {
     }
     map['batch_size'] = Variable<int>(batchSize);
     map['area'] = Variable<String>(area);
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
     return map;
   }
 
@@ -341,6 +372,9 @@ class Store extends DataClass implements Insertable<Store> {
           : Value(closeTime),
       batchSize: Value(batchSize),
       area: Value(area),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
     );
   }
 
@@ -360,6 +394,7 @@ class Store extends DataClass implements Insertable<Store> {
       closeTime: serializer.fromJson<String?>(json['close_time']),
       batchSize: serializer.fromJson<int>(json['batch_size']),
       area: serializer.fromJson<String>(json['area']),
+      remoteId: serializer.fromJson<String?>(json['remote_id']),
     );
   }
   @override
@@ -376,6 +411,7 @@ class Store extends DataClass implements Insertable<Store> {
       'close_time': serializer.toJson<String?>(closeTime),
       'batch_size': serializer.toJson<int>(batchSize),
       'area': serializer.toJson<String>(area),
+      'remote_id': serializer.toJson<String?>(remoteId),
     };
   }
 
@@ -390,6 +426,7 @@ class Store extends DataClass implements Insertable<Store> {
     Value<String?> closeTime = const Value.absent(),
     int? batchSize,
     String? area,
+    Value<String?> remoteId = const Value.absent(),
   }) => Store(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -401,6 +438,7 @@ class Store extends DataClass implements Insertable<Store> {
     closeTime: closeTime.present ? closeTime.value : this.closeTime,
     batchSize: batchSize ?? this.batchSize,
     area: area ?? this.area,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   Store copyWithCompanion(StoresCompanion data) {
     return Store(
@@ -420,6 +458,7 @@ class Store extends DataClass implements Insertable<Store> {
       closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
       batchSize: data.batchSize.present ? data.batchSize.value : this.batchSize,
       area: data.area.present ? data.area.value : this.area,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
 
@@ -435,7 +474,8 @@ class Store extends DataClass implements Insertable<Store> {
           ..write('openTime: $openTime, ')
           ..write('closeTime: $closeTime, ')
           ..write('batchSize: $batchSize, ')
-          ..write('area: $area')
+          ..write('area: $area, ')
+          ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
@@ -452,6 +492,7 @@ class Store extends DataClass implements Insertable<Store> {
     closeTime,
     batchSize,
     area,
+    remoteId,
   );
   @override
   bool operator ==(Object other) =>
@@ -466,7 +507,8 @@ class Store extends DataClass implements Insertable<Store> {
           other.openTime == this.openTime &&
           other.closeTime == this.closeTime &&
           other.batchSize == this.batchSize &&
-          other.area == this.area);
+          other.area == this.area &&
+          other.remoteId == this.remoteId);
 }
 
 class StoresCompanion extends UpdateCompanion<Store> {
@@ -480,6 +522,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
   final Value<String?> closeTime;
   final Value<int> batchSize;
   final Value<String> area;
+  final Value<String?> remoteId;
   const StoresCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -491,6 +534,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.closeTime = const Value.absent(),
     this.batchSize = const Value.absent(),
     this.area = const Value.absent(),
+    this.remoteId = const Value.absent(),
   });
   StoresCompanion.insert({
     this.id = const Value.absent(),
@@ -503,6 +547,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.closeTime = const Value.absent(),
     this.batchSize = const Value.absent(),
     this.area = const Value.absent(),
+    this.remoteId = const Value.absent(),
   }) : name = Value(name),
        ownerPhone = Value(ownerPhone),
        dailyBagLimit = Value(dailyBagLimit),
@@ -518,6 +563,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Expression<String>? closeTime,
     Expression<int>? batchSize,
     Expression<String>? area,
+    Expression<String>? remoteId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -530,6 +576,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
       if (closeTime != null) 'close_time': closeTime,
       if (batchSize != null) 'batch_size': batchSize,
       if (area != null) 'area': area,
+      if (remoteId != null) 'remote_id': remoteId,
     });
   }
 
@@ -544,6 +591,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Value<String?>? closeTime,
     Value<int>? batchSize,
     Value<String>? area,
+    Value<String?>? remoteId,
   }) {
     return StoresCompanion(
       id: id ?? this.id,
@@ -556,6 +604,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
       closeTime: closeTime ?? this.closeTime,
       batchSize: batchSize ?? this.batchSize,
       area: area ?? this.area,
+      remoteId: remoteId ?? this.remoteId,
     );
   }
 
@@ -592,6 +641,9 @@ class StoresCompanion extends UpdateCompanion<Store> {
     if (area.present) {
       map['area'] = Variable<String>(area.value);
     }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
     return map;
   }
 
@@ -607,7 +659,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
           ..write('openTime: $openTime, ')
           ..write('closeTime: $closeTime, ')
           ..write('batchSize: $batchSize, ')
-          ..write('area: $area')
+          ..write('area: $area, ')
+          ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
@@ -701,6 +754,17 @@ class Users extends Table with TableInfo<Users, User> {
         $customConstraints: 'NOT NULL DEFAULT \'pending\'',
         defaultValue: const CustomExpression('\'pending\''),
       );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -711,6 +775,7 @@ class Users extends Table with TableInfo<Users, User> {
     role,
     jawwalPayNumber,
     verificationStatus,
+    remoteId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -783,6 +848,12 @@ class Users extends Table with TableInfo<Users, User> {
         ),
       );
     }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
     return context;
   }
 
@@ -824,6 +895,10 @@ class Users extends Table with TableInfo<Users, User> {
         DriftSqlType.string,
         data['${effectivePrefix}verification_status'],
       )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
     );
   }
 
@@ -845,6 +920,14 @@ class User extends DataClass implements Insertable<User> {
   final String role;
   final String? jawwalPayNumber;
   final String verificationStatus;
+
+  /// Supabase auth.users/profiles UUID, once this row has been established
+  /// via the Supabase-backed AuthRepository (see
+  /// data/repositories/supabase_auth_repository.dart). NULL for
+  /// drift-only/local accounts. This table is a read cache of whichever
+  /// account authenticated on this device — not the identity source of
+  /// truth once Supabase is in use.
+  final String? remoteId;
   const User({
     required this.id,
     required this.phone,
@@ -854,6 +937,7 @@ class User extends DataClass implements Insertable<User> {
     required this.role,
     this.jawwalPayNumber,
     required this.verificationStatus,
+    this.remoteId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -868,6 +952,9 @@ class User extends DataClass implements Insertable<User> {
       map['jawwal_pay_number'] = Variable<String>(jawwalPayNumber);
     }
     map['verification_status'] = Variable<String>(verificationStatus);
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
     return map;
   }
 
@@ -883,6 +970,9 @@ class User extends DataClass implements Insertable<User> {
           ? const Value.absent()
           : Value(jawwalPayNumber),
       verificationStatus: Value(verificationStatus),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
     );
   }
 
@@ -902,6 +992,7 @@ class User extends DataClass implements Insertable<User> {
       verificationStatus: serializer.fromJson<String>(
         json['verification_status'],
       ),
+      remoteId: serializer.fromJson<String?>(json['remote_id']),
     );
   }
   @override
@@ -916,6 +1007,7 @@ class User extends DataClass implements Insertable<User> {
       'role': serializer.toJson<String>(role),
       'jawwal_pay_number': serializer.toJson<String?>(jawwalPayNumber),
       'verification_status': serializer.toJson<String>(verificationStatus),
+      'remote_id': serializer.toJson<String?>(remoteId),
     };
   }
 
@@ -928,6 +1020,7 @@ class User extends DataClass implements Insertable<User> {
     String? role,
     Value<String?> jawwalPayNumber = const Value.absent(),
     String? verificationStatus,
+    Value<String?> remoteId = const Value.absent(),
   }) => User(
     id: id ?? this.id,
     phone: phone ?? this.phone,
@@ -939,6 +1032,7 @@ class User extends DataClass implements Insertable<User> {
         ? jawwalPayNumber.value
         : this.jawwalPayNumber,
     verificationStatus: verificationStatus ?? this.verificationStatus,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -956,6 +1050,7 @@ class User extends DataClass implements Insertable<User> {
       verificationStatus: data.verificationStatus.present
           ? data.verificationStatus.value
           : this.verificationStatus,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
 
@@ -969,7 +1064,8 @@ class User extends DataClass implements Insertable<User> {
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('jawwalPayNumber: $jawwalPayNumber, ')
-          ..write('verificationStatus: $verificationStatus')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
@@ -984,6 +1080,7 @@ class User extends DataClass implements Insertable<User> {
     role,
     jawwalPayNumber,
     verificationStatus,
+    remoteId,
   );
   @override
   bool operator ==(Object other) =>
@@ -996,7 +1093,8 @@ class User extends DataClass implements Insertable<User> {
           other.name == this.name &&
           other.role == this.role &&
           other.jawwalPayNumber == this.jawwalPayNumber &&
-          other.verificationStatus == this.verificationStatus);
+          other.verificationStatus == this.verificationStatus &&
+          other.remoteId == this.remoteId);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -1008,6 +1106,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> role;
   final Value<String?> jawwalPayNumber;
   final Value<String> verificationStatus;
+  final Value<String?> remoteId;
   const UsersCompanion({
     this.id = const Value.absent(),
     this.phone = const Value.absent(),
@@ -1017,6 +1116,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.jawwalPayNumber = const Value.absent(),
     this.verificationStatus = const Value.absent(),
+    this.remoteId = const Value.absent(),
   });
   UsersCompanion.insert({
     this.id = const Value.absent(),
@@ -1027,6 +1127,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.role = const Value.absent(),
     this.jawwalPayNumber = const Value.absent(),
     this.verificationStatus = const Value.absent(),
+    this.remoteId = const Value.absent(),
   }) : phone = Value(phone),
        nationalId = Value(nationalId),
        pinHash = Value(pinHash),
@@ -1040,6 +1141,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? role,
     Expression<String>? jawwalPayNumber,
     Expression<String>? verificationStatus,
+    Expression<String>? remoteId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1050,6 +1152,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (role != null) 'role': role,
       if (jawwalPayNumber != null) 'jawwal_pay_number': jawwalPayNumber,
       if (verificationStatus != null) 'verification_status': verificationStatus,
+      if (remoteId != null) 'remote_id': remoteId,
     });
   }
 
@@ -1062,6 +1165,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? role,
     Value<String?>? jawwalPayNumber,
     Value<String>? verificationStatus,
+    Value<String?>? remoteId,
   }) {
     return UsersCompanion(
       id: id ?? this.id,
@@ -1072,6 +1176,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       role: role ?? this.role,
       jawwalPayNumber: jawwalPayNumber ?? this.jawwalPayNumber,
       verificationStatus: verificationStatus ?? this.verificationStatus,
+      remoteId: remoteId ?? this.remoteId,
     );
   }
 
@@ -1102,6 +1207,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (verificationStatus.present) {
       map['verification_status'] = Variable<String>(verificationStatus.value);
     }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
     return map;
   }
 
@@ -1115,7 +1223,8 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('jawwalPayNumber: $jawwalPayNumber, ')
-          ..write('verificationStatus: $verificationStatus')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
@@ -2365,6 +2474,7 @@ typedef $StoresCreateCompanionBuilder =
       Value<String?> closeTime,
       Value<int> batchSize,
       Value<String> area,
+      Value<String?> remoteId,
     });
 typedef $StoresUpdateCompanionBuilder =
     StoresCompanion Function({
@@ -2378,6 +2488,7 @@ typedef $StoresUpdateCompanionBuilder =
       Value<String?> closeTime,
       Value<int> batchSize,
       Value<String> area,
+      Value<String?> remoteId,
     });
 
 final class $StoresReferences
@@ -2497,6 +2608,11 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
 
   ColumnFilters<String> get area => $composableBuilder(
     column: $table.area,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2633,6 +2749,11 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     column: $table.area,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
@@ -2678,6 +2799,9 @@ class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
 
   GeneratedColumn<String> get area =>
       $composableBuilder(column: $table.area, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -2797,6 +2921,7 @@ class $StoresTableManager
                 Value<String?> closeTime = const Value.absent(),
                 Value<int> batchSize = const Value.absent(),
                 Value<String> area = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
               }) => StoresCompanion(
                 id: id,
                 name: name,
@@ -2808,6 +2933,7 @@ class $StoresTableManager
                 closeTime: closeTime,
                 batchSize: batchSize,
                 area: area,
+                remoteId: remoteId,
               ),
           createCompanionCallback:
               ({
@@ -2821,6 +2947,7 @@ class $StoresTableManager
                 Value<String?> closeTime = const Value.absent(),
                 Value<int> batchSize = const Value.absent(),
                 Value<String> area = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
               }) => StoresCompanion.insert(
                 id: id,
                 name: name,
@@ -2832,6 +2959,7 @@ class $StoresTableManager
                 closeTime: closeTime,
                 batchSize: batchSize,
                 area: area,
+                remoteId: remoteId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))
@@ -2927,6 +3055,7 @@ typedef $UsersCreateCompanionBuilder =
       Value<String> role,
       Value<String?> jawwalPayNumber,
       Value<String> verificationStatus,
+      Value<String?> remoteId,
     });
 typedef $UsersUpdateCompanionBuilder =
     UsersCompanion Function({
@@ -2938,6 +3067,7 @@ typedef $UsersUpdateCompanionBuilder =
       Value<String> role,
       Value<String?> jawwalPayNumber,
       Value<String> verificationStatus,
+      Value<String?> remoteId,
     });
 
 final class $UsersReferences
@@ -3028,6 +3158,11 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnFilters<String> get verificationStatus => $composableBuilder(
     column: $table.verificationStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3129,6 +3264,11 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
     column: $table.verificationStatus,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
@@ -3168,6 +3308,9 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
     column: $table.verificationStatus,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -3256,6 +3399,7 @@ class $UsersTableManager
                 Value<String> role = const Value.absent(),
                 Value<String?> jawwalPayNumber = const Value.absent(),
                 Value<String> verificationStatus = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
                 phone: phone,
@@ -3265,6 +3409,7 @@ class $UsersTableManager
                 role: role,
                 jawwalPayNumber: jawwalPayNumber,
                 verificationStatus: verificationStatus,
+                remoteId: remoteId,
               ),
           createCompanionCallback:
               ({
@@ -3276,6 +3421,7 @@ class $UsersTableManager
                 Value<String> role = const Value.absent(),
                 Value<String?> jawwalPayNumber = const Value.absent(),
                 Value<String> verificationStatus = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
                 phone: phone,
@@ -3285,6 +3431,7 @@ class $UsersTableManager
                 role: role,
                 jawwalPayNumber: jawwalPayNumber,
                 verificationStatus: verificationStatus,
+                remoteId: remoteId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $UsersReferences(db, table, e)))

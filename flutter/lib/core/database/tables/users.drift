@@ -11,5 +11,12 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'buyer',
     jawwal_pay_number TEXT,
-    verification_status TEXT NOT NULL DEFAULT 'pending'
+    verification_status TEXT NOT NULL DEFAULT 'pending',
+    -- Supabase auth.users/profiles UUID, once this row has been established
+    -- via the Supabase-backed AuthRepository (see
+    -- data/repositories/supabase_auth_repository.dart). NULL for
+    -- drift-only/local accounts. This table is a read cache of whichever
+    -- account authenticated on this device — not the identity source of
+    -- truth once Supabase is in use.
+    remote_id TEXT
 );

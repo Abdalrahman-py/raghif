@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1007670005801",
+    "project_id": "raghif",
+    "storage_bucket": "raghif.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007670005801:android:19196a01865a4d4c5bcc38",
+        "android_client_info": {
+          "package_name": "com.raghif.raghif"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCc4Z-vStw7_GwNF9NLUi4YzVuckH64T_E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

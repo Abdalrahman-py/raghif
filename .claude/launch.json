@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd flutter && flutter run -d web-server --web-port 5050"],
       "port": 5050
+    },
+    {
+      "name": "flutter-web-build",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd flutter/build/web && python3 -m http.server 8088 --bind 127.0.0.1"],
+      "port": 8088
     }
   ]
 }
