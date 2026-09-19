@@ -16,10 +16,16 @@ scans receipts at pickup, and watches his day. Data is dummy; story is real.
 
 ## Demo data
 
-Seeded on first run (drift `ensureSeeded`). ⚠️ Seeds apply to a FRESH
-install only — existing test/dev installs need Settings → Apps → Raghif →
-Clear storage to see the new data. Dates are computed as "today" at seed
-time, so a fresh install demoes correctly on any day.
+Seeded on first run (drift `ensureSeeded`), then refreshed once per calendar
+day. Every queue read filters on today's date, so a build installed one day
+would show empty owner screens the next — instead, opening the app on a new
+day lays down that day's queue and leaves earlier days in place for the
+history screen. An APK built today demoes correctly tomorrow morning.
+
+⚠️ Same-day re-runs still need a wipe: once أحمد buys his bag, the
+one-bag-per-ID-per-day rule blocks a second live buy until tomorrow. To
+rehearse and then demo on the same day, clear storage in between
+(Settings → Apps → رغيف → Clear storage), which re-seeds from scratch.
 
 Current accounts (existing):
 
@@ -44,8 +50,8 @@ three states land on three visible batches.
 one-bag-per-ID-per-day rule would block the live buy. Dummy buyers carry
 their own IDs.
 
-ⓘ Seeds apply to a FRESH install only — on an existing install, clear
-storage (Settings → Apps → Raghif) to re-seed.
+ⓘ This story is re-seeded automatically on each new calendar day — see
+Demo data above for the same-day caveat.
 
 ---
 
@@ -62,7 +68,8 @@ storage (Settings → Apps → Raghif) to re-seed.
 
 **2. Store list — "where can I buy bread today?"** ✅ READY
 - Shows the stores; tappable when open + has stock; closed/sold-out show
-  "نفدت الكمية". ⚠️ Closed-vs-sold-out text is conflated today.
+  "نفدت الكمية". ✅ A closed bakery now reads "مغلق" on a neutral chip
+  instead of borrowing the sold-out wording.
 - ✅ Search by store name or area, area filter chips, and pin-to-top. Stores
   the buyer actually uses float up by themselves (order today → bought before)
   and carry a richer card: order state, "مدفوع", last visit.
@@ -132,7 +139,9 @@ storage (Settings → Apps → Raghif) to re-seed.
   buyers from earlier batches were called but never picked up (soft
   enforcement — a hard block would deadlock the owner when someone simply
   never shows up).
-- ⚠️ waiting rows are amber, UI spec says gray.
+- ✅ waiting rows are amber — that matches UI_SPEC, which maps `warning`
+  (#B45309) to "waiting/pending batch status". (An earlier note here claimed
+  the spec wanted gray; it does not.)
 - ✅ "Remaining didn't pick" visual: every batch header now carries the
   called / picked / still-waiting tallies.
 

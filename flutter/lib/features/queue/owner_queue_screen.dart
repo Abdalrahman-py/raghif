@@ -353,19 +353,20 @@ class _BuyerRow extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                Row(
+                // Wrap, not Row: the chip keeps its intrinsic width (Flexible
+                // was squeezing "تم الاستلام" onto two lines) and the time
+                // drops to the next line when the row runs out of space.
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: StatusChip(text: statusText, tone: tone),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        formatReadyTime(purchase.createdAtMillis),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    StatusChip(text: statusText, tone: tone),
+                    Text(
+                      formatReadyTime(purchase.createdAtMillis),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

@@ -62,6 +62,10 @@ void main() {
     expect(find.text(Strings.appTitle), findsOneWidget);
     expect(find.text(Strings.requestOtpButton), findsOneWidget);
     expect(find.text(Strings.personalIdLabel), findsOneWidget);
+    // PIN login is only offered once a National ID identifies the user.
+    expect(find.text(Strings.loginWithPinInstead), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '900111222');
+    await tester.pumpAndSettle();
     expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
 
     // See the first test's comment: unmount inline, not via addTearDown.

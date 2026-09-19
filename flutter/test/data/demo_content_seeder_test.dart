@@ -121,4 +121,40 @@ void main() {
     final users = await db.select(db.users).get();
     expect(users.length, 2); // unchanged — dummy buyers NOT added
   });
+
+  test('lays down a new day when the seeded content is from a past day',
+      () async {
+    await seeder.seedIfFresh();
+
+    // Simulate opening the app the morning after the build was installed:
+    // every queue read filters on today, so yesterday's rows would leave the
+    // owner screens empty unless a new day gets seeded.
+    final yesterday = todayDateString(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+    await db.update(db.purchases).write(
+          PurchasesCompanion(purchaseDate: Value(yesterday)),
+        );
+
+    await seeder.seedIfFresh();
+
+    final demoStore = await queueRepo
+        .getStores()
+        .then((s) => s.firstWhere((s) => s.ownerPhone == demoOwnerPhone));
+    final queue = await queueRepo.getQueueForStore(
+      demoStore.id,
+      todayDateString(),
+    );
+    expect(queue.length, 9, reason: "the next day's queue must not be empty");
+
+    // Yesterday is kept — the owner history screen browses past days.
+    final allPurchases = await db.select(db.purchases).get();
+    expect(allPurchases.length, 18);
+
+    // Dummy buyers and extra stores are reused, never duplicated.
+    final users = await db.select(db.users).get();
+    expect(users.length, 11);
+    final stores = await queueRepo.getStores();
+    expect(stores.length, 7);
+  });
 }

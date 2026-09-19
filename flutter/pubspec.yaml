@@ -39,6 +39,10 @@ dependencies:
   sqlite3: ^3.5.2
   drift_flutter: ^0.3.1
   shared_preferences: ^2.5.5
+  supabase_flutter: ^2.9.2
+  flutter_dotenv: ^5.2.1
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
   crypto: ^3.0.7
   flutter_bloc: ^9.1.1
   get_it: ^9.2.1
@@ -91,6 +95,7 @@ flutter:
   assets:
     - assets/images/
     - assets/sounds/
+    - .env
 
   fonts:
     - family: NotoSansArabic

@@ -65,6 +65,24 @@ Workflow rules this changelog lives by:
 
 ### Fixed
 
+- The "log in with your PIN instead" link on the sign-in screen no longer
+  shows before a National ID is typed — PIN login is an alternate path for an
+  identified user, so offering it on an empty form only added a dead end.
+  Login golden regenerated.
+- Buyer queue status chips ("تم الاستلام", "تم الإشعار") broke across two
+  lines on a phone-width card, splitting the word mid-letter. The chip now
+  keeps its intrinsic width and the pickup time wraps below it instead.
+- Demo content is now seeded once per calendar day instead of once per
+  install. Every queue read filters on today's date, so a build installed on
+  one day showed an empty owner queue, dashboard and history the next — the
+  seeder bailed out as soon as any purchase existed. Earlier days are kept,
+  so the history screen gains real past days to browse, and the demo store's
+  bags are restocked to its daily allocation each day.
+- A closed bakery on the store list read "نفدت الكمية" (sold out), blaming
+  the owner for stock they never put out. Closed stores now show "مغلق" on a
+  neutral chip; sold-out keeps the red chip. Store list golden regenerated.
+- Android launcher label was the latin placeholder "raghif"; it is now رغيف,
+  matching the app's Arabic-only UI.
 - Store list golden (`store_list_screen.png`) regenerated — it was stale
   against the current store card layout, failing CI (0.02%, 58px diff) on
   every branch regardless of its own changes.

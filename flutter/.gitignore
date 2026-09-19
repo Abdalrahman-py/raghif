@@ -23,6 +23,14 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# Environment / secrets
+.env
+
+# Supabase CLI local state (project-ref link cache — see supabase/config.toml
+# for the tracked project pointer)
+supabase/.temp/
+supabase/.branches/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
