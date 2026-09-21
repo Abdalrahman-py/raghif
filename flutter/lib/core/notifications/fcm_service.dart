@@ -66,4 +66,24 @@ class FcmService {
       onConflict: 'user_id,fcm_token',
     );
   }
+
+  /// Detaches this device's token from the signed-in user. Must run *before*
+  /// `auth.signOut()`: the `device_tokens` RLS policy is `auth.uid() =
+  /// user_id`, so the delete silently matches nothing once the session is
+  /// gone — leaving the handset subscribed to the previous user's batch
+  /// pushes, which matters when a phone is shared between buyers.
+  Future<void> unregisterCurrentDeviceToken() async {
+    if (kIsWeb) return;
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
+
+    await _client
+        .from('device_tokens')
+        .delete()
+        .eq('user_id', userId)
+        .eq('fcm_token', token);
+  }
 }

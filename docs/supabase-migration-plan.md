@@ -60,6 +60,23 @@ the target schema.
   `device_tokens` table; Realtime subscriptions handle in-app live updates as
   a complement, not a replacement.
 
+## Deploy step: notify-batch shared secret
+
+`notify-batch` runs with `verify_jwt` off (its caller is a DB trigger via
+pg_net, which has no session), so it authenticates the caller with a shared
+secret instead. Migration `20260921122111` generates that secret into Vault;
+the function needs the same value as `NOTIFY_BATCH_SECRET`. It fails closed,
+so pushes stay dead until this is run once per environment:
+
+```bash
+supabase secrets set --project-ref mgmerkaokkffsypnkryj \
+  NOTIFY_BATCH_SECRET="$(psql "$SUPABASE_DB_URL" -tAc \
+    "select decrypted_secret from vault.decrypted_secrets where name='notify_batch_secret'")"
+```
+
+To rotate: update the Vault row and re-run the command. Nothing else reads
+it, and it never enters the repo.
+
 ## Open risks
 
 - Real SMS/OTP provider still unresolved (spec.md blocker) — the Edge

@@ -300,6 +300,15 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    // Before signOut: the device_tokens RLS policy needs a live session, and
+    // a token left behind keeps pushing this user's batch alerts to whoever
+    // holds the phone next. Best-effort — a dead connection must never trap
+    // someone in a signed-in state they asked to leave.
+    try {
+      await _fcmService?.unregisterCurrentDeviceToken();
+    } catch (_) {
+      // ignored: logout proceeds regardless
+    }
     await _client.auth.signOut();
     await _sessionStore.clear();
   }
