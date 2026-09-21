@@ -67,6 +67,11 @@ language toggle; icons that imply direction (back arrow, batch progress) must mi
 
 Line height 1.5× minimum on body text. No text below `bodyMedium` (15sp) anywhere in the app.
 
+The caption role is named, not inherited: `bodySmall`/`labelSmall` are 15sp tokens like everything
+else. Leaving them undefined did not mean "no caption text" — Material supplied every helper, error
+and counter line at its own 12sp default in its own font, which is both below the floor above and
+outside this app's type scale.
+
 ### Shape & Spacing
 
 8dp grid throughout.
@@ -88,10 +93,25 @@ including table rows in OwnerQueue.
 
 ## Per-Screen Treatment
 
-**LoginScreen** — Phone + national ID + 4-digit PIN. PIN entry as large individual digit boxes
-(48dp each, `shape.md`), not a single small text field — easier to verify at a glance, easier to
-target. Language toggle chip (`shape.sm`, top-right, always visible pre-login). Error state:
-red border (`error`) + inline text below field, never color-only.
+**OnboardingScreen** — Three slides, one idea each (order from home / get told when it's ready /
+verify to buy), no stock art: an icon on an `accentContainer` circle does the work. The step counter
+("page n of m") says how much is left and "skip" is always in the opposite corner. The dots are a
+control, not decoration: marks on a 32dp pitch with a 24dp active pill, each keeping a 48dp tap
+target by overlapping its neighbours. The last slide swaps "next" for the two decisions ("create
+account" / "I already have one").
+
+**LoginScreen** — One question at a time. Step 1 asks for the national ID alone (`bodyLarge` input,
+9 digits, helper states the format) with a single primary action. The PIN route is offered from the
+start rather than appearing only once an ID is typed, switched by an inline link — the PIN is what a
+returning user already knows. The code step states plainly that no SMS was sent in demo mode and
+lets the code be tapped in. Entry errors are answered on the field they came from, and an unknown ID
+points at sign-up instead of dead-ending. Language toggle chip (`shape.sm`, top-right, always
+visible pre-login). Error state: red border (`error`) + inline text below field, never color-only.
+
+**RegistrationScreen** — Fields grouped by what they are for ("account details" / "signing in and
+paying"), errors naming the field they belong to rather than one sentence for a blank form, a PIN
+confirmation, and a wallet number that follows the phone until the user overrides it. A mismatch is
+refused before anything is submitted.
 
 **StoreListScreen** — Cards (`shape.lg`, `surface`, elevation 1dp) in single column, full-width
 — no grid, no GPS/map. Each card: store name (`titleMedium`), status badge top-right

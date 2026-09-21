@@ -244,36 +244,48 @@ class _PageDots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(count, (i) {
-        final selected = i == page;
-        return Semantics(
-          label: Strings.onboardingPageOf(i + 1, count),
-          selected: selected,
-          button: true,
-          child: InkResponse(
-            key: ValueKey('onboarding-dot-$i'),
-            onTap: () => onTap(i),
-            radius: 24,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: selected ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: selected ? colors.primary : colors.outline,
-                    borderRadius: BorderRadius.circular(4),
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // Marks on a 32dp pitch — close enough to read as one control rather than
+    // three loose specks — while each dot keeps a full 48dp tap target, since
+    // the boxes overlap each other rather than sitting side by side.
+    const box = 48.0;
+    const pitch = 32.0;
+    return SizedBox(
+      height: box,
+      width: box + pitch * (count - 1),
+      child: Stack(
+        children: List.generate(count, (i) {
+          final selected = i == page;
+          return Positioned(
+            // Page 1 hangs off the right edge in Arabic.
+            left: rtl ? pitch * (count - 1 - i) : pitch * i,
+            top: 0,
+            width: box,
+            height: box,
+            child: Semantics(
+              label: Strings.onboardingPageOf(i + 1, count),
+              selected: selected,
+              button: true,
+              child: InkResponse(
+                key: ValueKey('onboarding-dot-$i'),
+                onTap: () => onTap(i),
+                radius: 24,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: selected ? 24 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: selected ? colors.primary : colors.outline,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }
