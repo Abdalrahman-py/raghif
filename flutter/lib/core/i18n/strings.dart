@@ -88,13 +88,13 @@ class Strings {
   static const available = 'متوفر';
   static const soldOut = 'نفدت الكمية';
 
-  /// Shown when a write couldn't reach the backend. Deliberately says the
-  /// action did NOT happen: the server owns the bag count, so a failed
-  /// write is a non-event, not something queued for later.
   /// Owner account with no store attached to it server-side.
   static const noStoreForOwner =
       'لا يوجد مخبز مرتبط بهذا الحساب. تواصل مع المشرف لربط حسابك بمخبز.';
 
+  /// Shown when a write couldn't reach the backend. Deliberately says the
+  /// action did NOT happen: the server owns the bag count, so a failed
+  /// write is a non-event, not something queued for later.
   static const offlineWriteFailed =
       'تعذّر الاتصال بالخادم. لم يتم تنفيذ العملية، حاول مرة أخرى.';
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
@@ -191,9 +191,36 @@ class Strings {
   static const batchSizeLabel = 'حجم الدفعة';
   static const decreaseValue = 'إنقاص';
   static const increaseValue = 'زيادة';
-  static const saveAllocation = 'حفظ الكمية';
   static const saveBatchSize = 'حفظ حجم الدفعة';
   static const goToQueue = 'عرض طابور المشترين';
+
+  // Owner dashboard — settings card, open/close gate, hero status line
+  static const todaySettingsTitle = 'إعدادات اليوم';
+
+  /// Saves the daily allocation *and* the purchase window together, so the
+  /// label names both instead of only the quantity.
+  static const saveTodaySettings = 'حفظ إعدادات اليوم';
+  static const unsavedSettingsNote = 'لديك تغييرات غير محفوظة.';
+  static const savedSettingsNote = 'الكمية والأوقات محفوظة.';
+  static const savedSettingsSnack = 'تم حفظ إعدادات اليوم';
+  static const purchaseWindowHint = 'وقت الشراء المعلن للزبائن:';
+  static const windowOrderError = 'وقت الانتهاء يجب أن يكون بعد وقت البدء.';
+  static const storeOpenSwitchLabel = 'المخبز مفتوح للبيع الآن';
+  static const storeOpenOnHelper = 'الزبائن يستطيعون حجز كيس واحد اليوم.';
+  static const storeOpenOffHelper =
+      'الحجز متوقف — لن يتمكن الزبائن من الحجز حتى تعيد التشغيل.';
+
+  /// Replaces the low-stock warning once the last bag is gone: selling is
+  /// stopped, and the fix is a different one (raise today's allocation).
+  static const outOfStockNotice = 'نفدت الكمية — حدّث الكمية اليومية بالأسفل.';
+
+  /// The hero counter's value. Deliberately the Arabic word, not "X / Y": a
+  /// slash between two numbers is resolved by the bidi algorithm against the
+  /// RTL paragraph and renders as "300 / 14" (the limit first), which reads as
+  /// the opposite of what it means. "14 من 300" is unambiguous in both
+  /// directions.
+  static String remainingValue(int remaining, int total) =>
+      '$remaining من $total';
 
   // Owner queue
   static const buyerQueueTitle = 'طابور المشترين';

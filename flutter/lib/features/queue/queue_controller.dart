@@ -198,6 +198,17 @@ class QueueController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Owner action: open or close the store for buying.
+  ///
+  /// This is the only thing that can stop sales mid-crowd: [StoreModel
+  /// .canPurchase] reads the flag, so every buyer device sees the store shut
+  /// on its next read. The purchase window's times are informational and do
+  /// not themselves gate buying — this does.
+  Future<void> setStoreOpen(String storeId, bool isOpen) async {
+    await _repository.setStoreOpen(storeId, isOpen);
+    notifyListeners();
+  }
+
   /// Owner action: today's allocation and purchase window.
   Future<void> saveAllocation(
     String storeId, {

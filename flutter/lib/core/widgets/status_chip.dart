@@ -27,19 +27,30 @@ _ToneColors _toneColors(StatusTone tone) {
 /// Status pairs a color with an icon/label — color is never the only signal
 /// (colorblind + grayscale-screen-in-sunlight safe), per UI_SPEC.md.
 class StatusChip extends StatelessWidget {
-  const StatusChip({super.key, required this.text, required this.tone});
+  const StatusChip({
+    super.key,
+    required this.text,
+    required this.tone,
+    this.icon,
+  });
 
   final String text;
   final StatusTone tone;
 
+  /// Overrides the tone's default icon where the chip means something more
+  /// specific than its tone (a day chip is not an information notice).
+  final IconData? icon;
+
   @override
   Widget build(BuildContext context) {
     final colors = _toneColors(tone);
-    final icon = switch (tone) {
-      StatusTone.success => Icons.check_circle,
-      StatusTone.danger => Icons.error,
-      _ => Icons.info,
-    };
+    final resolvedIcon =
+        icon ??
+        switch (tone) {
+          StatusTone.success => Icons.check_circle,
+          StatusTone.danger => Icons.error,
+          _ => Icons.info,
+        };
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.container,
@@ -53,13 +64,15 @@ class StatusChip extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Icon(icon, size: 16, color: colors.content),
+              child: Icon(resolvedIcon, size: 16, color: colors.content),
             ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 text,
-                style: AppTypography.labelMedium.copyWith(color: colors.content),
+                style: AppTypography.labelMedium.copyWith(
+                  color: colors.content,
+                ),
               ),
             ),
           ],

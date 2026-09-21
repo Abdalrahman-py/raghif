@@ -107,9 +107,25 @@ number and store name at `titleMedium`. If waiting: plain-language countdown/sta
 timer digit grid. SMS-fallback note in `bodyMedium`, `textSecondary`.
 
 **OwnerDashboardScreen** — "Remaining: X / Y" as the single largest element on screen
-(`displayLarge`, tabular numerals). Purchase-window ON/OFF as a large labeled switch, not an
-icon-only toggle — must read correctly to an owner glancing quickly mid-crowd. Batch size input:
-stepper (+/− buttons ≥48dp) over free-text entry, fewer input errors.
+(`displayLarge`, tabular numerals), with a depletion bar under it so the ratio reads at a glance.
+Purchase-window ON/OFF as a large labeled switch, not an icon-only toggle — must read correctly to
+an owner glancing quickly mid-crowd. Batch size input: stepper (+/− buttons ≥48dp) over free-text
+entry, fewer input errors.
+
+Flutter build deviations (implemented):
+
+- The window is set as open/close **times**, and the ON/OFF gate is its own switch below —
+  `StoreModel.isOpen` is what `canPurchase` reads, while the times are informational and are what
+  the store cards print.
+- Batch size moved to OwnerQueueScreen: it regroups the queue, so it is edited beside the queue.
+- Allocation and times save through one action that only exists while something is unsaved, so
+  "did that save?" always has an on-screen answer.
+- The counter reads "14 من 300", never "14 / 300": a slash between two numbers is re-ordered by the
+  bidi algorithm against the RTL paragraph and renders as "300 / 14".
+- Sold out replaces the low-stock warning instead of stacking with it; each pairs its color with an
+  icon and a sentence.
+- Only the queue action is pinned to the bottom; customers/history are rows in the scroll, because
+  three stacked full-width buttons held ~190dp of every screen height permanently.
 
 **OwnerQueueScreen** — Table rows, one buyer per row, 56dp row height (taller than the 48dp
 floor — dense list, needs the extra tap-accuracy margin). Batch grouping via section headers, not
