@@ -22,7 +22,8 @@ class Strings {
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const otpNotificationTitle = 'رمز التحقق';
-  static String otpNotificationBody(String code) => 'رمز التحقق الخاص بك: $code';
+  static String otpNotificationBody(String code) =>
+      'رمز التحقق الخاص بك: $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -53,6 +54,45 @@ class Strings {
   static const onboardingTitle3 = 'تحقق من حسابك للشراء';
   static const onboardingBody3 =
       'أكمل التسجيل وتحقق من هويتك — كيس واحد لكل بطاقة هوية يومياً.';
+
+  /// "الصفحة 2 من 3" — the counter above the intro, so how many steps are left
+  /// is readable without counting dots. Western digits, like the rest of the
+  /// app.
+  static String onboardingPageOf(int page, int total) =>
+      'الصفحة $page من $total';
+
+  // Login — the old screen reused `registerError` ("يرجى تعبئة جميع الحقول")
+  // for an empty National ID: it names the wrong problem, and it appeared under
+  // the button instead of on the field that was empty.
+  static const nationalIdRequired = 'أدخل رقم الهوية';
+  static const nationalIdLengthError = 'رقم الهوية 9 أرقام';
+  static const nationalIdHelper = '9 أرقام كما في بطاقة الهوية';
+  static const pinRequired = 'أدخل الرمز السري';
+  static const pinLengthError = 'الرمز السري 4 أرقام';
+  static const showPin = 'إظهار الرمز';
+  static const hidePin = 'إخفاء الرمز';
+  static const otpRequired = 'أدخل رمز التحقق';
+  static const otpLengthError = 'رمز التحقق 4 أرقام';
+  static const otpHelper = '4 أرقام';
+
+  /// Countdown while "resend" is on cooldown: the wait is visible instead of a
+  /// dead-looking button, and the code can't be requested repeatedly.
+  static String resendOtpIn(int seconds) => 'إعادة الإرسال بعد $seconds ثانية';
+  static const demoOtpTapToFill = 'اضغط لتعبئة الرمز';
+  static String fillDemoAccount(String label) => 'تعبئة بيانات $label';
+
+  // Registration — per-field messages, so a blank form names the field that is
+  // missing instead of printing one blanket sentence.
+  static const registrationAccountSection = 'بيانات الحساب';
+  static const registrationPaymentSection = 'الدخول والدفع';
+  static const nameRequired = 'أدخل الاسم';
+  static const phoneRequired = 'أدخل رقم الهاتف';
+  static const phoneInvalid = 'رقم الهاتف 10 أرقام ويبدأ بـ 05';
+  static const confirmPinLabel = 'تأكيد الرمز السري';
+  static const pinMismatch = 'الرمزان السريان غير متطابقين';
+  static const pinHelper = 'ستحتاجه للدخول في كل مرة — لا يمكن استعادته';
+  static const jawwalPayRequired = 'أدخل رقم جوال باي';
+  static const jawwalPayInvalid = 'رقم جوال باي 10 أرقام';
 
   // Registration
   static const registrationTitle = 'إنشاء حساب جديد';
@@ -97,6 +137,7 @@ class Strings {
   /// write is a non-event, not something queued for later.
   static const offlineWriteFailed =
       'تعذّر الاتصال بالخادم. لم يتم تنفيذ العملية، حاول مرة أخرى.';
+
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
   static String bagsRemaining(int remaining, int total) =>
@@ -238,7 +279,8 @@ class Strings {
   static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
   static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';
   static const scanQrTitle = 'مسح رمز الاستلام';
-  static const scanCameraHint = 'وجّه الكاميرا نحو رمز الاستلام على هاتف الزبون';
+  static const scanCameraHint =
+      'وجّه الكاميرا نحو رمز الاستلام على هاتف الزبون';
   static const scanCameraError =
       'تعذر تشغيل الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
   static const scanInvalidCode = 'الرمز غير صالح، حاول مرة أخرى';

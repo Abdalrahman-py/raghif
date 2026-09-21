@@ -37,6 +37,8 @@ class AppTheme {
         bodyMedium: AppTypography.bodyMedium,
         labelLarge: AppTypography.labelLarge,
         labelMedium: AppTypography.labelMedium,
+        bodySmall: AppTypography.bodySmall,
+        labelSmall: AppTypography.labelSmall,
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
@@ -56,6 +58,14 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.danger, width: 2),
         ),
         labelStyle: AppTypography.bodyLarge,
+        // Pinned rather than inherited: without these, Material supplies the
+        // helper/error/counter lines from its own 12sp defaults, which sit
+        // below this app's type floor and outside its font.
+        helperStyle: AppTypography.bodySmall,
+        errorStyle: AppTypography.bodySmall.copyWith(color: AppColors.danger),
+        counterStyle: AppTypography.bodySmall,
+        helperMaxLines: 2,
+        errorMaxLines: 2,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

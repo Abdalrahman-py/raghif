@@ -68,4 +68,31 @@ class AppTypography {
     height: 23 / 15,
     letterSpacing: 0.3,
   );
+
+  /// Secondary/caption role, held at the same 15sp floor as [bodyMedium]
+  /// instead of Material's 12sp default. Helper text, field errors and inline
+  /// captions are the only small print the app has, and they get read outdoors
+  /// by someone who left their glasses at home.
+  ///
+  /// Leaving these two undefined did not mean "no caption text": it meant every
+  /// helper, error and counter line silently rendered at Roboto 12sp from the
+  /// Material defaults, outside the design system — which is also why they came
+  /// out as tofu boxes in the goldens, since only NotoSansArabic is loaded
+  /// there.
+  static const bodySmall = TextStyle(
+    fontFamily: _fontFamily,
+    fontWeight: FontWeight.w400,
+    fontSize: 15,
+    height: 23 / 15,
+    letterSpacing: 0.2,
+    color: AppColors.textSecondary,
+  );
+  static const labelSmall = TextStyle(
+    fontFamily: _fontFamily,
+    fontWeight: FontWeight.w600,
+    fontSize: 15,
+    height: 23 / 15,
+    letterSpacing: 0.3,
+    color: AppColors.textSecondary,
+  );
 }

@@ -36,15 +36,16 @@ void main() {
   }
 
   TextField phoneField(WidgetTester tester) => tester.widget<TextField>(
-        find.widgetWithText(TextField, Strings.phoneLabel),
-      );
+    find.widgetWithText(TextField, Strings.phoneLabel),
+  );
 
   TextField jawwalField(WidgetTester tester) => tester.widget<TextField>(
-        find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
-      );
+    find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
+  );
 
-  testWidgets('Jawwal Pay number mirrors the phone number as it is typed',
-      (tester) async {
+  testWidgets('Jawwal Pay number mirrors the phone number as it is typed', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     await tester.enterText(
@@ -57,8 +58,9 @@ void main() {
     expect(phoneField(tester).controller!.text, '0599111111');
   });
 
-  testWidgets('updates the default when the phone number changes',
-      (tester) async {
+  testWidgets('updates the default when the phone number changes', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     await tester.enterText(
@@ -75,8 +77,9 @@ void main() {
     expect(jawwalField(tester).controller!.text, '0599222222');
   });
 
-  testWidgets('a manually entered wallet number is not overwritten',
-      (tester) async {
+  testWidgets('a manually entered wallet number is not overwritten', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     await tester.enterText(
@@ -100,8 +103,9 @@ void main() {
     expect(jawwalField(tester).controller!.text, '0599888888');
   });
 
-  testWidgets('clearing the wallet field restores the phone default',
-      (tester) async {
+  testWidgets('clearing the wallet field restores the phone default', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     await tester.enterText(
@@ -121,5 +125,60 @@ void main() {
     await tester.pump();
 
     expect(jawwalField(tester).controller!.text, '0599111111');
+  });
+
+  testWidgets('a blank form names each missing field', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.ensureVisible(find.text(Strings.registerButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Strings.registerButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.nameRequired), findsOneWidget);
+    expect(find.text(Strings.phoneRequired), findsOneWidget);
+    expect(find.text(Strings.nationalIdRequired), findsOneWidget);
+    // The PIN and its confirmation each complain about themselves.
+    expect(find.text(Strings.pinRequired), findsNWidgets(2));
+    expect(find.text(Strings.jawwalPayRequired), findsOneWidget);
+    // The blanket sentence the form used to answer with is gone, and nothing
+    // was submitted.
+    expect(find.text(Strings.registerError), findsNothing);
+    expect(bloc.state, isA<AuthInitial>());
+  });
+
+  testWidgets('mismatched PINs are refused before submitting', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, Strings.nameLabel),
+      'أحمد ناصر',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, Strings.phoneLabel),
+      '0599111111',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, Strings.personalIdLabel),
+      '900111222',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, Strings.pinLabel),
+      '1234',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, Strings.confirmPinLabel),
+      '4321',
+    );
+
+    await tester.ensureVisible(find.text(Strings.registerButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Strings.registerButton));
+    await tester.pumpAndSettle();
+
+    // The PIN is the login credential and there is no reset flow, so a typo
+    // here has to be caught before the account exists.
+    expect(find.text(Strings.pinMismatch), findsOneWidget);
+    expect(bloc.state, isA<AuthInitial>());
   });
 }

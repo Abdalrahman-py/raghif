@@ -14,7 +14,9 @@ import 'support/fake_auth_repository.dart';
 import 'support/queue_test_harness.dart';
 
 void main() {
-  testWidgets('RaghifApp shows onboarding on a fresh install', (WidgetTester tester) async {
+  testWidgets('RaghifApp shows onboarding on a fresh install', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
@@ -24,11 +26,19 @@ void main() {
       authRepository: FakeAuthRepository(),
       sessionStore: sessionStore,
     );
-    await tester.pumpWidget(RaghifApp(authBloc: authBloc, queueController: buildQueueHarness().controller));
+    await tester.pumpWidget(
+      RaghifApp(
+        authBloc: authBloc,
+        queueController: buildQueueHarness().controller,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(Strings.onboardingTitle1), findsOneWidget);
-    expect(find.text(Strings.onboardingGetStarted), findsNothing); // not on slide 1
+    expect(
+      find.text(Strings.onboardingGetStarted),
+      findsNothing,
+    ); // not on slide 1
 
     // App is forced RTL regardless of device locale.
     expect(
@@ -48,8 +58,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('RaghifApp renders the login screen once onboarding is done',
-      (WidgetTester tester) async {
+  testWidgets('RaghifApp renders the login screen once onboarding is done', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'onboarding.seen': true});
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
@@ -59,17 +70,26 @@ void main() {
       authRepository: FakeAuthRepository(),
       sessionStore: sessionStore,
     );
-    await tester.pumpWidget(RaghifApp(authBloc: authBloc, queueController: buildQueueHarness().controller));
+    await tester.pumpWidget(
+      RaghifApp(
+        authBloc: authBloc,
+        queueController: buildQueueHarness().controller,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(Strings.appTitle), findsOneWidget);
     expect(find.text(Strings.requestOtpButton), findsOneWidget);
     expect(find.text(Strings.personalIdLabel), findsOneWidget);
-    // PIN login is only offered once a National ID identifies the user.
-    expect(find.text(Strings.loginWithPinInstead), findsNothing);
+    // The PIN route is on screen from the start. Hiding it until a National ID
+    // was typed meant a returning user's normal way in — the PIN they use every
+    // day — wasn't visible at all.
+    expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, '900111222');
     await tester.pumpAndSettle();
     expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
+    // ...and the code path stays the primary action.
+    expect(find.text(Strings.requestOtpButton), findsOneWidget);
 
     // See the first test's comment: unmount inline, not via addTearDown.
     await tester.pumpWidget(const SizedBox());

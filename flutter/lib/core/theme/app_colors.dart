@@ -8,8 +8,12 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const navy = Color(0xFF0F172A); // header/nav chrome, owner-mode surfaces
-  static const slate = Color(0xFF334155); // secondary text on light bg, dividers
+  static const navy = Color(
+    0xFF0F172A,
+  ); // header/nav chrome, owner-mode surfaces
+  static const slate = Color(
+    0xFF334155,
+  ); // secondary text on light bg, dividers
 
   static const accent = Color(0xFF0369A1); // CTA — buy, notify next batch
   static const accentPressed = Color(0xFF075985);
@@ -27,6 +31,11 @@ class AppColors {
   static const textPrimary = Color(0xFF020617); // 16.8:1 on background
   static const textSecondary = Color(0xFF334155); // 7.5:1 min on background
   static const border = Color(0xFFCBD5E1);
+
+  /// Tint behind accent artwork (the intro slides' icon badge) and low-emphasis
+  /// accent surfaces: same hue as [accent], dark enough text on it passes
+  /// contrast.
+  static const accentContainer = Color(0xFFE0F2FE);
 
   static const successContainer = Color(0xFFDCFCE7);
   static const warningContainer = Color(0xFFFEF3C7);
