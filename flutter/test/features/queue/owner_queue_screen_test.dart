@@ -1,12 +1,11 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
-import 'package:raghif/data/repositories/queue_repository_impl.dart';
+import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/queue/owner_queue_screen.dart';
-import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
+
+import '../../support/queue_test_harness.dart';
 
 Widget wrapWithMaterial(Widget child) {
   return MaterialApp(
@@ -20,17 +19,18 @@ void main() {
         'suffix while hiding the notify button during a search', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
 
-      final store = controller.stores.first;
-      final buyers = await db.select(db.users).get();
-      final buyer = buyers.firstWhere((u) => u.role == 'buyer');
+      final store = (await repo.getStoreById(seededStoreId))!;
+      const buyer = (
+        id: seededBuyerId,
+        nationalId: '900111222',
+        phone: '0599111111',
+      );
       final date = todayDateString();
       final purchase = await controller.buy(
-        userId: buyer.id,
         storeId: store.id,
         date: date,
       );
@@ -74,26 +74,24 @@ void main() {
       expect(find.textContaining(buyer.nationalId), findsOneWidget);
       expect(find.textContaining(Strings.notifyNextBatch(1)), findsOneWidget);
 
-      await db.close();
+      repo.dispose();
     });
 
     testWidgets(
       'shows per-batch progress and asks for confirmation before notifying',
       (tester) async {
-        final db = AppDatabase(NativeDatabase.memory());
-        final repository = QueueRepositoryImpl(db);
-        await repository.ensureSeeded();
-        final controller = QueueController(repository);
+        final harness = buildQueueHarness();
+        final repo = harness.repo;
+        final controller = harness.controller;
 
-        final store = controller.stores.first;
-        final buyers = await db.select(db.users).get();
-        final buyer = buyers.firstWhere((u) => u.role == 'buyer');
+        final store = (await repo.getStoreById(seededStoreId))!;
         final date = todayDateString();
         final purchase = await controller.buy(
-          userId: buyer.id,
           storeId: store.id,
           date: date,
         );
+        // notify_next_batch is owner-only server-side; act as the owner now.
+        repo.currentUserId = seededOwnerId;
 
         await tester.pumpWidget(
           wrapWithMaterial(
@@ -115,7 +113,7 @@ void main() {
         await tester.tap(find.text(Strings.cancelLabel));
         await tester.pumpAndSettle();
         expect(
-          (await repository.getPurchaseById(purchase.id))!.status,
+          (await repo.getPurchaseById(purchase.id))!.status,
           PurchaseStatus.waiting,
         );
 
@@ -125,11 +123,11 @@ void main() {
         await tester.tap(find.text(Strings.notifyConfirmAction));
         await tester.pumpAndSettle();
         expect(
-          (await repository.getPurchaseById(purchase.id))!.status,
+          (await repo.getPurchaseById(purchase.id))!.status,
           PurchaseStatus.notified,
         );
 
-        await db.close();
+        repo.dispose();
       },
     );
   });

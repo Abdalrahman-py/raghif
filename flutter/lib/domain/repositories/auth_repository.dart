@@ -1,8 +1,6 @@
 import '../models/user_model.dart';
 
 abstract class AuthRepository {
-  Future<void> ensureSeeded();
-
   Future<UserModel?> login({
     required String phone,
     required String pin,
@@ -19,7 +17,7 @@ abstract class AuthRepository {
 
   Future<String?> requestOtp(String nationalId);
 
-  Future<UserModel?> findById(int id);
+  Future<UserModel?> findById(String id);
 
   Future<UserModel?> findByNationalId(String nationalId);
 
@@ -43,9 +41,9 @@ abstract class AuthRepository {
     String? jawwalPayNumber,
   });
 
-  Future<void> updateVerificationStatus(int userId, VerificationStatus status);
+  Future<void> updateVerificationStatus(String userId, VerificationStatus status);
 
-  Future<void> updateJawwalPayNumber(int userId, String jawwalPayNumber);
+  Future<void> updateJawwalPayNumber(String userId, String jawwalPayNumber);
 
   Future<void> logout();
 }

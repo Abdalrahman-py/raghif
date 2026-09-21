@@ -25,7 +25,7 @@ class PurchaseScreen extends StatefulWidget {
   });
 
   final QueueController controller;
-  final int storeId;
+  final String storeId;
   final DemoUser currentUser;
 
   @override
@@ -36,7 +36,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
   bool _isPaying = false;
   PurchaseModel? _blocker;
 
-  int get _userId => widget.currentUser.id;
+  String get _userId => widget.currentUser.id;
 
   @override
   void initState() {
@@ -47,7 +47,6 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
   Future<void> _checkBlocker() async {
     final blocker = await widget.controller.blockingPurchaseFor(
       _userId,
-      widget.storeId,
       todayDateString(),
     );
     if (mounted) {
@@ -79,7 +78,6 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     final date = todayDateString();
     final blocker = await widget.controller.blockingPurchaseFor(
       _userId,
-      widget.storeId,
       date,
     );
     if (blocker != null) {
@@ -93,8 +91,8 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     }
 
     try {
+      // No userId: the buyer comes from the Supabase session server-side.
       final purchase = await widget.controller.buy(
-        userId: _userId,
         storeId: widget.storeId,
         date: date,
       );
@@ -111,10 +109,19 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text(Strings.soldOut)));
       Navigator.of(context).pop();
+    } on BackendUnavailableException {
+      // Postgres holds the bag count, so an unreachable server means no
+      // reservation was made. Saying "done" here and reconciling later is
+      // how two buyers end up holding the same last bag.
+      if (!mounted) return;
+      setState(() => _isPaying = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(Strings.offlineWriteFailed)));
     }
   }
 
-  void _goToConfirmation(int purchaseId) async {
+  void _goToConfirmation(String purchaseId) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConfirmationScreen(

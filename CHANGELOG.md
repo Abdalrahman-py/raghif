@@ -19,6 +19,42 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed
+
+- **Postgres is the source of truth; drift is a cache.** The app used to
+  seed its own stores, buyers and queue on every install and decide the
+  rules on-device, with Supabase wired in behind a `USE_SUPABASE` flag as
+  a second opinion. That split is what let a receipt read "batch 4" while
+  the server had the same row as batch 1. Now:
+  - Every write is a Postgres RPC that authorizes itself
+    (`reserve_bag`, `notify_next_batch`, `collect_purchase`,
+    `set_store_open`, `record_scan`, `set_store_pinned`,
+    `save_store_allocation`). The owner's customer book and sales history
+    are computed in SQL.
+  - The demo world is seeded server-side and idempotently by
+    `seed_demo_buyers` / `seed_demo_stores` / `seed_demo_day`, driven by
+    the `seed-demo` Edge Function action. `DemoContentSeeder` and the
+    local `ensureSeeded()` calls are gone.
+  - Ids are Supabase UUIDs everywhere — device, server and QR code. The
+    local `INTEGER AUTOINCREMENT` ids and the `remote_id` mapping columns
+    are gone, along with the `dynamic` id parameters and `_parseInt`
+    coercion they forced on the controller.
+  - **Writes require the backend** and fail loudly
+    (`BackendUnavailableException`) instead of being applied locally and
+    reconciled later. Reads still serve from cache while offline.
+  - Drift schema v8 drops and recreates every table. There is no
+    column-by-column upgrade from v7: the old ids named rows that only
+    existed on one device, and a cache is cheap to refill.
+  - QR payload is v2. **v1 receipts no longer scan** — they carry integer
+    ids that identify nothing now, so they are rejected rather than
+    resolved to whatever row shares the number.
+  - Pickup is one-way: the old notified↔collected toggle is now
+    `collectPurchase`. Bread that has been handed over cannot be
+    un-handed, and the server offers no way back.
+  - Removed as dead: the `dio`/`retrofit` scaffold that never had a server
+    to talk to, the `useSupabase` flag, `pin_hash` from the local cache
+    (PIN checks are the auth-gateway's job), and `AuthRepositoryImpl`.
+
 ### Fixed
 
 - Push notifications — four defects found by tracing the live pipeline

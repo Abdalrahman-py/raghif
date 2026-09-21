@@ -8,7 +8,7 @@ export '../../core/auth/demo_accounts.dart';
 /// main.dart.
 class DemoUser {
   const DemoUser({
-    this.id = 1,
+    required this.id,
     required this.phone,
     required this.pin,
     required this.role,
@@ -16,7 +16,8 @@ class DemoUser {
     this.jawwalPayNumber,
   });
 
-  final int id;
+  /// Supabase profiles UUID.
+  final String id;
   final String phone;
   final String pin;
   final UserRole role;

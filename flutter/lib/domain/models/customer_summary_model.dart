@@ -9,7 +9,7 @@ class CustomerSummaryModel extends Equatable {
     required this.lastPurchaseDate,
   });
 
-  final int userId;
+  final String userId;
   final String name;
   final String phone;
   final int totalPurchases;

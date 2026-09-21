@@ -2,14 +2,19 @@ import 'converters.dart';
 import 'stores.drift';
 import 'users.drift';
 
--- One row per reserved bag. spec.md: purchase_date is the day the bread is
--- for (not a timestamp), created_at preserves purchase order within a batch.
+-- Local mirror of Supabase `public.purchases`.
+--
+-- batch_number is stored, not derived: the server assigns it at reserve time
+-- so every device and the owner's release agree on which batch a buyer is
+-- in. Deriving it locally from queue position is what made a receipt read
+-- "batch 4" while Postgres had the same row as batch 1.
 CREATE TABLE purchases (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    store_id INTEGER NOT NULL REFERENCES stores (id),
-    user_id INTEGER NOT NULL REFERENCES users (id),
+    id TEXT NOT NULL PRIMARY KEY,
+    store_id TEXT NOT NULL REFERENCES stores (id),
+    user_id TEXT NOT NULL REFERENCES users (id),
+    -- The day the bread is for, "yyyy-MM-dd" -- not a timestamp.
     purchase_date TEXT NOT NULL,
-    batch_number INTEGER NOT NULL,
+    batch_number INTEGER NOT NULL DEFAULT 1,
     status TEXT MAPPED BY `const PurchaseStatusConverter()` NOT NULL,
     created_at INTEGER NOT NULL,
     UNIQUE (user_id, purchase_date)

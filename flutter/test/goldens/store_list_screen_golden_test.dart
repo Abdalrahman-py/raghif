@@ -3,11 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
-import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 
 import 'test_fonts.dart';
 import 'tolerant_golden_comparator.dart';
+
+import '../support/queue_test_harness.dart';
 
 void main() {
   setUpAll(() {
@@ -25,8 +26,9 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    final controller = QueueController();
+    final controller = buildQueueHarness().controller;
     const user = DemoUser(
+      id: 'user-buyer',
       phone: demoBuyerPhone,
       pin: demoBuyerPin,
       role: UserRole.buyer,

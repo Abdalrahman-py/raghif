@@ -272,7 +272,7 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                                           purchase: purchase,
                                           onToggleArrival: () => widget
                                               .controller
-                                              .toggleArrival(purchase.id),
+                                              .collectPurchase(purchase.id),
                                         ),
                                         const SizedBox(height: AppSpacing.sm),
                                       ],

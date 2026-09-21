@@ -87,6 +87,16 @@ class Strings {
   static const noStores = 'لا توجد مخابز متاحة حالياً';
   static const available = 'متوفر';
   static const soldOut = 'نفدت الكمية';
+
+  /// Shown when a write couldn't reach the backend. Deliberately says the
+  /// action did NOT happen: the server owns the bag count, so a failed
+  /// write is a non-event, not something queued for later.
+  /// Owner account with no store attached to it server-side.
+  static const noStoreForOwner =
+      'لا يوجد مخبز مرتبط بهذا الحساب. تواصل مع المشرف لربط حسابك بمخبز.';
+
+  static const offlineWriteFailed =
+      'تعذّر الاتصال بالخادم. لم يتم تنفيذ العملية، حاول مرة أخرى.';
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
   static String bagsRemaining(int remaining, int total) =>

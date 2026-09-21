@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection.dart';
+import 'core/i18n/strings.dart';
 import 'core/onboarding/onboarding_store.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_bloc.dart';
@@ -9,6 +10,7 @@ import 'features/auth/login_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/queue/buyer_home_screen.dart';
 import 'features/queue/owner_dashboard_screen.dart';
+import 'domain/models/store_model.dart';
 import 'features/queue/queue_controller.dart';
 import 'features/verification/photo_capture_screen.dart';
 import 'features/verification/waiting_for_verification_screen.dart';
@@ -109,9 +111,9 @@ class _RaghifAppState extends State<RaghifApp> {
               );
 
               return state.user.isOwner
-                  ? OwnerDashboardScreen(
+                  ? _OwnerHome(
                       controller: _controller,
-                      storeId: demoOwnerStoreId,
+                      ownerId: state.user.id,
                     )
                   : BuyerHomeScreen(
                       controller: _controller,
@@ -138,6 +140,65 @@ class _RaghifAppState extends State<RaghifApp> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Resolves which store this owner manages before showing the dashboard.
+///
+/// Used to be a hardcoded `demoOwnerStoreId = 1`, which only worked because
+/// every install seeded its own store #1 locally. Ownership is a server
+/// fact now (`stores.owner_id`), so it has to be asked for.
+class _OwnerHome extends StatefulWidget {
+  const _OwnerHome({required this.controller, required this.ownerId});
+
+  final QueueController controller;
+  final String ownerId;
+
+  @override
+  State<_OwnerHome> createState() => _OwnerHomeState();
+}
+
+class _OwnerHomeState extends State<_OwnerHome> {
+  late Future<StoreModel?> _store;
+
+  @override
+  void initState() {
+    super.initState();
+    _store = widget.controller.storeForOwner(widget.ownerId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<StoreModel?>(
+      future: _store,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final store = snapshot.data;
+        if (store == null) {
+          // An owner account with no store attached. Better to say so than
+          // to guess at a store and let them manage someone else's queue.
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  Strings.noStoreForOwner,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+        return OwnerDashboardScreen(
+          controller: widget.controller,
+          storeId: store.id,
+        );
+      },
     );
   }
 }

@@ -14,6 +14,7 @@ import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 
+
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -28,7 +29,7 @@ void main() {
   late QueueController controller;
 
   const demoUser = DemoUser(
-    id: 1,
+    id: 'user-buyer',
     phone: demoBuyerPhone,
     pin: '1234',
     role: UserRole.buyer,
@@ -36,7 +37,7 @@ void main() {
   );
 
   StoreModel store(
-    int id,
+    String id,
     String name, {
     String area = '',
     bool isOpen = true,
@@ -47,7 +48,7 @@ void main() {
     isOpen: isOpen,
     dailyBagLimit: 300,
     bagsRemaining: bagsRemaining,
-    ownerPhone: '05990000$id',
+    ownerId: '05990000$id',
     area: area,
   );
 
@@ -98,16 +99,16 @@ void main() {
 
   List<StoreListEntry> threeStores() => [
     StoreListEntry(
-      store: store(1, 'مخبز الرمال', area: 'الرمال'),
+      store: store('store-1', 'مخبز الرمال', area: 'الرمال'),
       pinned: true,
     ),
     StoreListEntry(
-      store: store(2, 'مخبز الشاطئ', area: 'الشاطئ'),
+      store: store('store-2', 'مخبز الشاطئ', area: 'الشاطئ'),
       todayStatus: PurchaseStatus.waiting,
       lastPurchaseDate: '2026-01-01',
     ),
     StoreListEntry(
-      store: store(3, 'مخبز النصيرات', area: 'النصيرات', isOpen: false, bagsRemaining: 0),
+      store: store('store-3', 'مخبز النصيرات', area: 'النصيرات', isOpen: false, bagsRemaining: 0),
     ),
   ];
 
@@ -190,7 +191,7 @@ void main() {
 
     verify(
       () => repo.setStorePinned(
-        userId: demoUser.id,
+        userId: any(named: 'userId'),
         storeId: any(named: 'storeId'),
         pinned: true,
       ),

@@ -8,9 +8,9 @@ PurchaseModel _p(
   int batch,
   PurchaseStatus status,
 ) => PurchaseModel(
-  id: id,
-  storeId: 1,
-  userId: id,
+  id: 'purchase-$id',
+  storeId: 'store-1',
+  userId: 'user-$id',
   purchaseDate: '2026-08-01',
   batchNumber: batch,
   status: status,
@@ -18,12 +18,12 @@ PurchaseModel _p(
 );
 
 StoreModel _store({int remaining = 300, int limit = 300}) => StoreModel(
-  id: 1,
+  id: 'store-1',
   name: 'مخبز الرمال',
   isOpen: true,
   dailyBagLimit: limit,
   bagsRemaining: remaining,
-  ownerPhone: '0599000001',
+  ownerId: '0599000001',
 );
 
 void main() {

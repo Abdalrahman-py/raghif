@@ -29,7 +29,7 @@ class OwnerDashboardScreen extends StatefulWidget {
   static const routeName = 'ownerDashboard';
 
   final QueueController controller;
-  final dynamic storeId;
+  final String storeId;
 
   @override
   State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();

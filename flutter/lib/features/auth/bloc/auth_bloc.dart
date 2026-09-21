@@ -39,7 +39,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      await _authRepository.ensureSeeded();
       final userId = await _sessionStore.loadUserId();
       if (userId == null) {
         emit(const Unauthenticated());

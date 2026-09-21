@@ -26,7 +26,7 @@ class QrScannerScreen extends StatefulWidget {
   });
 
   final QueueController controller;
-  final dynamic storeId;
+  final String storeId;
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -36,7 +36,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   final MobileScannerController _scanner = MobileScannerController();
   final ScanFeedbackPlayer _feedback = ScanFeedbackPlayer();
 
-  int? _ownerStoreId;
+  String? _ownerStoreId;
   bool _scanning = true;
   bool _processing = false;
   bool _cameraError = false;
@@ -87,11 +87,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final result = evaluateQrRedemption(
       payload: payload,
       purchase: purchase,
-      ownerStoreId: _ownerStoreId ?? -1,
+      ownerStoreId: _ownerStoreId ?? '',
     );
     if (result.outcome == QrRedemptionOutcome.checkedIn &&
         result.purchase != null) {
-      await widget.controller.toggleArrival(result.purchase!.id);
+      await widget.controller.collectPurchase(result.purchase!.id);
     }
     await _feedback.play(scanFeedbackFor(result.outcome));
     await widget.controller.recordScan(

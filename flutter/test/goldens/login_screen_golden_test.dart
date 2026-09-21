@@ -7,11 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/theme/app_theme.dart';
-import 'package:raghif/data/repositories/auth_repository_impl.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/login_screen.dart';
 
 import 'test_fonts.dart';
+
+import '../support/fake_auth_repository.dart';
 
 void main() {
   testWidgets('LoginScreen matches golden', (WidgetTester tester) async {
@@ -26,7 +27,7 @@ void main() {
     final sessionStore = SessionStore();
 
     final authBloc = AuthBloc(
-      authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
+      authRepository: FakeAuthRepository(),
       sessionStore: sessionStore,
     );
     // addTearDown runs LIFO, so registering close() first and the unmount

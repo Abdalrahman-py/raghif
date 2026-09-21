@@ -1,14 +1,12 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/widgets/status_chip.dart';
-import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/purchase_screen.dart';
-import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
+
+import '../../support/queue_test_harness.dart';
 
 Widget wrapWithMaterial(Widget child) {
   return MaterialApp(
@@ -18,6 +16,7 @@ Widget wrapWithMaterial(Widget child) {
 
 void main() {
   const testUser = DemoUser(
+    id: seededBuyerId,
     phone: '0599111111',
     pin: '1234',
     role: UserRole.buyer,
@@ -55,11 +54,10 @@ void main() {
     testWidgets('renders store detail block and pay button when not blocked', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -93,19 +91,21 @@ void main() {
     testWidgets('renders soldOut status chip when store has no bags remaining', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
 
-      // Drain all bags from this store
+      // Allocation is owner-only server-side, so become the owner to drain
+      // the store, then go back to the buyer the screen renders for.
+      repo.currentUserId = seededOwnerId;
       await controller.saveAllocation(
         store.id,
         dailyBagLimit: 0,
         batchSize: 20,
         today: todayDateString(),
       );
+      repo.currentUserId = seededBuyerId;
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -135,15 +135,13 @@ void main() {
     testWidgets('shows dailyLimitReached when blocker matches same store', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
 
       // Reserve at this store
       await controller.buy(
-        userId: testUser.id,
         storeId: store.id,
         date: todayDateString(),
       );
@@ -174,16 +172,14 @@ void main() {
     testWidgets('shows dailyLimitReachedOtherStore when blocker is from different store', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store1 = controller.stores[0]; // e.g. مخبز الرمال
-      final store2 = controller.stores[1]; // e.g. مخبز الشاطئ
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store1 = (await repo.getStoreById(seededStoreId))!;
+      final store2 = (await repo.getStoreById('store-shati'))!;
 
       // Reserve at store 1
       await controller.buy(
-        userId: testUser.id,
         storeId: store1.id,
         date: todayDateString(),
       );
