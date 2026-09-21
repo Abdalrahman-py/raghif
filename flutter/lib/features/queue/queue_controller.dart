@@ -1,11 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../core/auth/demo_accounts.dart';
-import '../../core/database/app_database.dart';
 import '../../core/di/injection.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/notifications/notification_service.dart';
-import '../../data/repositories/queue_repository_impl.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/scan_event_model.dart';
@@ -13,66 +10,21 @@ import '../../domain/models/store_day_summary.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
-import 'memory_database_native.dart'
-    if (dart.library.html) 'memory_database_web.dart';
 import 'queue_logic.dart';
 
-/// Pilot store identifier matching the seeded demo owner's store (store #1).
-const int demoOwnerStoreId = 1;
-
-/// Controller managing bakery queue state and operations. Backed by
-/// [QueueRepository] (Drift persistence) with reactive streams.
+/// Presentation state over [QueueRepository]. Holds no business rules of its
+/// own: Postgres decides what a reservation, a batch release or a pickup
+/// means, and this reflects the result.
+///
+/// Ids are Supabase UUID strings. The old `dynamic` id parameters and their
+/// `_parseInt` coercion are gone — they existed only because a store was
+/// "1" on one device, "store_1" in a QR code and a different row on the
+/// server.
 class QueueController extends ChangeNotifier {
-  factory QueueController([QueueRepository? repository]) {
-    if (repository != null) return QueueController._(repository, null);
-    if (sl.isRegistered<QueueRepository>()) {
-      return QueueController._(sl<QueueRepository>(), null);
-    }
-    final db = AppDatabase(inMemoryExecutor());
-    final repo = QueueRepositoryImpl(db);
-    unawaited(repo.ensureSeeded());
-    return QueueController._(repo, db);
-  }
-
-  QueueController._(this._repository, this._ownedDatabase) {
-    _stores = defaultStores;
+  QueueController([QueueRepository? repository])
+      : _repository = repository ?? sl<QueueRepository>() {
     _init();
   }
-
-  /// Non-null only when this controller created its own database (no DI,
-  /// no injected repository) — [dispose] must close it or the connection
-  /// and its pending operations leak past the widget's lifetime.
-  final AppDatabase? _ownedDatabase;
-
-  static const List<StoreModel> defaultStores = [
-    StoreModel(
-      id: 1,
-      name: 'مخبز الرمال',
-      isOpen: true,
-      dailyBagLimit: 300,
-      bagsRemaining: 45,
-      ownerPhone: demoOwnerPhone,
-      allocationDate: '',
-    ),
-    StoreModel(
-      id: 2,
-      name: 'مخبز الشاطئ',
-      isOpen: true,
-      dailyBagLimit: 300,
-      bagsRemaining: 120,
-      ownerPhone: '0599000003',
-      allocationDate: '',
-    ),
-    StoreModel(
-      id: 3,
-      name: 'مخبز النصيرات',
-      isOpen: false,
-      dailyBagLimit: 300,
-      bagsRemaining: 0,
-      ownerPhone: '0599000004',
-      allocationDate: '',
-    ),
-  ];
 
   final QueueRepository _repository;
   StreamSubscription<List<StoreModel>>? _storesSub;
@@ -82,76 +34,64 @@ class QueueController extends ChangeNotifier {
   List<StoreListEntry> _storeList = [];
   StreamSubscription<List<PurchaseModel>>? _todayQueueSub;
   List<PurchaseModel> _todayQueue = [];
-  final Map<int, PurchaseModel> _purchaseCache = {};
+  final Map<String, PurchaseModel> _purchaseCache = {};
 
   List<StoreModel> get stores => _stores;
 
-  /// True once the repository's real store data has arrived at least once —
-  /// [stores] holds [defaultStores] (a same-shaped placeholder) until then,
-  /// so widgets that sync local edit state from a store "once on load"
-  /// should gate that sync on this rather than on `storeById(...) != null`.
+  /// True once store rows have arrived from the cache or the server. Widgets
+  /// that seed local edit state "once on load" should gate on this rather
+  /// than on an empty list, which is also the pre-load state.
   bool get storesLoaded => _storesLoaded;
 
   void _init() {
     _storesSub = _repository.watchStores().listen((stores) {
-      if (stores.isNotEmpty) {
-        _stores = stores;
-        _storesLoaded = true;
-        notifyListeners();
-      }
+      _stores = stores;
+      _storesLoaded = true;
+      notifyListeners();
     });
   }
 
-  static int _parseInt(dynamic value, [int fallback = -1]) {
-    if (value is int) return value;
-    if (value == null) return fallback;
-    final str = value.toString();
-    final sanitized = str.replaceAll('store_', '').replaceAll('purchase_', '');
-    return int.tryParse(sanitized) ?? fallback;
-  }
-
-  StoreModel? storeById(dynamic id) {
-    final intId = _parseInt(id, 1);
+  StoreModel? storeById(String? id) {
+    if (id == null) return null;
     for (final s in _stores) {
-      if (s.id == intId) return s;
+      if (s.id == id) return s;
     }
     return null;
   }
 
-  PurchaseModel? cachedPurchase(dynamic id) => _purchaseCache[_parseInt(id)];
+  /// The store this owner manages, straight from the server. Replaces the
+  /// hardcoded "store #1" the local seed used to guarantee.
+  Future<StoreModel?> storeForOwner(String ownerId) =>
+      _repository.getStoreForOwner(ownerId);
+
+  PurchaseModel? cachedPurchase(String id) => _purchaseCache[id];
 
   Stream<List<StoreModel>> watchStores() => _repository.watchStores();
 
   /// Buyer's store list: every store plus this buyer's own context for it
-  /// (pinned, today's order, last purchase) — the list floats the stores they
-  /// actually use to the top and shows extra detail on those cards.
-  ///
-  /// Subscribed by [watchStoreListFor] rather than owned by the screen, so the
-  /// widget layer has no stream lifecycle of its own (same pattern as
-  /// [stores]); rebuilds come through [notifyListeners].
+  /// (pinned, today's order, last purchase).
   List<StoreListEntry> get storeList => _storeList;
 
-  /// Points the store-list watch at [userId]. Call once the signed-in buyer is
-  /// known — safe to call again if the user changes (the old watch is dropped).
-  void watchStoreListFor(int userId) {
+  /// Points the store-list watch at [userId]. Safe to call again if the user
+  /// changes — the old watch is dropped.
+  void watchStoreListFor(String userId) {
     _storeListSub?.cancel();
     _storeListSub = _repository
         .watchStoreListForUser(userId: userId, today: todayDateString())
         .listen((entries) {
-          _storeList = entries;
-          notifyListeners();
-        });
+      _storeList = entries;
+      notifyListeners();
+    });
   }
 
-  /// Buyer action: pin/un-pin a store so it always sits at the top.
   Future<void> setStorePinned(
-    int userId,
-    dynamic storeId,
+    String userId,
+    String storeId,
     bool pinned,
   ) async {
     await _repository.setStorePinned(
       userId: userId,
-      storeId: _parseInt(storeId, 1),
+      storeId: storeId,
       pinned: pinned,
     );
     notifyListeners();
@@ -159,102 +99,72 @@ class QueueController extends ChangeNotifier {
 
   /// Owner action: append one QR scan attempt to the audit trail.
   Future<void> recordScan({
-    required dynamic storeId,
+    required String storeId,
     required String outcome,
-    dynamic purchaseId,
+    String? purchaseId,
     String? scannedName,
     String? scannedNationalId,
   }) async {
-    final sId = _parseInt(storeId, -1);
-    if (sId < 0) return;
     await _repository.recordScan(
-      storeId: sId,
+      storeId: storeId,
       outcome: outcome,
-      purchaseId: purchaseId == null ? null : _parseInt(purchaseId, -1),
+      purchaseId: purchaseId,
       scannedName: scannedName,
       scannedNationalId: scannedNationalId,
     );
     notifyListeners();
   }
 
-  /// Scan history for a store, newest first (audit trail).
   Future<List<ScanEventModel>> scansForStore(
-    dynamic storeId, {
+    String storeId, {
     int limit = 100,
-  }) => _repository.getScansForStore(_parseInt(storeId, -1), limit: limit);
+  }) =>
+      _repository.getScansForStore(storeId, limit: limit);
 
-  Stream<PurchaseModel?> watchPurchase(dynamic id) {
-    final pId = _parseInt(id);
-    return _repository.watchPurchaseById(pId);
-  }
+  Stream<PurchaseModel?> watchPurchase(String id) =>
+      _repository.watchPurchaseById(id);
 
-  Future<PurchaseModel?> purchaseById(dynamic id) {
-    final pId = _parseInt(id);
-    return _repository.getPurchaseById(pId);
-  }
+  Future<PurchaseModel?> purchaseById(String id) =>
+      _repository.getPurchaseById(id);
 
-  /// Today's queue for a store, owned by the controller so widgets never hold a
-  /// drift stream of their own (a widget-owned drift stream leaks a pending
-  /// timer in tests and duplicates subscriptions across screens).
   List<PurchaseModel> get todayQueue => _todayQueue;
 
   /// Points the dashboard's today-queue watch at [storeId].
-  void watchTodayQueueFor(dynamic storeId) {
-    final sId = _parseInt(storeId, 1);
+  void watchTodayQueueFor(String storeId) {
     _todayQueueSub?.cancel();
     _todayQueueSub = _repository
-        .watchQueueForStore(sId, todayDateString())
+        .watchQueueForStore(storeId, todayDateString())
         .listen((queue) {
-          _todayQueue = queue;
-          notifyListeners();
-        });
+      _todayQueue = queue;
+      notifyListeners();
+    });
   }
 
-  /// Chronological queue for one store/day as a stream.
-  Stream<List<PurchaseModel>> watchQueueForStore(dynamic storeId, String date) {
-    final sId = _parseInt(storeId, 1);
-    return _repository.watchQueueForStore(sId, date);
-  }
+  Stream<List<PurchaseModel>> watchQueueForStore(String storeId, String date) =>
+      _repository.watchQueueForStore(storeId, date);
 
-  /// Chronological (purchase-order) queue for one store/day.
-  Future<List<PurchaseModel>> queueForStore(dynamic storeId, String date) {
-    final sId = _parseInt(storeId, 1);
-    return _repository.getQueueForStore(sId, date);
-  }
+  Future<List<PurchaseModel>> queueForStore(String storeId, String date) =>
+      _repository.getQueueForStore(storeId, date);
 
-  /// Returns existing blocking purchase if user already has an active purchase today.
-  Future<PurchaseModel?> blockingPurchaseFor(
-    dynamic userId,
-    dynamic storeId,
-    String date,
-  ) {
-    if (userId is int) {
-      return _repository.getBlockingPurchase(userId, date);
-    }
-    final str = userId?.toString() ?? '';
-    if (str.startsWith('0') || str.length >= 9) {
-      return _repository.getBlockingPurchase(0, date, userPhone: str);
-    }
-    final uId = _parseInt(userId, -1);
-    return _repository.getBlockingPurchase(uId, date);
-  }
+  /// This buyer's existing order for [date], if any.
+  Future<PurchaseModel?> blockingPurchaseFor(String userId, String date) =>
+      _repository.getBlockingPurchase(userId, date);
 
-  /// Records a purchase for [userId] at [storeId].
+  /// Reserves a bag at [storeId]. The buyer comes from the session
+  /// server-side. Throws [StoreSoldOutException] if Postgres says the store
+  /// has none left, or [BackendUnavailableException] if it couldn't be
+  /// asked — in which case nothing was reserved.
   Future<PurchaseModel> buy({
-    required dynamic userId,
-    required dynamic storeId,
+    required String storeId,
     required String date,
   }) async {
-    final uId = _parseInt(userId);
-    final sId = _parseInt(storeId);
     final purchase = await _repository.reserveBag(
-      userId: uId,
-      storeId: sId,
+      storeId: storeId,
       date: date,
     );
     _purchaseCache[purchase.id] = purchase;
     notifyListeners();
-    final storeName = purchase.storeName ?? storeById(sId)?.name ?? '';
+    final storeName = purchase.storeName ?? storeById(storeId)?.name ?? '';
     await NotificationService.instance.showNotification(
       title: Strings.purchaseConfirmedNotificationTitle(storeName),
       body: Strings.purchaseConfirmedNotificationBody(purchase.batchNumber),
@@ -262,17 +172,14 @@ class QueueController extends ChangeNotifier {
     return purchase;
   }
 
-  /// Owner action: notify every waiting buyer in the next un-notified batch.
-  ///
-  /// There's no push backend in this prototype, so the "notification" a
-  /// buyer would get in production is simulated here: firing a real OS
-  /// notification directly on whatever device runs this action.
-  Future<void> notifyNextBatch(dynamic storeId, String date) async {
-    final sId = _parseInt(storeId);
-    final notified = await _repository.notifyNextBatch(sId, date);
+  /// Owner action: release the next un-notified batch. The push to those
+  /// buyers is sent by the backend (notify-batch Edge Function); the local
+  /// notification here is only feedback on the owner's own handset.
+  Future<void> notifyNextBatch(String storeId, String date) async {
+    final notified = await _repository.notifyNextBatch(storeId, date);
     notifyListeners();
     if (notified) {
-      final storeName = storeById(sId)?.name ?? '';
+      final storeName = storeById(storeId)?.name ?? '';
       await NotificationService.instance.showNotification(
         title: Strings.batchReadyNotificationTitle(storeName),
         body: Strings.batchReadyNotificationBody,
@@ -280,28 +187,28 @@ class QueueController extends ChangeNotifier {
     }
   }
 
-  /// Owner action: notified <-> collected check-in toggle.
-  Future<void> toggleArrival(dynamic purchaseId) async {
-    final pId = _parseInt(purchaseId);
-    final purchase = await _repository.getPurchaseById(pId);
-    if (purchase == null) return;
-    final newStatus = toggleArrivalStatus(purchase.status);
-    await _repository.updatePurchaseStatus(pId, newStatus);
+  /// Owner action: hand the bag over.
+  ///
+  /// One-way, unlike the old notified<->collected toggle: bread that has
+  /// been handed to someone cannot be un-handed, and the server offers no
+  /// way back. An accidental scan is corrected out-of-band, not by the app
+  /// silently rewriting a pickup record.
+  Future<void> collectPurchase(String purchaseId) async {
+    await _repository.collectPurchase(purchaseId);
     notifyListeners();
   }
 
-  /// Owner action: top up today's allocation and purchase window.
+  /// Owner action: today's allocation and purchase window.
   Future<void> saveAllocation(
-    dynamic storeId, {
+    String storeId, {
     required int dailyBagLimit,
     required int batchSize,
     required String today,
     String? openTime,
     String? closeTime,
   }) async {
-    final sId = _parseInt(storeId);
     await _repository.saveStoreAllocation(
-      sId,
+      storeId,
       dailyLimit: dailyBagLimit,
       batchSize: batchSize,
       date: today,
@@ -311,30 +218,23 @@ class QueueController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Watch distinct customers for store across all dates.
-  Stream<List<CustomerSummaryModel>> watchCustomersForStore(dynamic storeId) {
-    final sId = _parseInt(storeId, 1);
-    return _repository.watchCustomersForStore(sId);
-  }
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId) =>
+      _repository.watchCustomersForStore(storeId);
 
-  /// Owner history: per-day sales totals for a store, newest day first.
   Future<List<StoreDaySummary>> dailySummariesForStore(
-    dynamic storeId, {
+    String storeId, {
     int limit = 30,
-  }) => _repository.getDailySummaries(_parseInt(storeId, -1), limit: limit);
+  }) =>
+      _repository.getDailySummaries(storeId, limit: limit);
 
-  /// Get distinct customers for store across all dates.
-  Future<List<CustomerSummaryModel>> getCustomersForStore(dynamic storeId) {
-    final sId = _parseInt(storeId, 1);
-    return _repository.getCustomersForStore(sId);
-  }
+  Future<List<CustomerSummaryModel>> getCustomersForStore(String storeId) =>
+      _repository.getCustomersForStore(storeId);
 
   @override
   void dispose() {
     _storesSub?.cancel();
     _storeListSub?.cancel();
     _todayQueueSub?.cancel();
-    _ownedDatabase?.close();
     super.dispose();
   }
 }

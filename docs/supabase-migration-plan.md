@@ -35,18 +35,29 @@ the target schema.
    `notify-batch` Edge Function triggered off purchase/store changes.
    Realtime covers in-app live updates; FCM covers backgrounded/killed
    delivery.
-6. **Cleanup** — remove the dead `dio`/`retrofit` scaffold
-   (`lib/core/network/api_client.dart`, `api_service.dart`) and the
-   `useSupabase` flag once Supabase is the stable default.
+6. **Cleanup** — done. The `dio`/`retrofit` scaffold and the `useSupabase`
+   flag are gone: there is one path now, and drift is a cache behind it.
+7. **Backend owns the data** — done. Every write is an RPC that authorizes
+   itself, the owner's aggregates are computed in SQL, and the demo world
+   is seeded by `seed_demo_*` in Postgres rather than by each install.
+   Local ids were replaced by the Supabase UUIDs, so one id means the same
+   thing on the device, on the server and in a QR code.
 
 ## Key architectural decisions
 
-- **UUID primary keys** everywhere (not the current `INTEGER AUTOINCREMENT`),
-  shared between drift and Postgres — the client generates the ID once, no
-  server-id mapping table needed.
-- **Drift is the single source of truth for UI reads**, kept current by a
-  sync service (pull on reconnect + Realtime push-down). Supabase is the
-  source of truth for enforcing business rules.
+- **UUID primary keys** everywhere (not `INTEGER AUTOINCREMENT`), shared
+  between drift and Postgres. The server generates them; the cache stores
+  them verbatim. Local autoincrement ids were what let a receipt claim
+  "batch 4" while Postgres had the same row as batch 1.
+- **Drift is a cache, not a source of truth.** It serves UI reads so the
+  app survives a bad connection, and `QueueSyncService` refills it from
+  Supabase. Nothing writes a business fact there first. Deleting the
+  database costs a refetch and nothing else — which is why the v8
+  migration simply drops and recreates it.
+- **Writes require the backend.** A write that cannot reach Postgres has
+  not happened, and the UI says so (`BackendUnavailableException`).
+  Recording it locally and reconciling later is how two buyers end up
+  holding the same last bag.
 - **Business-rule writes move server-side**: `reserveBag`, `notifyNextBatch`,
   `saveStoreAllocation` become Postgres `SECURITY DEFINER` RPC functions so
   races (sold-out, one-bag-per-day) are resolved atomically in the database,

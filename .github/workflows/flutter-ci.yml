@@ -36,8 +36,8 @@ jobs:
       # .env is gitignored (holds a real Supabase project URL locally) and
       # declared as a pubspec asset, so a fresh checkout needs a stand-in or
       # `flutter analyze`/build fail on "asset file doesn't exist". The
-      # placeholder keeps USE_SUPABASE=false, so CI always builds the
-      # local-only path.
+      # placeholder supplies the Supabase keys the app loads at startup.
+      # Its values are dummies -- CI never reaches the network.
       - name: Create .env placeholder
         working-directory: flutter
         run: cp .env.example .env

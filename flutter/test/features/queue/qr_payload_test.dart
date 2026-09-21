@@ -17,7 +17,7 @@ void main() {
       storeName: 'مخبز السلام',
       purchaseDate: '2026-09-04',
       nationalId: '900111222',
-      storeId: 2,
+      storeId: 'store-2',
     );
 
     test('toJson produces correct map structure and keys', () {
@@ -38,7 +38,7 @@ void main() {
         'store_name': 'مخبز السلام',
         'purchase_date': '2026-09-04',
         'national_id': '900111222',
-        'store_id': 2,
+        'store_id': 'store-2',
       });
     });
 
@@ -54,12 +54,13 @@ void main() {
 
     test('decode restores exact QrPayload from valid JSON', () {
       final jsonStr = jsonEncode({
+        'v': qrPayloadVersion,
         'purchase_id': 'p99',
         'user_name': 'سارة',
         'store_name': 'مخبز السلام',
         'purchase_date': '2026-09-04',
         'national_id': '900111222',
-        'store_id': 3,
+        'store_id': 'store-3',
       });
       final decoded = QrPayload.decode(jsonStr);
       expect(decoded.purchaseId, 'p99');
@@ -67,7 +68,7 @@ void main() {
       expect(decoded.storeName, 'مخبز السلام');
       expect(decoded.purchaseDate, '2026-09-04');
       expect(decoded.nationalId, '900111222');
-      expect(decoded.storeId, 3);
+      expect(decoded.storeId, 'store-3');
     });
 
     test('round-trip encode and decode preserves equality', () {
@@ -98,19 +99,20 @@ void main() {
       );
     });
 
-    test('legacy code without v key still decodes (pre-versioning)', () {
+    test('legacy pre-versioning code is rejected, not silently accepted', () {
+      // v1 codes carried integer store/purchase ids that only meant
+      // something inside one install's local database. Under UUID ids they
+      // identify nothing, so a v1 receipt must fail to scan rather than
+      // resolve to whatever row happens to share the number.
       final legacyJson = jsonEncode({
-        'purchase_id': 'purchase_123',
+        'purchase_id': '7',
         'user_name': 'أحمد محمود',
         'store_name': 'مخبز الأمل',
         'purchase_date': '2026-09-03',
+        'store_id': 1,
       });
-      final decoded = QrPayload.tryDecode(legacyJson);
-      expect(decoded, isNotNull);
-      expect(decoded?.purchaseId, 'purchase_123');
-      expect(decoded?.nationalId, isNull);
-      expect(decoded?.storeId, isNull);
-      expect(decoded, equals(payload));
+      expect(QrPayload.tryDecode(legacyJson), isNull);
+      expect(() => QrPayload.decode(legacyJson), throwsFormatException);
     });
 
     test('unknown future version is rejected, not mis-decoded', () {

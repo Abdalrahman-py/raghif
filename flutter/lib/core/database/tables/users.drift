@@ -1,22 +1,15 @@
--- Buyers and owners. spec.md's role-switch design is "by owner_phone match
--- against stores, not a column" but that lookup isn't wired up yet (#7), so
--- `role` stands in for it here, mirroring the Kotlin prototype's
--- UserEntity.role — drop it once owner lookup goes through `stores`.
--- `name` isn't in spec.md's schema either; added for login/greeting display.
+-- Local mirror of Supabase `public.profiles`, for the account signed in on
+-- this device plus any buyer whose name the owner's screens need to show.
+--
+-- `id` is the Supabase auth user UUID. No pin_hash: PIN verification happens
+-- server-side in the auth-gateway Edge Function, and a cache has no business
+-- holding credential material.
 CREATE TABLE users (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    phone TEXT NOT NULL UNIQUE,
-    national_id TEXT NOT NULL UNIQUE,
-    pin_hash TEXT NOT NULL,
-    name TEXT NOT NULL,
+    id TEXT NOT NULL PRIMARY KEY,
+    phone TEXT NOT NULL DEFAULT '',
+    national_id TEXT NOT NULL DEFAULT '',
+    name TEXT NOT NULL DEFAULT '',
     role TEXT NOT NULL DEFAULT 'buyer',
     jawwal_pay_number TEXT,
-    verification_status TEXT NOT NULL DEFAULT 'pending',
-    -- Supabase auth.users/profiles UUID, once this row has been established
-    -- via the Supabase-backed AuthRepository (see
-    -- data/repositories/supabase_auth_repository.dart). NULL for
-    -- drift-only/local accounts. This table is a read cache of whichever
-    -- account authenticated on this device — not the identity source of
-    -- truth once Supabase is in use.
-    remote_id TEXT
+    verification_status TEXT NOT NULL DEFAULT 'pending'
 );

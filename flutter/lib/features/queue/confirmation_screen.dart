@@ -31,7 +31,7 @@ class ConfirmationScreen extends StatefulWidget {
   });
 
   final QueueController controller;
-  final dynamic purchaseId;
+  final String purchaseId;
   final DemoUser currentUser;
 
   @override
@@ -44,7 +44,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
   late final Stream<PurchaseModel?> _purchaseStream =
       widget.controller.watchPurchase(widget.purchaseId);
 
-  int? _queueStreamStoreId;
+  String? _queueStreamStoreId;
   String? _queueStreamDate;
   Stream<List<PurchaseModel>>? _queueStream;
 
@@ -53,7 +53,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
   // re-runs its initial query) every time the purchase stream re-emits —
   // even when the store/date it targets hasn't actually changed. Cache it,
   // only rebuilding when storeId/date genuinely change.
-  Stream<List<PurchaseModel>> _queueStreamFor(int storeId, String date) {
+  Stream<List<PurchaseModel>> _queueStreamFor(String storeId, String date) {
     if (_queueStreamStoreId != storeId || _queueStreamDate != date) {
       _queueStreamStoreId = storeId;
       _queueStreamDate = date;
@@ -87,7 +87,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
               // the full production roadmap in qr_payload.dart. When that
               // lands, delete encode()/QrImageView usage here.
               final qrPayload = QrPayload(
-                purchaseId: purchase.id.toString(),
+                purchaseId: purchase.id,
                 userName: purchase.userName ?? currentUser.name,
                 storeName: purchase.storeName ?? store?.name ?? '',
                 purchaseDate: purchase.purchaseDate,

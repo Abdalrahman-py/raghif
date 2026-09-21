@@ -32,8 +32,6 @@ class SupabaseAuthRepository implements AuthRepository {
         _sessionStore = sessionStore,
         _fcmService = fcmService;
 
-  static const _placeholderPinHash = 'supabase-managed';
-
   final SupabaseClient _client;
   final AppDatabase _db;
   final SessionStore _sessionStore;
@@ -71,60 +69,29 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<UserModel> _applySession(Map<String, dynamic> result) async {
     await _client.auth.setSession(result['refreshToken'] as String);
     final profile = Map<String, dynamic>.from(result['profile'] as Map);
-    final nationalId = profile['nationalId'] as String;
+    final id = profile['remoteId'] as String;
 
-    final existing = await (_db.select(_db.users)
-          ..where((u) => u.nationalId.equals(nationalId)))
-        .getSingleOrNull();
+    // Straight upsert into the profile cache under the Supabase id. The old
+    // lookup-by-national-id + local-autoincrement dance is gone: there is
+    // no second id to reconcile any more.
+    await _db.into(_db.users).insertOnConflictUpdate(
+          UsersCompanion.insert(
+            id: id,
+            phone: Value(profile['phone'] as String? ?? ''),
+            nationalId: Value(profile['nationalId'] as String? ?? ''),
+            name: Value(profile['name'] as String? ?? ''),
+            role: Value(profile['role'] as String? ?? 'buyer'),
+            jawwalPayNumber: Value(profile['jawwalPayNumber'] as String?),
+            verificationStatus:
+                Value(profile['verificationStatus'] as String? ?? 'pending'),
+          ),
+        );
 
-    final fields = UsersCompanion(
-      phone: Value(profile['phone'] as String),
-      name: Value(profile['name'] as String),
-      role: Value(profile['role'] as String? ?? 'buyer'),
-      jawwalPayNumber: Value(profile['jawwalPayNumber'] as String?),
-      verificationStatus:
-          Value(profile['verificationStatus'] as String? ?? 'pending'),
-      remoteId: Value(profile['remoteId'] as String?),
-    );
-
-    final int localId;
-    if (existing != null) {
-      localId = existing.id;
-      await (_db.update(_db.users)..where((u) => u.id.equals(localId)))
-          .write(fields);
-    } else {
-      localId = await _db.into(_db.users).insert(
-            UsersCompanion.insert(
-              phone: profile['phone'] as String,
-              nationalId: nationalId,
-              pinHash: _placeholderPinHash,
-              name: profile['name'] as String,
-              role: Value(profile['role'] as String? ?? 'buyer'),
-              jawwalPayNumber: Value(profile['jawwalPayNumber'] as String?),
-              verificationStatus:
-                  Value(profile['verificationStatus'] as String? ?? 'pending'),
-              remoteId: Value(profile['remoteId'] as String?),
-            ),
-          );
-    }
-
-    await _sessionStore.saveUserId(localId);
+    await _sessionStore.saveUserId(id);
     unawaited(_fcmService?.registerCurrentDeviceToken());
     final row =
-        await (_db.select(_db.users)..where((u) => u.id.equals(localId)))
-            .getSingle();
+        await (_db.select(_db.users)..where((u) => u.id.equals(id))).getSingle();
     return _toDomain(row);
-  }
-
-  @override
-  Future<void> ensureSeeded() async {
-    try {
-      await _invoke('seed-demo', {});
-    } catch (_) {
-      // Best-effort — demo accounts may already exist, or the network may
-      // be unreachable (offline first run); either way the app should still
-      // start.
-    }
   }
 
   @override
@@ -186,7 +153,7 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel?> findById(int id) async {
+  Future<UserModel?> findById(String id) async {
     final user = await (_db.select(_db.users)..where((u) => u.id.equals(id)))
         .getSingleOrNull();
     return user == null ? null : _toDomain(user);
@@ -263,39 +230,31 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> updateVerificationStatus(
-    int userId,
+    String userId,
     VerificationStatus status,
   ) async {
     final statusStr =
         status == VerificationStatus.verified ? 'verified' : 'pending';
-    final row = await (_db.select(_db.users)..where((u) => u.id.equals(userId)))
-        .getSingleOrNull();
-    if (row?.remoteId != null) {
-      await _client
-          .from('profiles')
-          .update({'verification_status': statusStr}).eq('id', row!.remoteId!);
-    }
-    await (_db.update(_db.users)..where((u) => u.id.equals(userId))).write(
-      UsersCompanion(verificationStatus: Value(statusStr)),
-    );
+    // Server first: if this fails the write did not happen, and the cache
+    // must not claim otherwise.
+    await _client
+        .from('profiles')
+        .update({'verification_status': statusStr}).eq('id', userId);
+    await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
+        .write(UsersCompanion(verificationStatus: Value(statusStr)));
   }
 
   @override
   Future<void> updateJawwalPayNumber(
-    int userId,
+    String userId,
     String jawwalPayNumber,
   ) async {
     final trimmed = jawwalPayNumber.trim();
-    final row = await (_db.select(_db.users)..where((u) => u.id.equals(userId)))
-        .getSingleOrNull();
-    if (row?.remoteId != null) {
-      await _client
-          .from('profiles')
-          .update({'jawwal_pay_number': trimmed}).eq('id', row!.remoteId!);
-    }
-    await (_db.update(_db.users)..where((u) => u.id.equals(userId))).write(
-      UsersCompanion(jawwalPayNumber: Value(trimmed)),
-    );
+    await _client
+        .from('profiles')
+        .update({'jawwal_pay_number': trimmed}).eq('id', userId);
+    await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
+        .write(UsersCompanion(jawwalPayNumber: Value(trimmed)));
   }
 
   @override

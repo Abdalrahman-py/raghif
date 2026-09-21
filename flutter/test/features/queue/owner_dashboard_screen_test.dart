@@ -1,18 +1,17 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
-import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/queue/owner_dashboard_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
+
+import '../../support/queue_test_harness.dart';
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 
@@ -22,10 +21,8 @@ class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 /// `QueueController()` (its unawaited internal seed) or a setUp()-built
 /// controller can't reliably deliver `.watch()` stream data in a test body.
 Future<QueueController> _buildTestController() async {
-  final db = AppDatabase(NativeDatabase.memory());
-  final repository = QueueRepositoryImpl(db);
-  await repository.ensureSeeded();
-  return QueueController(repository);
+  final harness = buildQueueHarness(actingAs: seededOwnerId);
+  return harness.controller;
 }
 
 void main() {
@@ -36,7 +33,7 @@ void main() {
     when(() => mockAuthBloc.state).thenReturn(
       const Authenticated(
         UserModel(
-          id: 2,
+          id: seededOwnerId,
           phone: '0599000002',
           nationalId: '900333444',
           name: 'صاحب المخبز',
@@ -49,7 +46,7 @@ void main() {
 
   Future<QueueController> pumpDashboard(
     WidgetTester tester,
-    dynamic storeId,
+    String storeId,
   ) async {
     final controller = await _buildTestController();
     await tester.pumpWidget(
@@ -68,7 +65,7 @@ void main() {
   testWidgets(
     "shows the store's existing purchase window on the picker buttons",
     (tester) async {
-      await pumpDashboard(tester, 1); // مخبز الرمال — seeded 08:00-10:00
+      await pumpDashboard(tester, seededStoreId); // مخبز الرمال — seeded 08:00-10:00
 
       expect(find.text(Strings.openTimeLabel), findsOneWidget);
       expect(find.text(Strings.closeTimeLabel), findsOneWidget);
@@ -80,7 +77,7 @@ void main() {
   testWidgets(
     'shows "not set" on the picker buttons when the store has no window yet',
     (tester) async {
-      await pumpDashboard(tester, 3); // مخبز النصيرات — no window seeded
+      await pumpDashboard(tester, seededClosedStoreId); // مخبز النصيرات — no window seeded
 
       expect(find.text(Strings.openTimeLabel), findsOneWidget);
       expect(find.text(Strings.closeTimeLabel), findsOneWidget);
@@ -91,19 +88,19 @@ void main() {
   testWidgets('saving allocation keeps the currently-set purchase window', (
     tester,
   ) async {
-    final controller = await pumpDashboard(tester, 1);
+    final controller = await pumpDashboard(tester, seededStoreId);
 
     await tester.ensureVisible(find.text(Strings.saveAllocation));
     await tester.tap(find.text(Strings.saveAllocation));
     await tester.pumpAndSettle();
 
-    final store = controller.storeById(1);
+    final store = controller.storeById(seededStoreId);
     expect(store?.openTime, '08:00');
     expect(store?.closeTime, '10:00');
   });
 
   testWidgets('shows the live paid-but-not-picked count', (tester) async {
-    await pumpDashboard(tester, 1);
+    await pumpDashboard(tester, seededStoreId);
 
     expect(find.text(Strings.pendingPickupLabel), findsOneWidget);
     // Nothing sold yet in a fresh store.
@@ -111,11 +108,11 @@ void main() {
   });
 
   testWidgets('warns in-app when the store is low on bags', (tester) async {
-    final controller = await pumpDashboard(tester, 1);
+    final controller = await pumpDashboard(tester, seededStoreId);
 
     // Shrink today's allocation below the low-stock threshold.
     await controller.saveAllocation(
-      1,
+      seededStoreId,
       dailyBagLimit: 10,
       batchSize: 20,
       today: todayDateString(),
@@ -123,7 +120,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text(Strings.lowStockWarning(controller.storeById(1)!.bagsRemaining)),
+      find.text(Strings.lowStockWarning(controller.storeById(seededStoreId)!.bagsRemaining)),
       findsOneWidget,
     );
   });

@@ -67,7 +67,7 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
     );
   }
 
-  void _openReceipt(int purchaseId) {
+  void _openReceipt(String purchaseId) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConfirmationScreen(

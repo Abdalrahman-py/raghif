@@ -5,21 +5,21 @@ import 'package:raghif/domain/models/purchase_model.dart';
 
 void main() {
   const payload = QrPayload(
-    purchaseId: '7',
+    purchaseId: 'purchase-7',
     userName: 'أحمد',
     storeName: 'مخبز الرمال',
     purchaseDate: '2026-09-05',
   );
 
   PurchaseModel purchase({
-    int id = 7,
-    int storeId = 1,
+    String id = 'purchase-7',
+    String storeId = 'store-1',
     PurchaseStatus status = PurchaseStatus.notified,
   }) {
     return PurchaseModel(
       id: id,
       storeId: storeId,
-      userId: 1,
+      userId: 'user-1',
       purchaseDate: '2026-09-05',
       batchNumber: 1,
       status: status,
@@ -36,17 +36,17 @@ void main() {
       final result = evaluateQrRedemption(
         payload: payload,
         purchase: purchase(),
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.checkedIn);
-      expect(result.purchase?.id, 7);
+      expect(result.purchase?.id, 'purchase-7');
     });
 
     test('already collected -> duplicate scan', () {
       final result = evaluateQrRedemption(
         payload: payload,
         purchase: purchase(status: PurchaseStatus.collected),
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.alreadyCollected);
     });
@@ -55,7 +55,7 @@ void main() {
       final result = evaluateQrRedemption(
         payload: payload,
         purchase: purchase(status: PurchaseStatus.waiting),
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.batchNotCalledYet);
       expect(result.batchNumber, 1);
@@ -65,7 +65,7 @@ void main() {
       final result = evaluateQrRedemption(
         payload: payload,
         purchase: null,
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.notFoundHere);
       expect(result.payload.userName, 'أحمد');
@@ -74,16 +74,16 @@ void main() {
 
     test('code claims another store, no local match -> wrongStore', () {
       const foreignPayload = QrPayload(
-        purchaseId: '77',
+        purchaseId: 'purchase-77',
         userName: 'ليلى',
         storeName: 'مخبز النور',
         purchaseDate: '2026-09-05',
-        storeId: 2,
+        storeId: 'store-2',
       );
       final result = evaluateQrRedemption(
         payload: foreignPayload,
         purchase: null,
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.wrongStore);
       expect(result.purchase, isNull);
@@ -93,16 +93,16 @@ void main() {
 
     test('code claims another store, even with local match -> wrongStore', () {
       const foreignPayload = QrPayload(
-        purchaseId: '7',
+        purchaseId: 'purchase-7',
         userName: 'أحمد',
         storeName: 'مخبز النور',
         purchaseDate: '2026-09-05',
-        storeId: 2,
+        storeId: 'store-2',
       );
       final result = evaluateQrRedemption(
         payload: foreignPayload,
         purchase: purchase(),
-        ownerStoreId: 1,
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.wrongStore);
     });
@@ -110,8 +110,8 @@ void main() {
     test('purchase belonging to another store -> wrongStore', () {
       final result = evaluateQrRedemption(
         payload: payload,
-        purchase: purchase(storeId: 2),
-        ownerStoreId: 1,
+        purchase: purchase(storeId: 'store-2'),
+        ownerStoreId: 'store-1',
       );
       expect(result.outcome, QrRedemptionOutcome.wrongStore);
       expect(result.actualStoreName, 'مخبز الرمال');

@@ -3,11 +3,14 @@ import 'dart:convert';
 /// Current wire version of the receipt QR payload.
 ///
 /// Bump [qrPayloadVersion] whenever the JSON shape changes in a way an older
-/// app cannot parse. The version key is written from day one so a future
-/// decoder can tell formats apart instead of guessing; codes issued before
-/// the version key existed (no `v` at all) still decode as legacy v1 — see
-/// [QrPayload.tryDecode].
-const int qrPayloadVersion = 1;
+/// app cannot parse.
+///
+/// v2: `purchase_id` and `store_id` carry Supabase UUIDs instead of local
+/// autoincrement integers. A v1 code names rows that only ever existed on
+/// the device that minted it, so it cannot be honoured here — the version
+/// check rejects it outright rather than resolving it to the wrong
+/// purchase. Receipts issued before this build must be re-issued.
+const int qrPayloadVersion = 2;
 
 /// Farid's comment — PRODUCTION VERSION (keep this note; it is the roadmap
 /// for whoever wires the backend, and it is deliberate, not boilerplate):
@@ -62,9 +65,10 @@ class QrPayload {
   /// production/backend concern (see Farid's comment above).
   final String? nationalId;
 
-  /// Store the receipt was issued for. Lets redemption report a
-  /// wrong-store code from the code alone, with no local purchase needed.
-  final int? storeId;
+  /// Store the receipt was issued for, as its Supabase UUID. Lets
+  /// redemption report a wrong-store code from the code alone, with no
+  /// local purchase needed.
+  final String? storeId;
 
   Map<String, dynamic> toJson() => {
         'v': qrPayloadVersion,
@@ -80,17 +84,18 @@ class QrPayload {
 
   factory QrPayload.fromJson(Map<String, dynamic> json) {
     final v = json['v'];
-    if (v != null && v != qrPayloadVersion) {
-      throw FormatException('Unsupported QR payload version: $v');
+    // An absent `v` means a pre-versioning (v1) code, whose integer ids
+    // mean nothing here — treat it the same as any other wrong version.
+    if (v != qrPayloadVersion) {
+      throw FormatException('Unsupported QR payload version: ${v ?? 1}');
     }
-    final storeIdRaw = json['store_id'];
     return QrPayload(
       purchaseId: json['purchase_id'] as String? ?? '',
       userName: json['user_name'] as String? ?? '',
       storeName: json['store_name'] as String? ?? '',
       purchaseDate: json['purchase_date'] as String? ?? '',
       nationalId: json['national_id'] as String?,
-      storeId: storeIdRaw is num ? storeIdRaw.toInt() : null,
+      storeId: json['store_id'] as String?,
     );
   }
 

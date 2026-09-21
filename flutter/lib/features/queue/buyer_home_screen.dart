@@ -47,7 +47,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     super.initState();
     _initialOrder = widget.controller.blockingPurchaseFor(
       widget.currentUser.id,
-      null,
       todayDateString(),
     );
   }
@@ -63,7 +62,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
 
-  void _openReceipt(int purchaseId) {
+  void _openReceipt(String purchaseId) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConfirmationScreen(
@@ -173,7 +172,7 @@ class _CurrentOrderView extends StatelessWidget {
   });
 
   final QueueController controller;
-  final int purchaseId;
+  final String purchaseId;
   final VoidCallback onBrowse;
   final VoidCallback onShowReceipt;
 

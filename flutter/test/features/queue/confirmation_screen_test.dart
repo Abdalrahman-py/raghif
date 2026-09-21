@@ -1,13 +1,11 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
-import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/confirmation_screen.dart';
-import 'package:raghif/features/queue/queue_controller.dart';
+
+import '../../support/queue_test_harness.dart';
 
 Widget wrapWithMaterial(Widget child) {
   return MaterialApp(
@@ -17,6 +15,7 @@ Widget wrapWithMaterial(Widget child) {
 
 void main() {
   const testUser = DemoUser(
+    id: seededBuyerId,
     phone: '0599111111',
     pin: '1234',
     role: UserRole.buyer,
@@ -33,15 +32,13 @@ void main() {
       // there can't reliably deliver .watch() stream data inside the test
       // body (see owner_customers_screen_test.dart for the full story).
       // An explicit, awaited-seed repository is used instead of bare
-      // QueueController() — its own no-DI fallback fires ensureSeeded()
+      // buildQueueHarness().controller — its own no-DI fallback fires ensureSeeded()
       // unawaited, so buy() below could race ahead of the seed data.
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
       final purchase = await controller.buy(
-        userId: testUser.id,
         storeId: store.id,
         date: '2026-09-03',
       );
@@ -82,19 +79,19 @@ void main() {
     testWidgets('shows statusNotified when purchase is notified', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
       final purchase = await controller.buy(
-        userId: testUser.id,
         storeId: store.id,
         date: '2026-09-03',
       );
 
-      // Transition batch to notified
+      // Releasing a batch is owner-only server-side.
+      repo.currentUserId = seededOwnerId;
       await controller.notifyNextBatch(store.id, '2026-09-03');
+      repo.currentUserId = seededBuyerId;
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -119,7 +116,7 @@ void main() {
     testWidgets('renders empty shrink when purchase is not found', (
       tester,
     ) async {
-      final controller = QueueController();
+      final controller = buildQueueHarness().controller;
       await tester.pumpWidget(
         wrapWithMaterial(
           ConfirmationScreen(

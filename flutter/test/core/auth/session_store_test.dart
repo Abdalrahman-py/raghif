@@ -8,8 +8,8 @@ void main() {
 
     expect(await SessionStore().loadUserId(), isNull);
 
-    await SessionStore().saveUserId(7);
-    expect(await SessionStore().loadUserId(), 7);
+    await SessionStore().saveUserId('user-7');
+    expect(await SessionStore().loadUserId(), 'user-7');
 
     await SessionStore().clear();
     expect(await SessionStore().loadUserId(), isNull);

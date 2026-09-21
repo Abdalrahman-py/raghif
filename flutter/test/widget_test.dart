@@ -6,9 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
-import 'package:raghif/data/repositories/auth_repository_impl.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/main.dart';
+
+import 'support/fake_auth_repository.dart';
+
+import 'support/queue_test_harness.dart';
 
 void main() {
   testWidgets('RaghifApp shows onboarding on a fresh install', (WidgetTester tester) async {
@@ -18,10 +21,10 @@ void main() {
     final sessionStore = SessionStore();
 
     final authBloc = AuthBloc(
-      authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
+      authRepository: FakeAuthRepository(),
       sessionStore: sessionStore,
     );
-    await tester.pumpWidget(RaghifApp(authBloc: authBloc));
+    await tester.pumpWidget(RaghifApp(authBloc: authBloc, queueController: buildQueueHarness().controller));
     await tester.pumpAndSettle();
 
     expect(find.text(Strings.onboardingTitle1), findsOneWidget);
@@ -53,10 +56,10 @@ void main() {
     final sessionStore = SessionStore();
 
     final authBloc = AuthBloc(
-      authRepository: AuthRepositoryImpl(db: db, sessionStore: sessionStore),
+      authRepository: FakeAuthRepository(),
       sessionStore: sessionStore,
     );
-    await tester.pumpWidget(RaghifApp(authBloc: authBloc));
+    await tester.pumpWidget(RaghifApp(authBloc: authBloc, queueController: buildQueueHarness().controller));
     await tester.pumpAndSettle();
 
     expect(find.text(Strings.appTitle), findsOneWidget);
