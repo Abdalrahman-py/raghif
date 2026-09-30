@@ -19,6 +19,14 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Added
+
+- `constitution.md`: the project's non-negotiable rules, linked from the
+  README. Its CI rule (VII) reflects the 2026-09-30 amendment: PRs run analyze
+  + test, the APK is built once per merge.
+- `.gitignore` covers the Supabase CLI's local link state and the local
+  briefing documents folder.
+
 ### Changed (i18n)
 
 - One string for "paid": `paidLabel` and `paidBadge` both held `مدفوع` and

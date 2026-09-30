@@ -16,6 +16,7 @@ cache of that server, not a second source of truth.
 |---|---|
 | [spec.md](spec.md) | Product spec — features, business rules, Supabase schema, open questions |
 | [UI_SPEC.md](UI_SPEC.md) | Visual design system — tokens, type scale, per-screen layout |
+| [constitution.md](constitution.md) | Non-negotiable project rules — read before changing anything |
 | [TASKS.md](TASKS.md) | Flutter build backlog |
 | `flutter/` | Flutter app |
 
