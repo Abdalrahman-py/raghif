@@ -1,4 +1,4 @@
--- Asserts the guarantees of 20260930090000_lock_direct_writes.sql.
+-- Asserts the guarantees of 20260930130626_lock_direct_writes.sql.
 -- Each check runs as a real role with a JWT subject, like PostgREST would.
 
 create function pg_temp.as_user(uid uuid, r text default 'authenticated') returns void

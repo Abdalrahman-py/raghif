@@ -19,6 +19,17 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Deployed
+
+- 2026-09-30, project `mgmerkaokkffsypnkryj`: migration
+  `lock_direct_writes` applied (recorded as `20260930130626`) and
+  `auth-gateway` v14 deployed (seed-demo gated, OTP checked server-side).
+  Verified against the live project: anonymous callers are refused on the
+  owner RPCs, `select *` on `profiles` is refused for signed-in users while
+  named columns work, the demo owner signs in, and the owner aggregates
+  return. `SEED_DEMO_SECRET` is not set, so `seed-demo` is disabled; the
+  database already holds the demo world.
+
 ### Fixed (sign-out)
 
 - **Sign-out works when the server cannot be reached.** `logout()` awaited
@@ -51,7 +62,7 @@ Workflow rules this changelog lives by:
   number, one bag a day) cannot be bypassed. `profiles.pin_hash` and `role`
   are no longer readable or writable by the app — the owner's device used to
   pull every buyer's bcrypt hash with `select *`; the sync now names its
-  columns. Migration `20260930090000_lock_direct_writes`.
+  columns. Migration `20260930130626_lock_direct_writes`.
 - **RPC rules moved into SQL.** `collect_purchase` refuses a batch that has
   not been called; `record_scan` only takes known outcomes and never links a
   purchase from another store; `save_store_allocation` locks the store row
