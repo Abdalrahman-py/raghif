@@ -1,2 +1,8 @@
 .DS_Store
 /.idea/
+
+# Supabase CLI state (linked project ref); local to each machine
+**/supabase/.temp/
+
+# Local briefing documents, not part of the app
+/Claude outputs/
