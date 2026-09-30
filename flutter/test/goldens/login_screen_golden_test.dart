@@ -86,6 +86,24 @@ void main() {
     );
   });
 
+  testWidgets('LoginScreen PIN step matches golden (360x800dp)', (
+    tester,
+  ) async {
+    await pumpLogin(tester, logicalSize: const Size(360, 800));
+
+    await tester.enterText(
+      fieldByLabel(Strings.personalIdLabel),
+      buyer.nationalId,
+    );
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(LoginScreen),
+      matchesGoldenFile('login_pin_step.png'),
+    );
+  });
+
   testWidgets('LoginScreen code step matches golden (360x800dp)', (
     tester,
   ) async {
@@ -95,7 +113,9 @@ void main() {
       fieldByLabel(Strings.personalIdLabel),
       buyer.nationalId,
     );
-    await tester.tap(find.text(Strings.requestOtpButton));
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Strings.forgotPin));
     // No pumpAndSettle here: the resend countdown is a live periodic timer, so
     // settling against it never finishes.
     await tester.pump();

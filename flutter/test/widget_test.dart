@@ -78,18 +78,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.appTitle), findsOneWidget);
-    expect(find.text(Strings.requestOtpButton), findsOneWidget);
+    expect(find.text(Strings.loginIdTitle), findsOneWidget);
     expect(find.text(Strings.personalIdLabel), findsOneWidget);
-    // The PIN route is on screen from the start. Hiding it until a National ID
-    // was typed meant a returning user's normal way in — the PIN they use every
-    // day — wasn't visible at all.
-    expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
-    await tester.enterText(find.byType(TextField).first, '900111222');
-    await tester.pumpAndSettle();
-    expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
-    // ...and the code path stays the primary action.
-    expect(find.text(Strings.requestOtpButton), findsOneWidget);
+    expect(find.text(Strings.continueButton), findsOneWidget);
 
     // See the first test's comment: unmount inline, not via addTearDown.
     await tester.pumpWidget(const SizedBox());

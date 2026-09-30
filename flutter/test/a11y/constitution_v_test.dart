@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:raghif/core/auth/session_store.dart';
+import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_colors.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/user_model.dart';
@@ -17,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../goldens/test_fonts.dart';
 import '../support/fake_auth_repository.dart';
+import '../support/finders.dart';
 import '../support/queue_test_harness.dart';
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -82,6 +84,19 @@ void main() {
             sessionStore: SessionStore(),
           ),
         ),
+    'login PIN step': (t) async {
+      await pump(
+        t,
+        const LoginScreen(),
+        bloc: AuthBloc(
+          authRepository: FakeAuthRepository(),
+          sessionStore: SessionStore(),
+        ),
+      );
+      await t.enterText(fieldByLabel(Strings.personalIdLabel), '900111222');
+      await t.tap(find.text(Strings.continueButton));
+      await t.pumpAndSettle();
+    },
     'registration': (t) => pump(
           t,
           const RegistrationScreen(),
@@ -145,7 +160,7 @@ void main() {
         // The guideline samples pixels and mis-reads the thin underlined link
         // as 1.26:1; its true pair (accent on background) is asserted from the
         // tokens in 'palette contrast' below.
-        skip: entry.key == 'login',
+        skip: entry.key.startsWith('login'),
       );
     });
   }

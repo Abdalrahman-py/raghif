@@ -5,17 +5,18 @@ class Strings {
   Strings._();
 
   static const appTitle = 'توزيع الخبز';
-  static const appSubtitle = 'احجز خبزك، تجنب الزحام';
   static const phoneLabel = 'رقم الهاتف';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
-  static const loginError = 'الرمز السري غير صحيح';
-  static const requestOtpButton = 'إرسال رمز التحقق';
+  static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginIdTitle = 'تسجيل الدخول';
+  static const loginPinTitle = 'أدخل رمزك السري';
+  static const loginOtpTitle = 'أدخل رمز التحقق';
+  static const continueButton = 'متابعة';
+  static const forgotPin = 'نسيت الرمز السري؟';
+  static String loginForId(String id) => 'لحساب رقم $id';
   static const otpLabel = 'رمز التحقق';
   static const verifyOtpButton = 'تأكيد الرمز والدخول';
-  static const loginWithPinInstead = 'الدخول باستخدام الرمز السري بدلاً من ذلك';
-  static const loginWithOtpInstead = 'الدخول برمز التحقق (OTP) بدلاً من ذلك';
-  static const changeNationalId = 'تغيير رقم الهوية';
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
@@ -34,10 +35,8 @@ class Strings {
   static const registerError = 'يرجى تعبئة جميع الحقول';
   static const phoneAlreadyRegistered = 'رقم الهاتف مسجل مسبقاً';
   static const nationalIdAlreadyRegistered = 'رقم الهوية مسجل مسبقاً';
-  static const demoBadge = 'نموذج تجريبي';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';
-  static const createAccountPrompt = 'ليس لديك حساب؟';
   static const createAccountLink = 'إنشاء حساب جديد';
 
   // Onboarding
@@ -73,7 +72,6 @@ class Strings {
   static const hidePin = 'إخفاء الرمز';
   static const otpRequired = 'أدخل رمز التحقق';
   static const otpLengthError = 'رمز التحقق 4 أرقام';
-  static const otpHelper = '4 أرقام';
 
   /// Countdown while "resend" is on cooldown: the wait is visible instead of a
   /// dead-looking button, and the code can't be requested repeatedly.

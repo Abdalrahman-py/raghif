@@ -18,11 +18,18 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  /// A registered buyer, so the OTP path has somewhere to land.
+  /// A registered buyer, so the PIN and code paths have somewhere to land.
   const buyer = UserModel(
     id: 'user-buyer',
     phone: '0599111111',
     nationalId: '900111222',
+    name: 'أحمد ناصر',
+  );
+
+  const demoBuyer = UserModel(
+    id: 'user-demo-buyer',
+    phone: '0599111111',
+    nationalId: demoBuyerNationalId,
     name: 'أحمد ناصر',
   );
 
@@ -50,8 +57,7 @@ void main() {
     return bloc;
   }
 
-  Finder nationalIdField() =>
-      fieldByLabel(Strings.personalIdLabel);
+  Finder nationalIdField() => fieldByLabel(Strings.personalIdLabel);
   Finder otpField() => fieldByLabel(Strings.otpLabel);
   Finder pinField() => fieldByLabel(Strings.pinLabel);
 
@@ -62,53 +68,147 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('offers the PIN route without typing anything first', (
-    tester,
-  ) async {
+  /// Types the buyer's ID and taps continue: the PIN question.
+  Future<void> reachPinStep(WidgetTester tester) async {
+    await tester.enterText(nationalIdField(), buyer.nationalId);
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('opens on one question: the national ID', (tester) async {
     await pumpLogin(tester);
 
-    // The old screen hid this link until a National ID was typed, which meant
-    // returning users couldn't see the way they normally log in.
-    expect(find.text(Strings.loginWithPinInstead), findsOneWidget);
-    expect(find.text(Strings.requestOtpButton), findsOneWidget);
-    expect(find.text(Strings.demoAccountsTitle), findsOneWidget);
+    expect(find.text(Strings.loginIdTitle), findsOneWidget);
+    expect(nationalIdField(), findsOneWidget);
+    expect(find.text(Strings.continueButton), findsOneWidget);
+    // Nothing that asks a second question or offers a second way in.
+    expect(pinField(), findsNothing);
+    expect(otpField(), findsNothing);
+    expect(find.text(Strings.forgotPin), findsNothing);
   });
 
   testWidgets('an empty National ID is reported on the field', (tester) async {
     await pumpLogin(tester);
 
-    await tester.tap(find.text(Strings.requestOtpButton));
+    await tester.tap(find.text(Strings.continueButton));
     await tester.pumpAndSettle();
 
-    // On the field, and naming the actual problem — not "يرجى تعبئة جميع
-    // الحقول" printed under the button.
     expect(find.text(Strings.nationalIdRequired), findsOneWidget);
     expect(find.text(Strings.registerError), findsNothing);
-    // Still step one: no event was dispatched.
-    expect(otpField(), findsNothing);
+    expect(pinField(), findsNothing);
   });
 
-  testWidgets('a nine-digit National ID moves to the code step', (
+  testWidgets('a short National ID is refused with its own message', (
     tester,
   ) async {
     await pumpLogin(tester);
 
-    await tester.enterText(nationalIdField(), buyer.nationalId);
-    await tester.tap(find.text(Strings.requestOtpButton));
+    await tester.enterText(nationalIdField(), '90011');
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.nationalIdLengthError), findsOneWidget);
+    expect(pinField(), findsNothing);
+  });
+
+  testWidgets('typing clears the error the field just showed', (tester) async {
+    await pumpLogin(tester);
+
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.nationalIdRequired), findsOneWidget);
+
+    await tester.enterText(nationalIdField(), '9001112');
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.nationalIdRequired), findsNothing);
+  });
+
+  testWidgets('a nine-digit ID moves to the PIN question, no request sent', (
+    tester,
+  ) async {
+    final bloc = await pumpLogin(tester);
+
+    await reachPinStep(tester);
+
+    expect(find.text(Strings.loginPinTitle), findsOneWidget);
+    expect(find.text(Strings.loginForId(buyer.nationalId)), findsOneWidget);
+    expect(pinField(), findsOneWidget);
+    expect(find.text(Strings.forgotPin), findsOneWidget);
+    expect(bloc.state, isNot(isA<AuthLoading>()));
+  });
+
+  testWidgets('the fourth PIN digit signs the user in', (tester) async {
+    final bloc = await pumpLogin(tester);
+    await reachPinStep(tester);
+
+    await tester.enterText(pinField(), '1234');
+    await tester.pumpAndSettle();
+
+    expect(bloc.state, isA<Authenticated>());
+    expect((bloc.state as Authenticated).user.nationalId, buyer.nationalId);
+  });
+
+  testWidgets('back returns to the ID with what was typed', (tester) async {
+    await pumpLogin(tester);
+    await reachPinStep(tester);
+
+    await tester.tap(find.byTooltip(Strings.back));
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.loginIdTitle), findsOneWidget);
+    expect(
+      tester.widget<TextField>(nationalIdField()).controller!.text,
+      buyer.nationalId,
+    );
+  });
+
+  testWidgets('an ID with no account is told so, with registration beside it', (
+    tester,
+  ) async {
+    final bloc = AuthBloc(
+      authRepository: FakeAuthRepository(users: const []),
+      sessionStore: SessionStore(),
+    );
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      BlocProvider<AuthBloc>.value(
+        value: bloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (context, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(nationalIdField(), '999999999');
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(pinField(), '0000');
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.nationalIdNotFound), findsOneWidget);
+    expect(find.text(Strings.createAccountLink), findsOneWidget);
+  });
+
+  testWidgets('forgot PIN sends the code and shows it, resend on cooldown', (
+    tester,
+  ) async {
+    await pumpLogin(tester);
+    await reachPinStep(tester);
+
+    await tester.tap(find.text(Strings.forgotPin));
     // pumpAndSettle would spin against the 1s resend countdown.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
+    expect(find.text(Strings.loginOtpTitle), findsOneWidget);
     expect(otpField(), findsOneWidget);
-    expect(find.text(Strings.otpHelper), findsOneWidget);
-    // The code the pilot would have texted, and the wait before resending.
     expect(find.text(Strings.demoOtpBanner('1234')), findsOneWidget);
     expect(find.text(Strings.demoOtpTapToFill), findsOneWidget);
-    expect(
-      find.text(Strings.resendOtpIn(30)),
-      findsOneWidget,
-      reason: 'resend starts on cooldown instead of being free to hammer',
-    );
+    expect(find.text(Strings.resendOtpIn(30)), findsOneWidget);
 
     await unmount(tester);
   });
@@ -117,9 +217,8 @@ void main() {
     tester,
   ) async {
     final bloc = await pumpLogin(tester);
-
-    await tester.enterText(nationalIdField(), buyer.nationalId);
-    await tester.tap(find.text(Strings.requestOtpButton));
+    await reachPinStep(tester);
+    await tester.tap(find.text(Strings.forgotPin));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
@@ -133,65 +232,34 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('an unregistered National ID is pointed at registration', (
+  testWidgets('a demo account signs in with one tap, out of the way', (
+    tester,
+  ) async {
+    final bloc = await pumpLogin(tester, users: const [demoBuyer]);
+
+    // Present but quiet: one small link, not a card on the first screen.
+    expect(find.text(Strings.demoBuyerLabel), findsNothing);
+    await tester.tap(find.text(Strings.demoAccountsTitle));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text(
+        '${Strings.demoBuyerLabel} — $demoBuyerNationalId / $demoBuyerPin',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(bloc.state, isA<Authenticated>());
+    expect((bloc.state as Authenticated).user.nationalId, demoBuyerNationalId);
+  });
+
+  testWidgets('creating an account is one tap from the first screen', (
     tester,
   ) async {
     await pumpLogin(tester);
 
-    await tester.enterText(nationalIdField(), '999999999');
-    await tester.tap(find.text(Strings.requestOtpButton));
+    await tester.tap(find.text(Strings.createAccountLink));
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.nationalIdNotFound), findsOneWidget);
-    expect(otpField(), findsNothing);
-  });
-
-  testWidgets('a demo row fills the PIN form', (tester) async {
-    await pumpLogin(tester);
-
-    // The demo block sits at the bottom of the scroll view; on the default
-    // 800x600 test surface it is off-screen, and an off-screen tap silently
-    // hits nothing.
-    final ownerRow = find.text(
-      '${Strings.demoOwnerLabel} — $demoOwnerNationalId / $demoOwnerPin',
-    );
-    await tester.ensureVisible(ownerRow);
-    await tester.pumpAndSettle();
-    await tester.tap(ownerRow);
-    await tester.pumpAndSettle();
-
-    // Switched to PIN mode with both fields populated.
-    expect(find.text(Strings.loginButton), findsOneWidget);
-    expect(find.text(Strings.loginWithOtpInstead), findsOneWidget);
-    expect(
-      tester.widget<TextField>(nationalIdField()).controller!.text,
-      demoOwnerNationalId,
-    );
-    expect(tester.widget<TextField>(pinField()).controller!.text, demoOwnerPin);
-  });
-
-  testWidgets('typing clears the error the field just showed', (tester) async {
-    await pumpLogin(tester);
-
-    await tester.tap(find.text(Strings.requestOtpButton));
-    await tester.pumpAndSettle();
-    expect(find.text(Strings.nationalIdRequired), findsOneWidget);
-
-    await tester.enterText(nationalIdField(), '9001112');
-    await tester.pumpAndSettle();
-    expect(find.text(Strings.nationalIdRequired), findsNothing);
-  });
-
-  testWidgets('a short National ID is refused with its own message', (
-    tester,
-  ) async {
-    await pumpLogin(tester);
-
-    await tester.enterText(nationalIdField(), '90011');
-    await tester.tap(find.text(Strings.requestOtpButton));
-    await tester.pumpAndSettle();
-
-    expect(find.text(Strings.nationalIdLengthError), findsOneWidget);
-    expect(otpField(), findsNothing);
+    expect(find.text(Strings.registerButton), findsWidgets);
   });
 }
