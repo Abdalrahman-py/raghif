@@ -19,6 +19,47 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed
+
+- **Direct table writes are closed.** `purchases` and `scan_events` no longer
+  accept inserts/updates from the app, so `reserve_bag` (sold-out, batch
+  number, one bag a day) cannot be bypassed. `profiles.pin_hash` and `role`
+  are no longer readable or writable by the app — the owner's device used to
+  pull every buyer's bcrypt hash with `select *`; the sync now names its
+  columns. Migration `20260930090000_lock_direct_writes`.
+- **RPC rules moved into SQL.** `collect_purchase` refuses a batch that has
+  not been called; `record_scan` only takes known outcomes and never links a
+  purchase from another store; `save_store_allocation` locks the store row
+  (no oversell race) and no longer takes `is_open` from the client's cache.
+  The new RPCs are revoked from `anon`.
+- **Failed writes are no longer silent.** Owner actions, the scanner and pin
+  toggles report "did not happen" via `guardWrite` instead of leaving the
+  scanner stuck; server errors reach the UI as `BackendUnavailableException`
+  rather than raw driver errors, and only the exact sold-out message maps to
+  `StoreSoldOutException`.
+- **`auth-gateway`:** `seed-demo` is disabled unless the
+  `SEED_DEMO_SECRET` function secret is set and sent as `x-seed-secret`;
+  `otp-confirm` now checks the (mock) code server-side instead of minting a
+  session from a national ID alone (`loginWithOtp` takes the entered code).
+- Cache reads no longer invent facts (`batch_number ?? 1`, `createdAt = now`),
+  and an upgrade from an install that stored the session id as an int no
+  longer fails sign-in.
+- SQL tests: `flutter/supabase/tests/run.sh` applies every migration to a
+  throwaway Postgres (docker) and asserts the above as real roles.
+- **Accessibility floor (constitution V), measured in `test/a11y`.** Body
+  text is 16sp (was 15); field labels sit above the field at full size (the
+  floating label shrank to ~12.75sp once you typed); input outlines are
+  4.8:1 instead of 1.5:1; chip text on status tints is ~8:1; the demo rows
+  are 48dp with 8dp between them; Arabic styles no longer set `letterSpacing`
+  (it disables ligatures); the demo badge pads with `EdgeInsetsDirectional`.
+  Registration lost its box-in-box field cards; the owner's pending-pickup
+  count is a numeral, not a pill.
+- **Fewer expensive accidents.** Signing out and closing the bakery ask
+  first; the daily-bag stepper moves by 10.
+- **Boot no longer waits on the network.** The first store pull is not
+  awaited, so an unreachable backend shows the app instead of a permanent
+  splash screen.
+
 ### Changed
 
 - **Postgres is the source of truth; drift is a cache.** The app used to

@@ -30,7 +30,8 @@ the target schema.
 4. **Queue repository + offline sync** — `SupabaseQueueRepository` +
    `SyncService`; drift stays the UI read model, Postgres becomes the
    business-rule arbiter (sold-out checks, one-bag-per-day) via RPC
-   functions. Offline writes queue locally and replay on reconnect.
+   functions. Writes require the backend and fail loudly; only reads are
+   served from the cache (constitution II — supersedes "queue and replay").
 5. **Realtime + push notifications** — `device_tokens` table, FCM wiring, a
    `notify-batch` Edge Function triggered off purchase/store changes.
    Realtime covers in-app live updates; FCM covers backgrounded/killed
@@ -96,6 +97,8 @@ it, and it never enters the repo.
 - National-ID PII in a hosted DB — confirm Supabase's hosting region/DPA is
   acceptable before go-live.
 - Offline conflict UX: a losing client in a race for the last bag needs a
-  clear "rejected, please retry" surface, not silent disappearance.
+  clear "rejected, please retry" surface, not silent disappearance. Every
+  write call site now goes through `guardWrite`, which says the action did
+  not happen.
 - Existing PIN hashes (sha256) need a one-time re-hash-on-next-login to
   bcrypt since they aren't reversible.
