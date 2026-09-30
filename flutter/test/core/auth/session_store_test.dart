@@ -14,4 +14,10 @@ void main() {
     await SessionStore().clear();
     expect(await SessionStore().loadUserId(), isNull);
   });
+
+  test('a legacy int user id reads as "no session", not a crash', () async {
+    SharedPreferences.setMockInitialValues({'session.userId': 7});
+
+    expect(await SessionStore().loadUserId(), isNull);
+  });
 }

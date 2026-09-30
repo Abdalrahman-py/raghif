@@ -12,7 +12,10 @@ class SessionStore {
 
   Future<String?> loadUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_userIdKey);
+    // Installs from before UUID ids stored an int here; `getString` would
+    // throw on that, so read untyped and treat it as "no session".
+    final value = prefs.get(_userIdKey);
+    return value is String ? value : null;
   }
 
   Future<void> saveUserId(String userId) async {

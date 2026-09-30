@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/database/app_database.dart';
@@ -36,8 +37,10 @@ class SupabaseQueueRepository implements QueueRepository {
 
   // ------------------------------------------------------------- writes --
 
-  /// Runs an RPC, translating the two failures the UI has to tell apart:
-  /// the store being out of bags, and the backend being unreachable.
+  /// Runs an RPC. Every failure surfaces as one of two exceptions the UI can
+  /// act on: [StoreSoldOutException] (a rule Postgres enforced) or
+  /// [BackendUnavailableException] (the write did not happen, for any other
+  /// reason). Raw driver errors never reach a screen.
   Future<T> _rpc<T>(String name, Map<String, dynamic> params) async {
     if (_client.auth.currentSession == null) {
       throw const BackendUnavailableException('no session');
@@ -45,18 +48,25 @@ class SupabaseQueueRepository implements QueueRepository {
     try {
       return await _client.rpc(name, params: params) as T;
     } on PostgrestException catch (e) {
-      final message = e.message.toLowerCase();
-      if (message.contains('sold out') || message.contains('closed')) {
-        throw StoreSoldOutException();
-      }
-      rethrow;
-    } on StoreSoldOutException {
-      rethrow;
+      throw mapRpcError(e);
     } catch (e) {
       // Socket errors, DNS failures, timeouts: the write did not happen.
       throw BackendUnavailableException(e);
     }
   }
+
+  /// Message raised by `reserve_bag` when a store is shut or out of bags.
+  @visibleForTesting
+  static const soldOutMessage = 'store closed or sold out';
+
+  /// Message raised by `notify_next_batch` when nothing is left to call.
+  static const _noWaitingBatch = 'no waiting batch to notify';
+
+  @visibleForTesting
+  static Exception mapRpcError(PostgrestException e) =>
+      e.message.toLowerCase() == soldOutMessage
+          ? StoreSoldOutException()
+          : BackendUnavailableException(e);
 
   @override
   Future<PurchaseModel> reserveBag({
@@ -83,9 +93,13 @@ class SupabaseQueueRepository implements QueueRepository {
         'p_store_id': storeId,
         'p_purchase_date': date,
       });
-    } on PostgrestException catch (e) {
+    } on BackendUnavailableException catch (e) {
       // "no waiting batch to notify" is an expected outcome, not a failure.
-      if (e.message.toLowerCase().contains('no waiting batch')) return false;
+      final cause = e.cause;
+      if (cause is PostgrestException &&
+          cause.message.toLowerCase() == _noWaitingBatch) {
+        return false;
+      }
       rethrow;
     }
     await _sync.refreshAll();
@@ -116,11 +130,9 @@ class SupabaseQueueRepository implements QueueRepository {
     String? openTime,
     String? closeTime,
   }) async {
-    final store = await getStoreById(storeId);
     await _rpc<dynamic>('save_store_allocation', {
       'p_store_id': storeId,
       'p_daily_bag_limit': dailyLimit,
-      'p_is_open': store?.isOpen ?? true,
       'p_batch_size': batchSize,
       'p_purchase_date': date,
       'p_open_time': _time(openTime),
@@ -418,16 +430,14 @@ class SupabaseQueueRepository implements QueueRepository {
         storeId: row['store_id'] as String,
         userId: row['user_id'] as String,
         purchaseDate: row['purchase_date'] as String,
-        batchNumber: (row['batch_number'] as int?) ?? 1,
+        batchNumber: row['batch_number'] as int,
         status: switch (row['status'] as String?) {
           'notified' => PurchaseStatus.notified,
           'collected' => PurchaseStatus.collected,
           _ => PurchaseStatus.waiting,
         },
         createdAtMillis:
-            DateTime.tryParse((row['created_at'] as String?) ?? '')
-                    ?.millisecondsSinceEpoch ??
-                DateTime.now().millisecondsSinceEpoch,
+            DateTime.parse(row['created_at'] as String).millisecondsSinceEpoch,
       );
 
   /// Postgres `time` wants "HH:mm:ss"; the UI carries "HH:mm".

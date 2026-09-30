@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -79,5 +81,9 @@ Future<void> initDependencies() async {
   // Stores are world-readable, so the bakery list is warm before login.
   // Nothing is seeded here: the demo world lives in Postgres now
   // (seed_demo_* / the seed-demo Edge Function action).
-  await sync.pullStores();
+  //
+  // Not awaited: boot must not wait on the network. With the backend down or
+  // slow, an awaited pull leaves the app on the splash screen forever, while
+  // the cache it would refresh is exactly what lets it render offline.
+  unawaited(sync.pullStores());
 }

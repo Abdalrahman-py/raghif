@@ -71,7 +71,13 @@ class QueueSyncService {
 
   Future<void> pullProfiles() async {
     await _guard(() async {
-      final rows = await _client.from('profiles').select();
+      // Named columns, never `select()`: the owner-visible profile policy would
+      // otherwise hand every buyer's pin_hash to this device (the columns are
+      // also revoked in SQL — this keeps the request from tripping on that).
+      final rows = await _client.from('profiles').select(
+            'id, phone, national_id, name, role, jawwal_pay_number, '
+            'verification_status',
+          );
       await _db.batch((b) {
         for (final row in (rows as List).cast<Map<String, dynamic>>()) {
           b.insert(
@@ -120,7 +126,7 @@ class QueueSyncService {
               storeId: row['store_id'] as String,
               userId: row['user_id'] as String,
               purchaseDate: row['purchase_date'] as String,
-              batchNumber: Value((row['batch_number'] as int?) ?? 1),
+              batchNumber: Value(row['batch_number'] as int),
               status: _status(row['status'] as String?),
               createdAt: _millis(row['created_at'] as String?),
             ),
@@ -188,9 +194,10 @@ class QueueSyncService {
     return value.substring(0, 5);
   }
 
+  /// Strict on purpose: a row without a real timestamp aborts the pull and
+  /// the last good cache stays, rather than inventing "now" as a fact.
   static int _millis(String? iso) =>
-      DateTime.tryParse(iso ?? '')?.millisecondsSinceEpoch ??
-      DateTime.now().millisecondsSinceEpoch;
+      DateTime.parse(iso!).millisecondsSinceEpoch;
 
   static PurchaseStatus _status(String? value) => switch (value) {
         'notified' => PurchaseStatus.notified,
