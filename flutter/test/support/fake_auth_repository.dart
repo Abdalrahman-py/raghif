@@ -7,9 +7,13 @@ import 'package:raghif/domain/repositories/auth_repository.dart';
 /// auth: PIN verification is the auth-gateway Edge Function's job now, so
 /// there is no local implementation left to instantiate.
 class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.users = const []});
+  FakeAuthRepository({this.users = const [], this.failWith});
 
   final List<UserModel> users;
+
+  /// When set, sign-in calls throw it: a call that never got an answer
+  /// (no connection), as opposed to a server that said no.
+  final Object? failWith;
 
   UserModel? _byNationalId(String nationalId) =>
       users.where((u) => u.nationalId == nationalId).firstOrNull;
@@ -22,8 +26,10 @@ class FakeAuthRepository implements AuthRepository {
   Future<UserModel?> loginWithPin({
     required String nationalId,
     required String pin,
-  }) async =>
-      _byNationalId(nationalId);
+  }) async {
+    if (failWith != null) throw failWith!;
+    return _byNationalId(nationalId);
+  }
 
   @override
   Future<UserModel?> loginWithOtp({
@@ -33,8 +39,10 @@ class FakeAuthRepository implements AuthRepository {
       _byNationalId(nationalId);
 
   @override
-  Future<String?> requestOtp(String nationalId) async =>
-      _byNationalId(nationalId) == null ? null : '1234';
+  Future<String?> requestOtp(String nationalId) async {
+    if (failWith != null) throw failWith!;
+    return _byNationalId(nationalId) == null ? null : '1234';
+  }
 
   @override
   Future<UserModel?> findById(String id) async =>

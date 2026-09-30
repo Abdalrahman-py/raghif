@@ -85,7 +85,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         otpCode: otp,
       ));
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      // The gateway answering "no" is handled in the repository; anything
+      // that gets here is a call that never got an answer.
+      emit(const AuthFailure(Strings.loginOffline));
     }
   }
 
@@ -120,7 +122,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthFailure(Strings.loginError));
       }
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      // The gateway answering "no" is handled in the repository; anything
+      // that gets here is a call that never got an answer.
+      emit(const AuthFailure(Strings.loginOffline));
     }
   }
 
@@ -149,7 +153,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthSwitchToRegister(nationalId: nationalId));
       }
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      // The gateway answering "no" is handled in the repository; anything
+      // that gets here is a call that never got an answer.
+      emit(const AuthFailure(Strings.loginOffline));
     }
   }
 
@@ -175,7 +181,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthSwitchToRegister(nationalId: phone));
       }
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      // The gateway answering "no" is handled in the repository; anything
+      // that gets here is a call that never got an answer.
+      emit(const AuthFailure(Strings.loginOffline));
     }
   }
 

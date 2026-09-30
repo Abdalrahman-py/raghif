@@ -9,6 +9,8 @@ class Strings {
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
   static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginOffline =
+      'تعذّر الاتصال بالخادم. تحقق من الاتصال وحاول مرة أخرى.';
   static const loginIdTitle = 'تسجيل الدخول';
   static const loginPinTitle = 'أدخل رمزك السري';
   static const loginOtpTitle = 'أدخل رمز التحقق';
