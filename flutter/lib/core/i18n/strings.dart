@@ -341,6 +341,13 @@ class Strings {
       'سيتم إشعار جميع المترقّبين في الدفعة رقم $batch بأن خبزهم جاهز.';
   static const notifyConfirmAction = 'إشعار الدفعة';
   static const cancelLabel = 'إلغاء';
+  static const logoutConfirmTitle = 'تسجيل الخروج؟';
+  static const logoutConfirmBody =
+      'ستحتاج إلى رقم الهوية والرمز السري للدخول مرة أخرى.';
+  static const closeStoreConfirmTitle = 'إغلاق المخبز؟';
+  static const closeStoreConfirmBody =
+      'لن يتمكن الزبائن من حجز أي كيس حتى تفتح المخبز مرة أخرى.';
+  static const closeStoreConfirmAction = 'إغلاق المخبز';
   static String notifyOutstandingWarning(int count) =>
       'تنبيه: $count ممن نودي عليهم في دفعات سابقة لم يستلموا بعد.';
   static String lowStockWarning(int remaining) =>

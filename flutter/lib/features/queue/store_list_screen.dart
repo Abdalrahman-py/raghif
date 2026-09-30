@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shapes.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/status_chip.dart';
-import '../auth/bloc/auth_bloc.dart';
 import '../auth/demo_accounts.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_list_entry.dart';
@@ -14,6 +12,8 @@ import 'queue_controller.dart';
 import 'queue_logic.dart';
 import 'store_details_screen.dart';
 import 'store_list_logic.dart';
+import 'write_guard.dart';
+import 'confirm_action.dart';
 
 /// UI_SPEC.md StoreListScreen: full-width cards, single column, no grid/map.
 /// Whole card is tappable when available since that's the primary action.
@@ -66,8 +66,7 @@ class _StoreListScreenState extends State<StoreListScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: Strings.logout,
-            onPressed: () =>
-                context.read<AuthBloc>().add(const LogoutRequestedEvent()),
+            onPressed: () => confirmLogout(context),
           ),
         ],
       ),
@@ -78,10 +77,9 @@ class _StoreListScreenState extends State<StoreListScreen> {
           final areas = areasOf(all);
           // A selected area can disappear if its last store is removed —
           // fall back to "all" rather than showing an empty list.
-          final area =
-              _selectedArea != null && areas.contains(_selectedArea)
-                  ? _selectedArea
-                  : null;
+          final area = _selectedArea != null && areas.contains(_selectedArea)
+              ? _selectedArea
+              : null;
           final visible = sortStoreEntries(
             filterStoreEntries(all, query: _query, area: area),
           );
@@ -184,12 +182,14 @@ class _StoreListScreenState extends State<StoreListScreen> {
                                 return _StoreCard(
                                   entry: entry,
                                   today: today,
-                                  onTogglePin: () => widget.controller
-                                      .setStorePinned(
-                                        widget.currentUser.id,
-                                        entry.store.id,
-                                        !entry.pinned,
-                                      ),
+                                  onTogglePin: () => guardWrite(
+                                    context,
+                                    () => widget.controller.setStorePinned(
+                                      widget.currentUser.id,
+                                      entry.store.id,
+                                      !entry.pinned,
+                                    ),
+                                  ),
                                   onTap: () => Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => StoreDetailsScreen(
@@ -277,12 +277,7 @@ class _StoreCard extends StatelessWidget {
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    store.name,
-                    style: textTheme.titleMedium,
-                  ),
-                ),
+                Expanded(child: Text(store.name, style: textTheme.titleMedium)),
                 // A closed bakery is not the same as one that sold out —
                 // saying "نفدت الكمية" for a store that never opened today
                 // reads as a stock problem the owner caused.
@@ -290,13 +285,13 @@ class _StoreCard extends StatelessWidget {
                   text: available
                       ? Strings.available
                       : store.isOpen
-                          ? Strings.soldOut
-                          : Strings.storeClosedBadge,
+                      ? Strings.soldOut
+                      : Strings.storeClosedBadge,
                   tone: available
                       ? StatusTone.success
                       : store.isOpen
-                          ? StatusTone.danger
-                          : StatusTone.neutral,
+                      ? StatusTone.danger
+                      : StatusTone.neutral,
                 ),
                 const SizedBox(width: AppSpacing.xs),
                 IconButton(

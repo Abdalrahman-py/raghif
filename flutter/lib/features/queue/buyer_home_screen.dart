@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
@@ -8,12 +7,12 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
-import '../auth/bloc/auth_bloc.dart';
 import '../auth/demo_accounts.dart';
 import 'confirmation_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 import 'store_list_screen.dart';
+import 'confirm_action.dart';
 
 /// Buyer home — "my current order" (walkthrough P0 #2).
 ///
@@ -83,8 +82,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: Strings.logout,
-            onPressed: () =>
-                context.read<AuthBloc>().add(const LogoutRequestedEvent()),
+            onPressed: () => confirmLogout(context),
           ),
         ],
       ),
@@ -151,10 +149,7 @@ class _NoOrderView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          PrimaryButton(
-            text: Strings.browseStoresButton,
-            onPressed: onBrowse,
-          ),
+          PrimaryButton(text: Strings.browseStoresButton, onPressed: onBrowse),
         ],
       ),
     );
@@ -187,10 +182,7 @@ class _CurrentOrderView extends StatelessWidget {
         }
         final textTheme = Theme.of(context).textTheme;
         final (label, tone) = switch (purchase.status) {
-          PurchaseStatus.waiting => (
-            Strings.statusWaiting,
-            StatusTone.warning,
-          ),
+          PurchaseStatus.waiting => (Strings.statusWaiting, StatusTone.warning),
           PurchaseStatus.notified => (
             Strings.statusNotified,
             StatusTone.success,
@@ -208,10 +200,7 @@ class _CurrentOrderView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    purchase.storeName ?? '',
-                    style: textTheme.titleLarge,
-                  ),
+                  Text(purchase.storeName ?? '', style: textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
                     spacing: AppSpacing.sm,

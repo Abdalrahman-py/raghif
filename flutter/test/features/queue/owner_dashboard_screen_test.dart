@@ -124,10 +124,11 @@ void main() {
     final store = controller.storeById(seededStoreId);
     expect(store?.openTime, '08:00');
     expect(store?.closeTime, '10:00');
-    expect(store?.dailyBagLimit, 301);
+    // One tap on + moves the allocation by 10, not 1 (300 -> 310).
+    expect(store?.dailyBagLimit, 310);
     // The save belongs to the server: remaining comes back recomputed from the
     // allocation (limit minus today's sales), not shifted by a local delta.
-    expect(store?.bagsRemaining, 301);
+    expect(store?.bagsRemaining, 310);
     // Saved again: the action is gone and the card confirms the state.
     expect(find.text(Strings.saveTodaySettings), findsNothing);
     expect(find.text(Strings.savedSettingsNote), findsOneWidget);
@@ -197,11 +198,30 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(Strings.storeOpenSwitchLabel));
     await tester.pumpAndSettle();
+    // Closing stops every buyer, so it asks first.
+    await tester.tap(find.text(Strings.closeStoreConfirmAction));
+    await tester.pumpAndSettle();
 
     expect(controller.storeById(seededStoreId)!.isOpen, isFalse);
     expect(find.text(Strings.storeOpenOffHelper), findsOneWidget);
     // The same flag buyers read, so this is what actually stops selling.
     expect(controller.storeById(seededStoreId)!.canPurchase, isFalse);
+  });
+
+  testWidgets('cancelling the close-bakery confirmation leaves it open', (
+    tester,
+  ) async {
+    final controller = await pumpDashboard(tester, seededStoreId);
+
+    await tester.ensureVisible(find.text(Strings.storeOpenSwitchLabel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Strings.storeOpenSwitchLabel));
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.closeStoreConfirmTitle), findsOneWidget);
+    await tester.tap(find.text(Strings.cancelLabel));
+    await tester.pumpAndSettle();
+
+    expect(controller.storeById(seededStoreId)!.isOpen, isTrue);
   });
 
   testWidgets(

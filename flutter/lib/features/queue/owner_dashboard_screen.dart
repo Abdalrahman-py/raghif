@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shapes.dart';
@@ -12,12 +11,13 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/store_model.dart';
-import '../auth/bloc/auth_bloc.dart';
 import 'owner_customers_screen.dart';
 import 'owner_history_screen.dart';
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
+import 'write_guard.dart';
+import 'confirm_action.dart';
 
 /// UI_SPEC.md OwnerDashboardScreen, Flutter build.
 ///
@@ -121,16 +121,38 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     });
   }
 
-  Future<void> _save(StoreModel store) async {
-    await widget.controller.saveAllocation(
-      widget.storeId,
-      dailyBagLimit: _allocation,
-      batchSize: store.batchSize,
-      today: todayDateString(),
-      openTime: _openTime,
-      closeTime: _closeTime,
+  /// Opening is immediate; closing asks first, since it stops every buyer
+  /// and the switch is a whole-card tap target.
+  Future<void> _setStoreOpen(bool open) async {
+    if (!open) {
+      final confirmed = await confirmAction(
+        context,
+        title: Strings.closeStoreConfirmTitle,
+        body: Strings.closeStoreConfirmBody,
+        confirmLabel: Strings.closeStoreConfirmAction,
+      );
+      if (!confirmed || !mounted) return;
+    }
+    await guardWrite(
+      context,
+      () => widget.controller.setStoreOpen(widget.storeId, open),
     );
-    if (!mounted) return;
+  }
+
+  Future<void> _save(StoreModel store) async {
+    final saved = await guardWrite(
+      context,
+      () => widget.controller.saveAllocation(
+        widget.storeId,
+        dailyBagLimit: _allocation,
+        batchSize: store.batchSize,
+        today: todayDateString(),
+        openTime: _openTime,
+        closeTime: _closeTime,
+      ),
+    );
+    // Unsaved stays dirty, so the save button is still there to retry.
+    if (!saved || !mounted) return;
     setState(() {
       _savedAllocation = _allocation;
       _savedOpenTime = _openTime;
@@ -154,8 +176,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: Strings.logout,
-            onPressed: () =>
-                context.read<AuthBloc>().add(const LogoutRequestedEvent()),
+            onPressed: () => confirmLogout(context),
           ),
         ],
       ),
@@ -197,10 +218,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 // the owner's eyes are on the queue, not the
                                 // switch.
                                 HapticFeedback.selectionClick();
-                                widget.controller.setStoreOpen(
-                                  widget.storeId,
-                                  value,
-                                );
+                                _setStoreOpen(value);
                               },
                             ),
                             const SizedBox(height: AppSpacing.md),
@@ -385,12 +403,22 @@ class _HeroCard extends StatelessWidget {
                   style: textTheme.bodyLarge,
                 ),
               ),
-              StatusChip(
-                text: '$pendingPickup',
-                tone: pendingPickup > 0
-                    ? StatusTone.warning
-                    : StatusTone.neutral,
-                icon: Icons.schedule,
+              // The number the owner acts on mid-crowd: a numeral, not a pill.
+              // Still icon plus number, never colour alone.
+              Icon(
+                Icons.schedule,
+                color: pendingPickup > 0
+                    ? AppColors.onWarningContainer
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                '$pendingPickup',
+                style: textTheme.titleLarge?.copyWith(
+                  color: pendingPickup > 0
+                      ? AppColors.onWarningContainer
+                      : AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -545,6 +573,7 @@ class _SettingsCard extends StatelessWidget {
               NumberStepper(
                 value: allocation,
                 onChanged: onAllocationChanged,
+                step: 10,
                 decrementLabel: Strings.decreaseValue,
                 incrementLabel: Strings.increaseValue,
               ),

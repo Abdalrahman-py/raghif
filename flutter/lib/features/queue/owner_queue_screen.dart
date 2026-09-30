@@ -11,6 +11,7 @@ import 'qr_scanner_screen.dart';
 import '../../domain/models/store_model.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
+import 'write_guard.dart';
 
 /// UI_SPEC.md OwnerQueueScreen: batch grouping via section headers (not
 /// color-only banding), sticky Notify button that's removed rather than
@@ -110,7 +111,11 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
       ),
     );
     if (confirmed == true) {
-      await widget.controller.notifyNextBatch(widget.storeId, date);
+      if (!mounted) return;
+      await guardWrite(
+        context,
+        () => widget.controller.notifyNextBatch(widget.storeId, date),
+      );
     }
   }
 
@@ -134,8 +139,7 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
         builder: (context, snapshot) {
           final store = widget.controller.storeById(widget.storeId);
           final queue = snapshot.data ?? [];
-          final visible =
-              searching ? queue.where(_matches).toList() : queue;
+          final visible = searching ? queue.where(_matches).toList() : queue;
           final grouped = <int, List<PurchaseModel>>{};
           for (final p in visible) {
             grouped.putIfAbsent(p.batchNumber, () => []).add(p);
@@ -214,71 +218,66 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                               ),
                             )
                           : visible.isEmpty
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(
-                                      AppSpacing.md,
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                child: Text(
+                                  Strings.buyerSearchNoResults,
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                              ),
+                              children: [
+                                for (final batch in batchNumbers) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: AppSpacing.sm,
                                     ),
-                                    child: Text(
-                                      Strings.buyerSearchNoResults,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge,
-                                    ),
-                                  ),
-                                )
-                              : ListView(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                  ),
-                                  children: [
-                                    for (final batch in batchNumbers) ...[
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: AppSpacing.sm,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          Strings.batchLabel(batch),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
                                         ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              Strings.batchLabel(batch),
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.titleMedium,
+                                        if (progress[batch] != null) ...[
+                                          const SizedBox(height: AppSpacing.xs),
+                                          Text(
+                                            Strings.batchSummary(
+                                              progress[batch]!.picked,
+                                              progress[batch]!.awaitingPickup,
+                                              progress[batch]!.waiting,
                                             ),
-                                            if (progress[batch] != null) ...[
-                                              const SizedBox(
-                                                height: AppSpacing.xs,
-                                              ),
-                                              Text(
-                                                Strings.batchSummary(
-                                                  progress[batch]!.picked,
-                                                  progress[batch]!
-                                                      .awaitingPickup,
-                                                  progress[batch]!.waiting,
-                                                ),
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyMedium,
-                                              ),
-                                            ],
-                                          ],
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  for (final purchase in grouped[batch]!) ...[
+                                    _BuyerRow(
+                                      purchase: purchase,
+                                      onToggleArrival: () => guardWrite(
+                                        context,
+                                        () => widget.controller.collectPurchase(
+                                          purchase.id,
                                         ),
                                       ),
-                                      for (final purchase
-                                          in grouped[batch]!) ...[
-                                        _BuyerRow(
-                                          purchase: purchase,
-                                          onToggleArrival: () => widget
-                                              .controller
-                                              .collectPurchase(purchase.id),
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                      ],
-                                    ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
                                   ],
-                                ),
+                                ],
+                              ],
+                            ),
                     ),
                     if (nextBatch != null)
                       Padding(
@@ -290,7 +289,8 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                         ),
                         child: PrimaryButton(
                           text: Strings.notifyNextBatch(nextBatch),
-                          onPressed: () => _confirmNotify(nextBatch, queue, date),
+                          onPressed: () =>
+                              _confirmNotify(nextBatch, queue, date),
                         ),
                       ),
                   ],
@@ -349,8 +349,8 @@ class _BuyerRow extends StatelessWidget {
                 Text(
                   meta,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 // Wrap, not Row: the chip keeps its intrinsic width (Flexible
@@ -446,13 +446,16 @@ class _BatchSizeControlState extends State<_BatchSizeControl> {
             const SizedBox(height: AppSpacing.sm),
             SecondaryButton(
               text: Strings.saveBatchSize,
-              onPressed: () => widget.controller.saveAllocation(
-                widget.storeId,
-                dailyBagLimit: widget.store.dailyBagLimit,
-                batchSize: _batchSize,
-                today: widget.date,
-                openTime: widget.store.openTime,
-                closeTime: widget.store.closeTime,
+              onPressed: () => guardWrite(
+                context,
+                () => widget.controller.saveAllocation(
+                  widget.storeId,
+                  dailyBagLimit: widget.store.dailyBagLimit,
+                  batchSize: _batchSize,
+                  today: widget.date,
+                  openTime: widget.store.openTime,
+                  closeTime: widget.store.closeTime,
+                ),
               ),
             ),
           ],
