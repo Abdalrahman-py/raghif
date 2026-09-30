@@ -26,7 +26,10 @@ class FakeAuthRepository implements AuthRepository {
       _byNationalId(nationalId);
 
   @override
-  Future<UserModel?> loginWithOtp({required String nationalId}) async =>
+  Future<UserModel?> loginWithOtp({
+    required String nationalId,
+    required String code,
+  }) async =>
       _byNationalId(nationalId);
 
   @override

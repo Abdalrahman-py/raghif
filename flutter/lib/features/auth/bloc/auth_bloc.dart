@@ -114,7 +114,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      final user = await _authRepository.loginWithOtp(nationalId: nationalId);
+      final user = await _authRepository.loginWithOtp(nationalId: nationalId, code: otp);
       if (user != null) {
         _pendingOtp = null;
         _pendingNationalId = null;

@@ -242,7 +242,7 @@ void main() {
           otpCode: '4821',
         ),
         build: () {
-          when(() => mockAuthRepository.loginWithOtp(nationalId: '900111222'))
+          when(() => mockAuthRepository.loginWithOtp(nationalId: '900111222', code: '4821'))
               .thenAnswer((_) async => testUser);
           return AuthBloc(
             authRepository: mockAuthRepository,

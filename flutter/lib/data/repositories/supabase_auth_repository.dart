@@ -131,10 +131,13 @@ class SupabaseAuthRepository implements AuthRepository {
   @override
   Future<UserModel?> loginWithOtp({
     required String nationalId,
+    required String code,
   }) async {
     try {
-      final result =
-          await _invoke('otp-confirm', {'nationalId': nationalId.trim()});
+      final result = await _invoke('otp-confirm', {
+        'nationalId': nationalId.trim(),
+        'otpCode': code.trim(),
+      });
       return await _applySession(result);
     } catch (_) {
       return null;

@@ -11,8 +11,11 @@ abstract class AuthRepository {
     required String pin,
   });
 
+  /// [code] is the OTP the user entered; the backend checks it too, so a
+  /// national ID alone never yields a session.
   Future<UserModel?> loginWithOtp({
     required String nationalId,
+    required String code,
   });
 
   Future<String?> requestOtp(String nationalId);

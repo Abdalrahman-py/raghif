@@ -17,6 +17,17 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+// Seeding writes accounts (PIN 1234) and overwrites the pilot store's counters
+// in the live database, so it is off unless a secret is configured, and then
+// only for callers that present it: `supabase secrets set SEED_DEMO_SECRET=...`
+// and send it as `x-seed-secret`.
+const SEED_DEMO_SECRET = Deno.env.get("SEED_DEMO_SECRET");
+
+// Mock OTP — no real SMS gateway yet (spec.md open question); the app shows
+// this code on screen. Enforced here, not just in the client, so
+// `otp-confirm` cannot mint a session from a national ID alone.
+const MOCK_OTP = "4821";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -55,9 +66,11 @@ const DEMO_ACCOUNTS = [
 ];
 
 // Dummy buyers that populate the demo queue. They exist so the owner's
-// screens have a believable day in them; nobody signs in as these. They
-// used to be invented locally per install, which made every device's queue
-// disagree with the server's — now there is one copy, here.
+// screens have a believable day in them. They are created by the same
+// seedAccount() as the sign-in demo accounts, so they share the demo PIN —
+// the seed is why `seed-demo` is gated above. They used to be invented
+// locally per install, which made every device's queue disagree with the
+// server's — now there is one copy, here.
 const DEMO_QUEUE_BUYERS = [
   { nationalId: "900111333", phone: "0599111333", name: "محمود سعيد" },
   { nationalId: "900111444", phone: "0599111444", name: "إبراهيم حمدان" },
@@ -189,6 +202,15 @@ Deno.serve(async (req: Request) => {
       }
 
       case "seed-demo": {
+        if (
+          !SEED_DEMO_SECRET ||
+          req.headers.get("x-seed-secret") !== SEED_DEMO_SECRET
+        ) {
+          return json({ error: "seeding is disabled" }, 403);
+        }
+        if (body.date != null && !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+          return json({ error: "date must be YYYY-MM-DD" }, 400);
+        }
         // Whole demo world, idempotent: sign-in accounts, the dummy buyers
         // behind the queue, the bakeries, and one day's worth of orders.
         // Safe to call repeatedly — each step no-ops when already present.
@@ -303,13 +325,14 @@ Deno.serve(async (req: Request) => {
         if (error || !hasId(profile)) {
           return json({ error: "not found" }, 404);
         }
-        // Mock OTP — no real SMS gateway yet (spec.md open question). Matches
-        // the existing on-screen mock code.
-        return json({ otpCode: "4821", phone: profile.phone });
+        return json({ otpCode: MOCK_OTP, phone: profile.phone });
       }
 
       case "otp-confirm": {
-        const { nationalId } = body;
+        const { nationalId, otpCode } = body;
+        if (otpCode !== MOCK_OTP) {
+          return json({ error: "invalid code" }, 401);
+        }
         const { data: profile, error } = await admin.rpc(
           "find_profile_by_national_id",
           { p_national_id: nationalId },
