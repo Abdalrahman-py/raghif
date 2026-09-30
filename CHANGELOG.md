@@ -19,6 +19,23 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed (login)
+
+- **Login is one question per screen.** National ID, then PIN, then in.
+  The first screen used to carry about nine competing things (a demo badge,
+  logo, title and subtitle, a card, two alternative-login links, a create-
+  account row and a demo-accounts card); it is now a field, a button and two
+  quiet links. The PIN is the normal way in and the code by "SMS" is behind
+  "forgot your PIN?" — previously the code was the default and the PIN a
+  link on a screen you only reached after asking for a code. The fourth PIN
+  digit signs you in. Demo accounts moved into a bottom sheet and sign in on
+  one tap. An ID with no account is told so with "create an account" right
+  beside it. System back goes back a step.
+- **Fixed: a new phone could not use the code login at all.** Asking for a
+  code first checked this device's cache for the user, so anyone with an
+  existing account on a fresh install was told to create one. The server
+  decides now.
+
 ### Fixed
 
 - **Direct table writes are closed.** `purchases` and `scan_events` no longer
