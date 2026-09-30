@@ -218,9 +218,35 @@ void main() {
       );
 
       blocTest<AuthBloc, AuthState>(
+        'sends a code on a phone that has never seen this user',
+        build: () {
+          // Empty local cache: only the server knows the ID.
+          when(() => mockAuthRepository.findByNationalId('900111222'))
+              .thenAnswer((_) async => null);
+          when(() => mockAuthRepository.requestOtp('900111222'))
+              .thenAnswer((_) async => '4821');
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
+        expect: () => [
+          const AuthLoading(),
+          const AuthOtpSent(
+            nationalId: '900111222',
+            phone: '',
+            otpCode: '4821',
+          ),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
         'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
         build: () {
           when(() => mockAuthRepository.findByNationalId('900999999'))
+              .thenAnswer((_) async => null);
+          when(() => mockAuthRepository.requestOtp('900999999'))
               .thenAnswer((_) async => null);
           return AuthBloc(
             authRepository: mockAuthRepository,
