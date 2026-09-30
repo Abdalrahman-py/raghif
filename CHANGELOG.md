@@ -19,6 +19,16 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (login errors)
+
+- **A bad connection no longer reads as a wrong PIN or "not registered".**
+  Every sign-in call swallowed all errors into `null`, so a phone with no
+  signal was told its ID had no account and offered "create an account". The
+  gateway's own 401/404 answers still mean "wrong PIN/code" and "unknown ID";
+  anything else (no connection, a timeout, a 5xx) now surfaces as "could not
+  reach the server, check your connection and try again", with the PIN field
+  still there to retry.
+
 ### Added
 
 - `constitution.md`: the project's non-negotiable rules, linked from the

@@ -252,6 +252,44 @@ void main() {
     expect((bloc.state as Authenticated).user.nationalId, demoBuyerNationalId);
   });
 
+  testWidgets('a PIN attempt with no connection says so, not "not registered"', (
+    tester,
+  ) async {
+    final bloc = AuthBloc(
+      authRepository: FakeAuthRepository(
+        users: const [buyer],
+        failWith: Exception('SocketException: Failed host lookup'),
+      ),
+      sessionStore: SessionStore(),
+    );
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      BlocProvider<AuthBloc>.value(
+        value: bloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (context, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(nationalIdField(), buyer.nationalId);
+    await tester.tap(find.text(Strings.continueButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(pinField(), '1234');
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.loginOffline), findsOneWidget);
+    expect(find.text(Strings.nationalIdNotFound), findsNothing);
+    // Nothing to register for: the connection is the problem, and the PIN
+    // field is still there to try again.
+    expect(find.text(Strings.createAccountLink), findsNothing);
+    expect(pinField(), findsOneWidget);
+  });
+
   testWidgets('creating an account is one tap from the first screen', (
     tester,
   ) async {

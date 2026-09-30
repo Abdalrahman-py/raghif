@@ -117,6 +117,47 @@ void main() {
     );
 
     blocTest<AuthBloc, AuthState>(
+      'reports a connection problem, not "not registered", when PIN login '
+      'gets no answer',
+      build: () {
+        when(
+          () => mockAuthRepository.loginWithPin(
+            nationalId: '900111222',
+            pin: '1234',
+          ),
+        ).thenThrow(Exception('SocketException: Failed host lookup'));
+        return AuthBloc(
+          authRepository: mockAuthRepository,
+          sessionStore: mockSessionStore,
+        );
+      },
+      act: (bloc) => bloc.add(
+        const PinLoginRequestedEvent(nationalId: '900111222', pin: '1234'),
+      ),
+      expect: () => [
+        const AuthLoading(),
+        const AuthFailure(Strings.loginOffline),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'reports a connection problem when asking for a code gets no answer',
+      build: () {
+        when(() => mockAuthRepository.requestOtp('900111222'))
+            .thenThrow(Exception('SocketException: Failed host lookup'));
+        return AuthBloc(
+          authRepository: mockAuthRepository,
+          sessionStore: mockSessionStore,
+        );
+      },
+      act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
+      expect: () => [
+        const AuthLoading(),
+        const AuthFailure(Strings.loginOffline),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, AuthSwitchToRegister] when phone is unknown',
       build: () {
         when(() => mockAuthRepository.login(phone: '0599999999', pin: '1234'))

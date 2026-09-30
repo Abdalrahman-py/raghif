@@ -66,6 +66,19 @@ class SupabaseAuthRepository implements AuthRepository {
     return Map<String, dynamic>.from(data as Map);
   }
 
+  /// A gateway call where the server saying no (401 wrong PIN/code, 404 unknown
+  /// ID) is an answer, not a failure: null. Anything else -- no connection, a
+  /// timeout, a 5xx -- is rethrown, so the caller never reports "wrong PIN" or
+  /// "not registered" for a network that never answered.
+  Future<T?> _answered<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on FunctionException catch (e) {
+      if (e.status == 401 || e.status == 404) return null;
+      rethrow;
+    }
+  }
+
   Future<UserModel> _applySession(Map<String, dynamic> result) async {
     await _client.auth.setSession(result['refreshToken'] as String);
     final profile = Map<String, dynamic>.from(result['profile'] as Map);
@@ -99,16 +112,14 @@ class SupabaseAuthRepository implements AuthRepository {
     required String phone,
     required String pin,
   }) async {
-    try {
+    return _answered(() async {
       final result = await _invoke('login-pin', {
         'identifier': phone.trim(),
         'by': 'phone',
         'pin': pin.trim(),
       });
-      return await _applySession(result);
-    } catch (_) {
-      return null;
-    }
+      return _applySession(result);
+    });
   }
 
   @override
@@ -116,16 +127,14 @@ class SupabaseAuthRepository implements AuthRepository {
     required String nationalId,
     required String pin,
   }) async {
-    try {
+    return _answered(() async {
       final result = await _invoke('login-pin', {
         'identifier': nationalId.trim(),
         'by': 'nationalId',
         'pin': pin.trim(),
       });
-      return await _applySession(result);
-    } catch (_) {
-      return null;
-    }
+      return _applySession(result);
+    });
   }
 
   @override
@@ -133,26 +142,22 @@ class SupabaseAuthRepository implements AuthRepository {
     required String nationalId,
     required String code,
   }) async {
-    try {
+    return _answered(() async {
       final result = await _invoke('otp-confirm', {
         'nationalId': nationalId.trim(),
         'otpCode': code.trim(),
       });
-      return await _applySession(result);
-    } catch (_) {
-      return null;
-    }
+      return _applySession(result);
+    });
   }
 
   @override
   Future<String?> requestOtp(String nationalId) async {
-    try {
+    return _answered<String?>(() async {
       final result =
           await _invoke('otp-request', {'nationalId': nationalId.trim()});
       return result['otpCode'] as String?;
-    } catch (_) {
-      return null;
-    }
+    });
   }
 
   @override
