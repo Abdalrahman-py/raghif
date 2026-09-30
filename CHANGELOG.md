@@ -19,6 +19,14 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (sign-out)
+
+- **Sign-out works when the server cannot be reached.** `logout()` awaited
+  `signOut()`, which revokes the session on the server, so with the backend
+  down it threw, the bloc never emitted `Unauthenticated`, and confirming
+  the sign-out dialog did nothing. The revoke is best effort now and the
+  remembered user is always cleared.
+
 ### Changed (login)
 
 - **Login is one question per screen.** National ID, then PIN, then in.
