@@ -13,6 +13,7 @@ import 'package:raghif/features/auth/login_screen.dart';
 import 'test_fonts.dart';
 
 import '../support/fake_auth_repository.dart';
+import '../support/finders.dart';
 
 /// The login screen is the most-seen screen in the app and the one a returning
 /// buyer opens in a hurry. Three goldens: the National ID step and the code step
@@ -91,7 +92,7 @@ void main() {
     await pumpLogin(tester, logicalSize: const Size(360, 800));
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.personalIdLabel),
+      fieldByLabel(Strings.personalIdLabel),
       buyer.nationalId,
     );
     await tester.tap(find.text(Strings.requestOtpButton));

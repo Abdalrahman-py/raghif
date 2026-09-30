@@ -13,6 +13,7 @@ import '../../core/widgets/status_chip.dart';
 import 'bloc/auth_bloc.dart';
 import 'demo_accounts.dart';
 import 'registration_screen.dart';
+import '../../core/widgets/labeled_field.dart';
 
 /// LoginScreen: National ID is the login identifier per spec.md.
 /// Default flow: OTP login (Step 1: enter National ID -> Step 2: verify on-screen demo OTP).
@@ -262,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
               scrolledUnderElevation: 0,
               actions: [
                 Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.md),
+                  padding: const EdgeInsetsDirectional.only(end: AppSpacing.md),
                   child: Center(
                     child: StatusChip(
                       text: Strings.demoBadge,
@@ -323,8 +324,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: AppSpacing.sm),
                           ..._alternatePath(textTheme, isLoading),
                           const SizedBox(height: AppSpacing.sm),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
                                 Strings.createAccountPrompt,
@@ -366,23 +368,25 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _nationalIdField({required bool isLoading, required bool autofocus}) {
-    return TextField(
-      controller: _nationalIdController,
-      enabled: !isLoading,
-      autofocus: autofocus,
-      keyboardType: TextInputType.number,
-      textInputAction: TextInputAction.done,
-      autofillHints: const [AutofillHints.username],
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(9),
-      ],
-      onChanged: (_) => _clearFieldErrors(),
-      onSubmitted: (_) => _isPinMode ? _submitPinLogin() : _requestOtp(),
-      decoration: InputDecoration(
-        labelText: Strings.personalIdLabel,
-        helperText: Strings.nationalIdHelper,
-        errorText: _idError,
+    return LabeledField(
+      label: Strings.personalIdLabel,
+      child: TextField(
+        controller: _nationalIdController,
+        enabled: !isLoading,
+        autofocus: autofocus,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        autofillHints: const [AutofillHints.username],
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(9),
+        ],
+        onChanged: (_) => _clearFieldErrors(),
+        onSubmitted: (_) => _isPinMode ? _submitPinLogin() : _requestOtp(),
+        decoration: InputDecoration(
+          helperText: Strings.nationalIdHelper,
+          errorText: _idError,
+        ),
       ),
     );
   }
@@ -412,28 +416,30 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           _nationalIdField(isLoading: isLoading, autofocus: false),
           const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _pinController,
-            enabled: !isLoading,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            obscureText: !_showPin,
-            autofillHints: const [AutofillHints.password],
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
-            ],
-            onChanged: (_) => _clearFieldErrors(),
-            onSubmitted: (_) => _submitPinLogin(),
-            decoration: InputDecoration(
-              labelText: Strings.pinLabel,
-              errorText: _pinError,
-              suffixIcon: IconButton(
-                onPressed: () => setState(() => _showPin = !_showPin),
-                tooltip: _showPin ? Strings.hidePin : Strings.showPin,
-                icon: Icon(
-                  _showPin ? Icons.visibility_off : Icons.visibility,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          LabeledField(
+            label: Strings.pinLabel,
+            child: TextField(
+              controller: _pinController,
+              enabled: !isLoading,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              obscureText: !_showPin,
+              autofillHints: const [AutofillHints.password],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              onChanged: (_) => _clearFieldErrors(),
+              onSubmitted: (_) => _submitPinLogin(),
+              decoration: InputDecoration(
+                errorText: _pinError,
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => _showPin = !_showPin),
+                  tooltip: _showPin ? Strings.hidePin : Strings.showPin,
+                  icon: Icon(
+                    _showPin ? Icons.visibility_off : Icons.visibility,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -476,30 +482,32 @@ class _LoginScreenState extends State<LoginScreen> {
             _demoOtpNotice(_demoOtpCode!),
           ],
           const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _otpController,
-            enabled: !isLoading,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.oneTimeCode],
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(letterSpacing: 8),
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
-            ],
-            // A complete code is a submitted code: typing the fourth digit
-            // verifies, so nobody hunts for the button with a full field.
-            onChanged: (value) {
-              _clearFieldErrors();
-              if (value.trim().length == 4) _verifyOtp();
-            },
-            onSubmitted: (_) => _verifyOtp(),
-            decoration: InputDecoration(
-              labelText: Strings.otpLabel,
-              helperText: Strings.otpHelper,
-              errorText: _otpError,
+          LabeledField(
+            label: Strings.otpLabel,
+            child: TextField(
+              controller: _otpController,
+              enabled: !isLoading,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              textAlign: TextAlign.center,
+              style: textTheme.titleLarge?.copyWith(letterSpacing: 8),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              // A complete code is a submitted code: typing the fourth digit
+              // verifies, so nobody hunts for the button with a full field.
+              onChanged: (value) {
+                _clearFieldErrors();
+                if (value.trim().length == 4) _verifyOtp();
+              },
+              onSubmitted: (_) => _verifyOtp(),
+              decoration: InputDecoration(
+                helperText: Strings.otpHelper,
+                errorText: _otpError,
+              ),
             ),
           ),
           _formErrorNotice(),
@@ -572,6 +580,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+        const SizedBox(height: AppSpacing.sm),
         Center(
           child: TextButton(
             onPressed: isLoading ? null : _switchToPinMode,
@@ -632,6 +641,7 @@ class _LoginScreenState extends State<LoginScreen> {
             nationalId: demoBuyerNationalId,
             pin: demoBuyerPin,
           ),
+          const SizedBox(height: AppSpacing.sm),
           _demoRow(
             label: Strings.demoOwnerLabel,
             nationalId: demoOwnerNationalId,
@@ -654,8 +664,9 @@ class _LoginScreenState extends State<LoginScreen> {
       child: InkWell(
         onTap: () => _fillDemoAccount(nationalId: nationalId, pin: pin),
         borderRadius: BorderRadius.circular(AppSpacing.xs),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: ConstrainedBox(
+          // 48dp target, and the 8dp between rows the constitution asks for.
+          constraints: const BoxConstraints(minHeight: 48),
           child: Row(
             children: [
               Expanded(

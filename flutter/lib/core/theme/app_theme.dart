@@ -43,11 +43,11 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: AppShapes.medium,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AppShapes.medium,
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppShapes.medium,

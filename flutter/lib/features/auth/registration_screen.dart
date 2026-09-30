@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import 'bloc/auth_bloc.dart';
+import '../../core/widgets/labeled_field.dart';
 
 /// Dedicated registration form — name, phone, national ID, PIN, and the
 /// Jawwal Pay number (saved once here, reused at purchase time). Reached
@@ -192,59 +192,61 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               muted,
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              child: Column(
+                            Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  TextFormField(
-                                    controller: _nameController,
-                                    enabled: !isLoading,
-                                    textCapitalization:
-                                        TextCapitalization.words,
-                                    textInputAction: TextInputAction.next,
-                                    autofillHints: const [AutofillHints.name],
-                                    validator: _validateName,
-                                    decoration: const InputDecoration(
-                                      labelText: Strings.nameLabel,
+                                  LabeledField(
+                                    label: Strings.nameLabel,
+                                    child: TextFormField(
+                                      controller: _nameController,
+                                      enabled: !isLoading,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      textInputAction: TextInputAction.next,
+                                      autofillHints: const [AutofillHints.name],
+                                      validator: _validateName,
+                                      decoration: const InputDecoration(),
                                     ),
                                   ),
                                   const SizedBox(height: AppSpacing.md),
-                                  TextFormField(
-                                    controller: _phoneController,
-                                    enabled: !isLoading,
-                                    keyboardType: TextInputType.phone,
-                                    textInputAction: TextInputAction.next,
-                                    autofillHints: const [
-                                      AutofillHints.telephoneNumber,
-                                    ],
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(10),
-                                    ],
-                                    validator: _validatePhone,
-                                    decoration: const InputDecoration(
-                                      labelText: Strings.phoneLabel,
+                                  LabeledField(
+                                    label: Strings.phoneLabel,
+                                    child: TextFormField(
+                                      controller: _phoneController,
+                                      enabled: !isLoading,
+                                      keyboardType: TextInputType.phone,
+                                      textInputAction: TextInputAction.next,
+                                      autofillHints: const [
+                                        AutofillHints.telephoneNumber,
+                                      ],
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(10),
+                                      ],
+                                      validator: _validatePhone,
+                                      decoration: const InputDecoration(),
                                     ),
                                   ),
                                   const SizedBox(height: AppSpacing.md),
-                                  TextFormField(
-                                    controller: _personalIdController,
-                                    enabled: !isLoading,
-                                    keyboardType: TextInputType.number,
-                                    textInputAction: TextInputAction.next,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(9),
-                                    ],
-                                    validator: _validateNationalId,
-                                    decoration: const InputDecoration(
-                                      labelText: Strings.personalIdLabel,
-                                      helperText: Strings.nationalIdHelper,
+                                  LabeledField(
+                                    label: Strings.personalIdLabel,
+                                    child: TextFormField(
+                                      controller: _personalIdController,
+                                      enabled: !isLoading,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(9),
+                                      ],
+                                      validator: _validateNationalId,
+                                      decoration: const InputDecoration(
+                                        helperText: Strings.nationalIdHelper,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
                             const SizedBox(height: AppSpacing.lg),
                             _sectionLabel(
                               Strings.registrationPaymentSection,
@@ -252,77 +254,80 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               muted,
                             ),
                             const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              child: Column(
+                            Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  TextFormField(
-                                    controller: _pinController,
-                                    enabled: !isLoading,
-                                    keyboardType: TextInputType.number,
-                                    textInputAction: TextInputAction.next,
-                                    obscureText: !_showPin,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(4),
-                                    ],
-                                    validator: _validatePin,
-                                    decoration: InputDecoration(
-                                      labelText: Strings.pinLabel,
-                                      helperText: Strings.pinHelper,
-                                      suffixIcon: IconButton(
-                                        onPressed: () => setState(
-                                          () => _showPin = !_showPin,
-                                        ),
-                                        tooltip: _showPin
-                                            ? Strings.hidePin
-                                            : Strings.showPin,
-                                        icon: Icon(
-                                          _showPin
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                          color: muted,
+                                  LabeledField(
+                                    label: Strings.pinLabel,
+                                    child: TextFormField(
+                                      controller: _pinController,
+                                      enabled: !isLoading,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      obscureText: !_showPin,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                      validator: _validatePin,
+                                      decoration: InputDecoration(
+                                        helperText: Strings.pinHelper,
+                                        suffixIcon: IconButton(
+                                          onPressed: () => setState(
+                                            () => _showPin = !_showPin,
+                                          ),
+                                          tooltip: _showPin
+                                              ? Strings.hidePin
+                                              : Strings.showPin,
+                                          icon: Icon(
+                                            _showPin
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                            color: muted,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(height: AppSpacing.md),
-                                  TextFormField(
-                                    controller: _confirmPinController,
-                                    enabled: !isLoading,
-                                    keyboardType: TextInputType.number,
-                                    textInputAction: TextInputAction.next,
-                                    obscureText: !_showPin,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(4),
-                                    ],
-                                    validator: _validateConfirmPin,
-                                    decoration: const InputDecoration(
-                                      labelText: Strings.confirmPinLabel,
+                                  LabeledField(
+                                    label: Strings.confirmPinLabel,
+                                    child: TextFormField(
+                                      controller: _confirmPinController,
+                                      enabled: !isLoading,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.next,
+                                      obscureText: !_showPin,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                      validator: _validateConfirmPin,
+                                      decoration: const InputDecoration(),
                                     ),
                                   ),
                                   const SizedBox(height: AppSpacing.md),
-                                  TextFormField(
-                                    controller: _jawwalPayController,
-                                    enabled: !isLoading,
-                                    onChanged: _onJawwalChanged,
-                                    keyboardType: TextInputType.phone,
-                                    textInputAction: TextInputAction.done,
-                                    onFieldSubmitted: (_) => _submit(),
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(10),
-                                    ],
-                                    validator: _validateJawwalPay,
-                                    decoration: const InputDecoration(
-                                      labelText: Strings.jawwalPayNumberLabel,
-                                      helperText: Strings.jawwalPayNumberHint,
+                                  LabeledField(
+                                    label: Strings.jawwalPayNumberLabel,
+                                    child: TextFormField(
+                                      controller: _jawwalPayController,
+                                      enabled: !isLoading,
+                                      onChanged: _onJawwalChanged,
+                                      keyboardType: TextInputType.phone,
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) => _submit(),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(10),
+                                      ],
+                                      validator: _validateJawwalPay,
+                                      decoration: const InputDecoration(
+                                        helperText: Strings.jawwalPayNumberHint,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
                             if (_formError != null) ...[
                               const SizedBox(height: AppSpacing.md),
                               Semantics(

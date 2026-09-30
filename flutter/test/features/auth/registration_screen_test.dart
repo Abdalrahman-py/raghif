@@ -7,6 +7,7 @@ import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/domain/repositories/auth_repository.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/registration_screen.dart';
+import '../../support/finders.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -36,11 +37,11 @@ void main() {
   }
 
   TextField phoneField(WidgetTester tester) => tester.widget<TextField>(
-    find.widgetWithText(TextField, Strings.phoneLabel),
+    fieldByLabel(Strings.phoneLabel),
   );
 
   TextField jawwalField(WidgetTester tester) => tester.widget<TextField>(
-    find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
+    fieldByLabel(Strings.jawwalPayNumberLabel),
   );
 
   testWidgets('Jawwal Pay number mirrors the phone number as it is typed', (
@@ -49,7 +50,7 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599111111',
     );
     await tester.pump();
@@ -64,12 +65,12 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599111111',
     );
     await tester.pump();
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599222222',
     );
     await tester.pump();
@@ -83,19 +84,19 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599111111',
     );
     await tester.pump();
     // User's wallet number differs from their SIM number.
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
+      fieldByLabel(Strings.jawwalPayNumberLabel),
       '0599888888',
     );
     await tester.pump();
     // Later phone edits must leave the manual wallet number alone.
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599333333',
     );
     await tester.pump();
@@ -109,17 +110,17 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599111111',
     );
     await tester.pump();
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
+      fieldByLabel(Strings.jawwalPayNumberLabel),
       '0599888888',
     );
     await tester.pump();
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.jawwalPayNumberLabel),
+      fieldByLabel(Strings.jawwalPayNumberLabel),
       '',
     );
     await tester.pump();
@@ -151,23 +152,23 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.nameLabel),
+      fieldByLabel(Strings.nameLabel),
       'أحمد ناصر',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.phoneLabel),
+      fieldByLabel(Strings.phoneLabel),
       '0599111111',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.personalIdLabel),
+      fieldByLabel(Strings.personalIdLabel),
       '900111222',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.pinLabel),
+      fieldByLabel(Strings.pinLabel),
       '1234',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, Strings.confirmPinLabel),
+      fieldByLabel(Strings.confirmPinLabel),
       '4321',
     );
 

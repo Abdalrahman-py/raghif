@@ -11,6 +11,7 @@ import 'package:raghif/features/auth/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_auth_repository.dart';
+import '../../support/finders.dart';
 
 void main() {
   setUp(() {
@@ -50,9 +51,9 @@ void main() {
   }
 
   Finder nationalIdField() =>
-      find.widgetWithText(TextField, Strings.personalIdLabel);
-  Finder otpField() => find.widgetWithText(TextField, Strings.otpLabel);
-  Finder pinField() => find.widgetWithText(TextField, Strings.pinLabel);
+      fieldByLabel(Strings.personalIdLabel);
+  Finder otpField() => fieldByLabel(Strings.otpLabel);
+  Finder pinField() => fieldByLabel(Strings.pinLabel);
 
   /// Unmounts the screen so its resend cooldown timer is cancelled — a live
   /// periodic timer at the end of a test is a failure, not a warning.

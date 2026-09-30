@@ -14,11 +14,20 @@ class _ToneColors {
 _ToneColors _toneColors(StatusTone tone) {
   switch (tone) {
     case StatusTone.success:
-      return const _ToneColors(AppColors.successContainer, AppColors.success);
+      return const _ToneColors(
+        AppColors.successContainer,
+        AppColors.onSuccessContainer,
+      );
     case StatusTone.warning:
-      return const _ToneColors(AppColors.warningContainer, AppColors.warning);
+      return const _ToneColors(
+        AppColors.warningContainer,
+        AppColors.onWarningContainer,
+      );
     case StatusTone.danger:
-      return const _ToneColors(AppColors.dangerContainer, AppColors.danger);
+      return const _ToneColors(
+        AppColors.dangerContainer,
+        AppColors.onDangerContainer,
+      );
     case StatusTone.neutral:
       return const _ToneColors(Color(0xFFE2E8F0), AppColors.textSecondary);
   }
