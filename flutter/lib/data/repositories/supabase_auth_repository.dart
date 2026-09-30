@@ -271,7 +271,15 @@ class SupabaseAuthRepository implements AuthRepository {
     } catch (_) {
       // ignored: logout proceeds regardless
     }
-    await _client.auth.signOut();
+    // signOut() revokes the session on the server, so it throws when the
+    // backend is down. Signing out is a local decision first: clear the
+    // remembered user regardless, or a dead connection leaves the person
+    // pressing "sign out" with nothing happening.
+    try {
+      await _client.auth.signOut();
+    } catch (_) {
+      // ignored: the server-side revoke is best effort
+    }
     await _sessionStore.clear();
   }
 }
