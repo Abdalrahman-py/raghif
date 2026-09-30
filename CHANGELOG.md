@@ -185,6 +185,16 @@ Workflow rules this changelog lives by:
   Requires a one-time `supabase secrets set NOTIFY_BATCH_SECRET=...` to the
   Vault value; until it is set the function rejects every call.
 
+### Fixed (login errors)
+
+- **A bad connection no longer reads as a wrong PIN or "not registered".**
+  Every sign-in call swallowed all errors into `null`, so a phone with no
+  signal was told its ID had no account and offered "create an account". The
+  gateway's own 401/404 answers still mean "wrong PIN/code" and "unknown ID";
+  anything else (no connection, a timeout, a 5xx) now surfaces as "could not
+  reach the server, check your connection and try again", with the PIN field
+  still there to retry.
+
 ### Added
 
 - CHANGELOG.md — task log for the current collaboration (this file).
