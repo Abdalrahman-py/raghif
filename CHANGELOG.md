@@ -19,6 +19,21 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed (CI)
+
+- **PRs run analyze + test only; the APK is built once per merge.** The single
+  `build` job used to analyze, test, build a release APK and upload it on every
+  PR update and every master push, so each PR built an app nobody looked at and
+  every merge repeated the PR's work. Now `ci.yml` (PRs) is `flutter analyze` +
+  `flutter test` and `release.yml` (merge to master, or on demand) builds the
+  arm64 APK and replaces the rolling `latest` release directly, with no
+  artifact upload/download hop. Setup shared through
+  `.github/actions/flutter`, Gradle caching through `setup-java`, and the
+  Flutter pin moved to `environment.flutter` in `pubspec.yaml` so local,
+  CI and release cannot disagree. The 180s shell timeout on the tests is gone
+  (the job's 10-minute limit covers a hang; the suite takes ~2 minutes).
+  Constitution VII amended accordingly (untracked file, 2026-09-30).
+
 ### Deployed
 
 - 2026-09-30, project `mgmerkaokkffsypnkryj`: migration

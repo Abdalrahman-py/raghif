@@ -1,0 +1,20 @@
+name: Set up Flutter
+description: Pinned Flutter (from pubspec.yaml), the .env stand-in, and pub get.
+
+runs:
+  using: composite
+  steps:
+    # The pin lives in flutter/pubspec.yaml (environment.flutter) so local pub
+    # get, CI and the release build cannot drift apart. Bumping it means
+    # bumping the Gradle wrapper (>= 8.14) in the same change.
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version-file: flutter/pubspec.yaml
+        cache: true
+
+    # .env is gitignored but declared as a pubspec asset, so a fresh checkout
+    # needs a stand-in. The values are dummies: CI never reaches the network.
+    - run: cp .env.example .env && flutter pub get
+      shell: bash
+      working-directory: flutter

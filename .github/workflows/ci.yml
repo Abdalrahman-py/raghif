@@ -1,0 +1,28 @@
+name: CI
+
+# Pull requests only: does it analyze cleanly and do the tests pass. Nothing
+# here builds the Android app; that happens once per merge (release.yml).
+# No branch filter, so stacked PRs that target a parent branch are covered.
+on: pull_request
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/flutter
+      - run: flutter analyze
+      # Expanded reporter + a per-test timeout so a leaked Drift connection
+      # shows up as a named, stack-traced failure instead of a stalled job.
+      - run: flutter test --reporter expanded --timeout 60s

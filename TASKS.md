@@ -3,8 +3,9 @@
 Open GitHub issues (prioritized p0 > p1 > p2) are the main task queue; this file
 catches broader work that isn't issue-shaped. One item at a time, top to bottom.
 
-Every push/PR is verified by Flutter CI (`.github/workflows/flutter-ci.yml`):
-`flutter analyze`, `flutter test`, and a debug APK build must all pass.
+Every PR is verified by CI (`.github/workflows/ci.yml`): `flutter analyze` and
+`flutter test` must pass. The APK is built once per merge to master
+(`release.yml`), not on every PR.
 
 Git workflow (collaboration rules — hard, agreed 2026-09-06): all work is
 pushed to **feature branches only** — branch off `master`, small reviewable
@@ -39,8 +40,8 @@ only implementation now (see #10).
       2026-09-05). Coverage under `flutter/test/features/queue/` and
       `flutter/test/data/repositories/`.
 - [x] Add a `flutter build apk --debug` step to CI once the app builds cleanly.
-      Done: Flutter CI (`flutter-ci.yml`) runs analyze + test + debug APK build on
-      every push/PR.
+      Superseded 2026-09-30: PRs run analyze + test (`ci.yml`); the release APK is
+      built on merge to master (`release.yml`).
 - [x] Store owner QR redemption scanner on the buyer queue screen. Done — #28
       closed (COMPLETED, 2026-09-07), shipped in #39: `qr_scanner_screen.dart`
       (camera) + `qr_redemption.dart` (decode/match, unit tested).
