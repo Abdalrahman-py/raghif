@@ -19,6 +19,12 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed (i18n)
+
+- One string for "paid": `paidLabel` and `paidBadge` both held `مدفوع` and
+  rendered the same chip, so a wording edit could leave one stale. `paidBadge`
+  stays; buyer home uses it.
+
 ### Changed (CI)
 
 - **PRs run analyze + test only; the APK is built once per merge.** The single
