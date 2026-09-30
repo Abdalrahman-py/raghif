@@ -4,8 +4,9 @@ import 'app_colors.dart';
 const _fontFamily = 'NotoSansArabic';
 
 /// Sizes per UI_SPEC.md token table — legible in sunlight, for a queue app
-/// used standing up. Floor is bodyMedium (15sp); nothing in the app goes
-/// below that.
+/// used standing up. Body text is 16sp or more (constitution V); nothing in
+/// the app goes below 15sp. No style sets `letterSpacing`: Flutter turns off
+/// ligatures when it is non-zero, and Arabic depends on them to join.
 class AppTypography {
   AppTypography._();
 
@@ -42,15 +43,13 @@ class AppTypography {
     fontWeight: FontWeight.w400,
     fontSize: 17,
     height: 26 / 17,
-    letterSpacing: 0.2,
     color: AppColors.textPrimary,
   );
   static const bodyMedium = TextStyle(
     fontFamily: _fontFamily,
     fontWeight: FontWeight.w400,
-    fontSize: 15,
-    height: 23 / 15,
-    letterSpacing: 0.2,
+    fontSize: 16,
+    height: 24 / 16,
     color: AppColors.textSecondary,
   );
   static const labelLarge = TextStyle(
@@ -58,14 +57,37 @@ class AppTypography {
     fontWeight: FontWeight.w600,
     fontSize: 16,
     height: 24 / 16,
-    letterSpacing: 0.3,
     color: AppColors.onAccent,
   );
   static const labelMedium = TextStyle(
     fontFamily: _fontFamily,
     fontWeight: FontWeight.w600,
-    fontSize: 15,
-    height: 23 / 15,
-    letterSpacing: 0.3,
+    fontSize: 16,
+    height: 24 / 16,
+  );
+
+  /// Secondary/caption role, held at the same 16sp as [bodyMedium]
+  /// instead of Material's 12sp default. Helper text, field errors and inline
+  /// captions are the only small print the app has, and they get read outdoors
+  /// by someone who left their glasses at home.
+  ///
+  /// Leaving these two undefined did not mean "no caption text": it meant every
+  /// helper, error and counter line silently rendered at Roboto 12sp from the
+  /// Material defaults, outside the design system — which is also why they came
+  /// out as tofu boxes in the goldens, since only NotoSansArabic is loaded
+  /// there.
+  static const bodySmall = TextStyle(
+    fontFamily: _fontFamily,
+    fontWeight: FontWeight.w400,
+    fontSize: 16,
+    height: 24 / 16,
+    color: AppColors.textSecondary,
+  );
+  static const labelSmall = TextStyle(
+    fontFamily: _fontFamily,
+    fontWeight: FontWeight.w600,
+    fontSize: 16,
+    height: 24 / 16,
+    color: AppColors.textSecondary,
   );
 }

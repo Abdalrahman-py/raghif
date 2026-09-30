@@ -11,6 +11,7 @@ import 'qr_payload.dart';
 import 'qr_redemption.dart';
 import 'queue_controller.dart';
 import 'scan_feedback.dart';
+import 'write_guard.dart';
 
 /// Issue #28: in-app QR redemption scanner for [OwnerQueueScreen].
 ///
@@ -26,7 +27,7 @@ class QrScannerScreen extends StatefulWidget {
   });
 
   final QueueController controller;
-  final dynamic storeId;
+  final String storeId;
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -36,7 +37,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   final MobileScannerController _scanner = MobileScannerController();
   final ScanFeedbackPlayer _feedback = ScanFeedbackPlayer();
 
-  int? _ownerStoreId;
+  String? _ownerStoreId;
   bool _scanning = true;
   bool _processing = false;
   bool _cameraError = false;
@@ -70,11 +71,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     if (payload == null) {
       // Not a receipt payload at all — still an audit-worthy attempt.
       await _feedback.play(ScanFeedback.failure);
-      await widget.controller.recordScan(
-        storeId: widget.storeId,
-        outcome: 'invalidCode',
+      if (!mounted) return;
+      final logged = await guardWrite(
+        context,
+        () => widget.controller.recordScan(
+          storeId: widget.storeId,
+          outcome: 'invalidCode',
+        ),
       );
       if (!mounted) return;
+      if (!logged) return _abortScan();
       setState(() {
         _processing = false;
         _invalidCode = true;
@@ -84,29 +90,49 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
 
     final purchase = await widget.controller.purchaseById(payload.purchaseId);
+    if (!mounted) return;
     final result = evaluateQrRedemption(
       payload: payload,
       purchase: purchase,
-      ownerStoreId: _ownerStoreId ?? -1,
+      ownerStoreId: _ownerStoreId ?? '',
     );
     if (result.outcome == QrRedemptionOutcome.checkedIn &&
         result.purchase != null) {
-      await widget.controller.toggleArrival(result.purchase!.id);
+      final collected = await guardWrite(
+        context,
+        () => widget.controller.collectPurchase(result.purchase!.id),
+      );
+      if (!mounted) return;
+      // Not collected on the server means no bag is handed over: say so and
+      // let the owner scan again instead of showing a success screen.
+      if (!collected) return _abortScan();
     }
     await _feedback.play(scanFeedbackFor(result.outcome));
-    await widget.controller.recordScan(
-      storeId: widget.storeId,
-      outcome: result.outcome.name,
-      purchaseId: result.purchase?.id,
-      scannedName: payload.userName,
-      scannedNationalId: payload.nationalId,
+    if (!mounted) return;
+    final logged = await guardWrite(
+      context,
+      () => widget.controller.recordScan(
+        storeId: widget.storeId,
+        outcome: result.outcome.name,
+        purchaseId: result.purchase?.id,
+        scannedName: payload.userName,
+        scannedNationalId: payload.nationalId,
+      ),
     );
     if (!mounted) return;
+    if (!logged) return _abortScan();
     setState(() {
       _processing = false;
       _result = result;
       _invalidCode = false;
     });
+  }
+
+  /// A write failed (the snackbar already said so): resume scanning rather
+  /// than leaving the camera stopped and the screen stuck on "processing".
+  Future<void> _abortScan() async {
+    _processing = false;
+    await _scanner.start();
   }
 
   Future<void> _rescan() async {
@@ -134,22 +160,22 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     onDone: () => Navigator.of(context).pop(),
                   )
                 : _invalidCode
-                    ? _MessageView(
-                        icon: Icons.error_outline,
-                        title: Strings.scanInvalidCode,
-                        onPrimary: _rescan,
-                        primaryLabel: Strings.scanAgain,
-                        onSecondary: () => Navigator.of(context).pop(),
-                      )
-                    : _cameraError
-                        ? _MessageView(
-                            icon: Icons.no_photography_outlined,
-                            title: Strings.scanCameraError,
-                            onPrimary: _rescan,
-                            primaryLabel: Strings.scanAgain,
-                            onSecondary: () => Navigator.of(context).pop(),
-                          )
-                        : _cameraView(),
+                ? _MessageView(
+                    icon: Icons.error_outline,
+                    title: Strings.scanInvalidCode,
+                    onPrimary: _rescan,
+                    primaryLabel: Strings.scanAgain,
+                    onSecondary: () => Navigator.of(context).pop(),
+                  )
+                : _cameraError
+                ? _MessageView(
+                    icon: Icons.no_photography_outlined,
+                    title: Strings.scanCameraError,
+                    onPrimary: _rescan,
+                    primaryLabel: Strings.scanAgain,
+                    onSecondary: () => Navigator.of(context).pop(),
+                  )
+                : _cameraView(),
           ),
         ),
       ),
@@ -212,8 +238,7 @@ class _TorchButton extends StatelessWidget {
       valueListenable: scanner,
       builder: (context, state, _) {
         final torch = state.torchState;
-        final hasTorch =
-            state.isRunning && torch != TorchState.unavailable;
+        final hasTorch = state.isRunning && torch != TorchState.unavailable;
         if (!hasTorch) return const SizedBox.shrink();
         final isOn = torch == TorchState.on;
         return Align(
@@ -256,35 +281,35 @@ class _ResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, title, body, tone) = switch (result.outcome) {
       QrRedemptionOutcome.checkedIn => (
-          Icons.check_circle_outline,
-          Strings.scanCheckedInTitle,
-          Strings.scanCheckedInBody,
-          AppColors.success,
-        ),
+        Icons.check_circle_outline,
+        Strings.scanCheckedInTitle,
+        Strings.scanCheckedInBody,
+        AppColors.success,
+      ),
       QrRedemptionOutcome.alreadyCollected => (
-          Icons.verified_outlined,
-          Strings.scanAlreadyCollected,
-          null,
-          AppColors.success,
-        ),
+        Icons.verified_outlined,
+        Strings.scanAlreadyCollected,
+        null,
+        AppColors.success,
+      ),
       QrRedemptionOutcome.batchNotCalledYet => (
-          Icons.schedule_outlined,
-          Strings.scanBatchNotCalledYet(result.batchNumber ?? 0),
-          null,
-          AppColors.warning,
-        ),
+        Icons.schedule_outlined,
+        Strings.scanBatchNotCalledYet(result.batchNumber ?? 0),
+        null,
+        AppColors.warning,
+      ),
       QrRedemptionOutcome.notFoundHere => (
-          Icons.search_off_outlined,
-          Strings.scanNotFoundTitle,
-          Strings.scanNotFoundBody,
-          AppColors.textSecondary,
-        ),
+        Icons.search_off_outlined,
+        Strings.scanNotFoundTitle,
+        Strings.scanNotFoundBody,
+        AppColors.textSecondary,
+      ),
       QrRedemptionOutcome.wrongStore => (
-          Icons.store_outlined,
-          Strings.scanWrongStoreTitle,
-          Strings.scanWrongStoreBody(result.actualStoreName ?? '—'),
-          AppColors.danger,
-        ),
+        Icons.store_outlined,
+        Strings.scanWrongStoreTitle,
+        Strings.scanWrongStoreBody(result.actualStoreName ?? '—'),
+        AppColors.danger,
+      ),
     };
 
     final payload = result.payload;
@@ -335,8 +360,8 @@ class _ResultView extends StatelessWidget {
                 Text(
                   payload.purchaseId,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

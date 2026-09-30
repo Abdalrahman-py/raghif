@@ -5,24 +5,26 @@ class Strings {
   Strings._();
 
   static const appTitle = 'توزيع الخبز';
-  static const appSubtitle = 'احجز خبزك، تجنب الزحام';
   static const phoneLabel = 'رقم الهاتف';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
-  static const loginError = 'الرمز السري غير صحيح';
-  static const requestOtpButton = 'إرسال رمز التحقق';
+  static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginIdTitle = 'تسجيل الدخول';
+  static const loginPinTitle = 'أدخل رمزك السري';
+  static const loginOtpTitle = 'أدخل رمز التحقق';
+  static const continueButton = 'متابعة';
+  static const forgotPin = 'نسيت الرمز السري؟';
+  static String loginForId(String id) => 'لحساب رقم $id';
   static const otpLabel = 'رمز التحقق';
   static const verifyOtpButton = 'تأكيد الرمز والدخول';
-  static const loginWithPinInstead = 'الدخول باستخدام الرمز السري بدلاً من ذلك';
-  static const loginWithOtpInstead = 'الدخول برمز التحقق (OTP) بدلاً من ذلك';
-  static const changeNationalId = 'تغيير رقم الهوية';
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const otpNotificationTitle = 'رمز التحقق';
-  static String otpNotificationBody(String code) => 'رمز التحقق الخاص بك: $code';
+  static String otpNotificationBody(String code) =>
+      'رمز التحقق الخاص بك: $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -33,10 +35,8 @@ class Strings {
   static const registerError = 'يرجى تعبئة جميع الحقول';
   static const phoneAlreadyRegistered = 'رقم الهاتف مسجل مسبقاً';
   static const nationalIdAlreadyRegistered = 'رقم الهوية مسجل مسبقاً';
-  static const demoBadge = 'نموذج تجريبي';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';
-  static const createAccountPrompt = 'ليس لديك حساب؟';
   static const createAccountLink = 'إنشاء حساب جديد';
 
   // Onboarding
@@ -53,6 +53,44 @@ class Strings {
   static const onboardingTitle3 = 'تحقق من حسابك للشراء';
   static const onboardingBody3 =
       'أكمل التسجيل وتحقق من هويتك — كيس واحد لكل بطاقة هوية يومياً.';
+
+  /// "الصفحة 2 من 3" — the counter above the intro, so how many steps are left
+  /// is readable without counting dots. Western digits, like the rest of the
+  /// app.
+  static String onboardingPageOf(int page, int total) =>
+      'الصفحة $page من $total';
+
+  // Login — the old screen reused `registerError` ("يرجى تعبئة جميع الحقول")
+  // for an empty National ID: it names the wrong problem, and it appeared under
+  // the button instead of on the field that was empty.
+  static const nationalIdRequired = 'أدخل رقم الهوية';
+  static const nationalIdLengthError = 'رقم الهوية 9 أرقام';
+  static const nationalIdHelper = '9 أرقام كما في بطاقة الهوية';
+  static const pinRequired = 'أدخل الرمز السري';
+  static const pinLengthError = 'الرمز السري 4 أرقام';
+  static const showPin = 'إظهار الرمز';
+  static const hidePin = 'إخفاء الرمز';
+  static const otpRequired = 'أدخل رمز التحقق';
+  static const otpLengthError = 'رمز التحقق 4 أرقام';
+
+  /// Countdown while "resend" is on cooldown: the wait is visible instead of a
+  /// dead-looking button, and the code can't be requested repeatedly.
+  static String resendOtpIn(int seconds) => 'إعادة الإرسال بعد $seconds ثانية';
+  static const demoOtpTapToFill = 'اضغط لتعبئة الرمز';
+  static String fillDemoAccount(String label) => 'تعبئة بيانات $label';
+
+  // Registration — per-field messages, so a blank form names the field that is
+  // missing instead of printing one blanket sentence.
+  static const registrationAccountSection = 'بيانات الحساب';
+  static const registrationPaymentSection = 'الدخول والدفع';
+  static const nameRequired = 'أدخل الاسم';
+  static const phoneRequired = 'أدخل رقم الهاتف';
+  static const phoneInvalid = 'رقم الهاتف 10 أرقام ويبدأ بـ 05';
+  static const confirmPinLabel = 'تأكيد الرمز السري';
+  static const pinMismatch = 'الرمزان السريان غير متطابقين';
+  static const pinHelper = 'ستحتاجه للدخول في كل مرة — لا يمكن استعادته';
+  static const jawwalPayRequired = 'أدخل رقم جوال باي';
+  static const jawwalPayInvalid = 'رقم جوال باي 10 أرقام';
 
   // Registration
   static const registrationTitle = 'إنشاء حساب جديد';
@@ -87,6 +125,17 @@ class Strings {
   static const noStores = 'لا توجد مخابز متاحة حالياً';
   static const available = 'متوفر';
   static const soldOut = 'نفدت الكمية';
+
+  /// Owner account with no store attached to it server-side.
+  static const noStoreForOwner =
+      'لا يوجد مخبز مرتبط بهذا الحساب. تواصل مع المشرف لربط حسابك بمخبز.';
+
+  /// Shown when a write couldn't reach the backend. Deliberately says the
+  /// action did NOT happen: the server owns the bag count, so a failed
+  /// write is a non-event, not something queued for later.
+  static const offlineWriteFailed =
+      'تعذّر الاتصال بالخادم. لم يتم تنفيذ العملية، حاول مرة أخرى.';
+
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
   static String bagsRemaining(int remaining, int total) =>
@@ -181,9 +230,36 @@ class Strings {
   static const batchSizeLabel = 'حجم الدفعة';
   static const decreaseValue = 'إنقاص';
   static const increaseValue = 'زيادة';
-  static const saveAllocation = 'حفظ الكمية';
   static const saveBatchSize = 'حفظ حجم الدفعة';
   static const goToQueue = 'عرض طابور المشترين';
+
+  // Owner dashboard — settings card, open/close gate, hero status line
+  static const todaySettingsTitle = 'إعدادات اليوم';
+
+  /// Saves the daily allocation *and* the purchase window together, so the
+  /// label names both instead of only the quantity.
+  static const saveTodaySettings = 'حفظ إعدادات اليوم';
+  static const unsavedSettingsNote = 'لديك تغييرات غير محفوظة.';
+  static const savedSettingsNote = 'الكمية والأوقات محفوظة.';
+  static const savedSettingsSnack = 'تم حفظ إعدادات اليوم';
+  static const purchaseWindowHint = 'وقت الشراء المعلن للزبائن:';
+  static const windowOrderError = 'وقت الانتهاء يجب أن يكون بعد وقت البدء.';
+  static const storeOpenSwitchLabel = 'المخبز مفتوح للبيع الآن';
+  static const storeOpenOnHelper = 'الزبائن يستطيعون حجز كيس واحد اليوم.';
+  static const storeOpenOffHelper =
+      'الحجز متوقف — لن يتمكن الزبائن من الحجز حتى تعيد التشغيل.';
+
+  /// Replaces the low-stock warning once the last bag is gone: selling is
+  /// stopped, and the fix is a different one (raise today's allocation).
+  static const outOfStockNotice = 'نفدت الكمية — حدّث الكمية اليومية بالأسفل.';
+
+  /// The hero counter's value. Deliberately the Arabic word, not "X / Y": a
+  /// slash between two numbers is resolved by the bidi algorithm against the
+  /// RTL paragraph and renders as "300 / 14" (the limit first), which reads as
+  /// the opposite of what it means. "14 من 300" is unambiguous in both
+  /// directions.
+  static String remainingValue(int remaining, int total) =>
+      '$remaining من $total';
 
   // Owner queue
   static const buyerQueueTitle = 'طابور المشترين';
@@ -201,7 +277,8 @@ class Strings {
   static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
   static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';
   static const scanQrTitle = 'مسح رمز الاستلام';
-  static const scanCameraHint = 'وجّه الكاميرا نحو رمز الاستلام على هاتف الزبون';
+  static const scanCameraHint =
+      'وجّه الكاميرا نحو رمز الاستلام على هاتف الزبون';
   static const scanCameraError =
       'تعذر تشغيل الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
   static const scanInvalidCode = 'الرمز غير صالح، حاول مرة أخرى';
@@ -262,6 +339,13 @@ class Strings {
       'سيتم إشعار جميع المترقّبين في الدفعة رقم $batch بأن خبزهم جاهز.';
   static const notifyConfirmAction = 'إشعار الدفعة';
   static const cancelLabel = 'إلغاء';
+  static const logoutConfirmTitle = 'تسجيل الخروج؟';
+  static const logoutConfirmBody =
+      'ستحتاج إلى رقم الهوية والرمز السري للدخول مرة أخرى.';
+  static const closeStoreConfirmTitle = 'إغلاق المخبز؟';
+  static const closeStoreConfirmBody =
+      'لن يتمكن الزبائن من حجز أي كيس حتى تفتح المخبز مرة أخرى.';
+  static const closeStoreConfirmAction = 'إغلاق المخبز';
   static String notifyOutstandingWarning(int count) =>
       'تنبيه: $count ممن نودي عليهم في دفعات سابقة لم يستلموا بعد.';
   static String lowStockWarning(int remaining) =>

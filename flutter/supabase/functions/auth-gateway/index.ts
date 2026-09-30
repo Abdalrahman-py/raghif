@@ -17,6 +17,17 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+// Seeding writes accounts (PIN 1234) and overwrites the pilot store's counters
+// in the live database, so it is off unless a secret is configured, and then
+// only for callers that present it: `supabase secrets set SEED_DEMO_SECRET=...`
+// and send it as `x-seed-secret`.
+const SEED_DEMO_SECRET = Deno.env.get("SEED_DEMO_SECRET");
+
+// Mock OTP — no real SMS gateway yet (spec.md open question); the app shows
+// this code on screen. Enforced here, not just in the client, so
+// `otp-confirm` cannot mint a session from a national ID alone.
+const MOCK_OTP = "4821";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -53,6 +64,67 @@ const DEMO_ACCOUNTS = [
     role: "owner",
   },
 ];
+
+// Dummy buyers that populate the demo queue. They exist so the owner's
+// screens have a believable day in them. They are created by the same
+// seedAccount() as the sign-in demo accounts, so they share the demo PIN —
+// the seed is why `seed-demo` is gated above. They used to be invented
+// locally per install, which made every device's queue disagree with the
+// server's — now there is one copy, here.
+const DEMO_QUEUE_BUYERS = [
+  { nationalId: "900111333", phone: "0599111333", name: "محمود سعيد" },
+  { nationalId: "900111444", phone: "0599111444", name: "إبراهيم حمدان" },
+  { nationalId: "900111555", phone: "0599111555", name: "سارة عبد الرحمن" },
+  { nationalId: "900111666", phone: "0599111666", name: "ليلى المصري" },
+  { nationalId: "900111777", phone: "0599111777", name: "عمر الخطيب" },
+  { nationalId: "900111888", phone: "0599111888", name: "فاطمة الزهراء" },
+  { nationalId: "900111999", phone: "0599111999", name: "يوسف النجار" },
+  { nationalId: "900222111", phone: "0599222111", name: "مريم خالد" },
+  { nationalId: "900222222", phone: "0599222333", name: "حسن عباس" },
+];
+
+/// Creates the auth user + profile for one demo identity, or reports that it
+/// already exists. Profiles are FK'd to auth.users, so this cannot be done
+/// from SQL alone — hence the seed splitting across here and the
+/// seed_demo_* RPCs.
+async function seedAccount(
+  demo: {
+    nationalId: string;
+    phone: string;
+    name: string;
+    pin?: string;
+    jawwalPayNumber?: string;
+    role?: string;
+  },
+): Promise<string> {
+  const email = syntheticEmail(demo.nationalId);
+  const { data: created, error: createError } = await admin.auth.admin
+    .createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { national_id: demo.nationalId },
+    });
+  if (createError || !created?.user) return `${demo.nationalId}: already exists`;
+
+  const { data: profile, error: profileError } = await admin.rpc(
+    "create_profile",
+    {
+      p_id: created.user.id,
+      p_phone: demo.phone,
+      p_national_id: demo.nationalId,
+      p_pin: demo.pin ?? "1234",
+      p_name: demo.name,
+      p_jawwal_pay_number: demo.jawwalPayNumber ?? null,
+      p_role: demo.role ?? "buyer",
+      p_verification_status: "verified",
+    },
+  );
+  if (profileError || !hasId(profile)) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return `${demo.nationalId}: profile failed - ${profileError?.message}`;
+  }
+  return `${demo.nationalId}: seeded`;
+}
 
 function syntheticEmail(nationalId: string): string {
   const safe = nationalId.replace(/[^a-zA-Z0-9]/g, "");
@@ -130,40 +202,42 @@ Deno.serve(async (req: Request) => {
       }
 
       case "seed-demo": {
-        const results: string[] = [];
-        for (const demo of DEMO_ACCOUNTS) {
-          const email = syntheticEmail(demo.nationalId);
-          const { data: created, error: createError } = await admin.auth.admin
-            .createUser({
-              email,
-              email_confirm: true,
-              user_metadata: { national_id: demo.nationalId },
-            });
-          if (createError || !created?.user) {
-            results.push(`${demo.nationalId}: already exists`);
-            continue;
-          }
-          const { data: profile, error: profileError } = await admin.rpc(
-            "create_profile",
-            {
-              p_id: created.user.id,
-              p_phone: demo.phone,
-              p_national_id: demo.nationalId,
-              p_pin: demo.pin,
-              p_name: demo.name,
-              p_jawwal_pay_number: demo.jawwalPayNumber,
-              p_role: demo.role,
-              p_verification_status: "verified",
-            },
-          );
-          if (profileError || !hasId(profile)) {
-            await admin.auth.admin.deleteUser(created.user.id);
-            results.push(`${demo.nationalId}: profile failed - ${profileError?.message}`);
-            continue;
-          }
-          results.push(`${demo.nationalId}: seeded`);
+        if (
+          !SEED_DEMO_SECRET ||
+          req.headers.get("x-seed-secret") !== SEED_DEMO_SECRET
+        ) {
+          return json({ error: "seeding is disabled" }, 403);
         }
-        return json({ seeded: true, results });
+        if (body.date != null && !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+          return json({ error: "date must be YYYY-MM-DD" }, 400);
+        }
+        // Whole demo world, idempotent: sign-in accounts, the dummy buyers
+        // behind the queue, the bakeries, and one day's worth of orders.
+        // Safe to call repeatedly — each step no-ops when already present.
+        const results: string[] = [];
+        for (const demo of [...DEMO_ACCOUNTS, ...DEMO_QUEUE_BUYERS]) {
+          results.push(await seedAccount(demo));
+        }
+
+        const { data: storesCreated, error: storesError } = await admin.rpc(
+          "seed_demo_stores",
+        );
+        if (storesError) {
+          return json({ error: `stores: ${storesError.message}` }, 500);
+        }
+
+        const { data: daySeeded, error: dayError } = await admin.rpc(
+          "seed_demo_day",
+          { p_date: body.date ?? new Date().toISOString().slice(0, 10) },
+        );
+        if (dayError) return json({ error: `day: ${dayError.message}` }, 500);
+
+        return json({
+          seeded: true,
+          accounts: results,
+          storesCreated,
+          purchasesSeeded: daySeeded,
+        });
       }
 
       case "register": {
@@ -251,13 +325,14 @@ Deno.serve(async (req: Request) => {
         if (error || !hasId(profile)) {
           return json({ error: "not found" }, 404);
         }
-        // Mock OTP — no real SMS gateway yet (spec.md open question). Matches
-        // the existing on-screen mock code.
-        return json({ otpCode: "4821", phone: profile.phone });
+        return json({ otpCode: MOCK_OTP, phone: profile.phone });
       }
 
       case "otp-confirm": {
-        const { nationalId } = body;
+        const { nationalId, otpCode } = body;
+        if (otpCode !== MOCK_OTP) {
+          return json({ error: "invalid code" }, 401);
+        }
         const { data: profile, error } = await admin.rpc(
           "find_profile_by_national_id",
           { p_national_id: nationalId },

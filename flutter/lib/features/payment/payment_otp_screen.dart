@@ -8,6 +8,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import 'mock_jawwal_pay_service.dart';
 import 'payment_success_screen.dart';
+import '../../core/widgets/labeled_field.dart';
 
 /// Screen where user verifies the 4-digit mock OTP code for Jawwal Pay payment.
 class PaymentOtpScreen extends StatefulWidget {
@@ -122,13 +123,13 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  TextField(
-                    controller: _codeController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    decoration: const InputDecoration(
-                      labelText: Strings.paymentOtpLabel,
-                      counterText: '',
+                  LabeledField(
+                    label: Strings.paymentOtpLabel,
+                    child: TextField(
+                      controller: _codeController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: const InputDecoration(counterText: ''),
                     ),
                   ),
                   if (_error != null) ...[

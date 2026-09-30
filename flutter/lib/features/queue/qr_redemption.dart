@@ -49,7 +49,7 @@ class QrRedemptionResult {
 QrRedemptionResult evaluateQrRedemption({
   required QrPayload payload,
   required PurchaseModel? purchase,
-  required int ownerStoreId,
+  required String ownerStoreId,
 }) {
   // The v1 code's own store claim is checked FIRST: it is decidable without
   // any local data, so a receipt from another bakery scanned on a device

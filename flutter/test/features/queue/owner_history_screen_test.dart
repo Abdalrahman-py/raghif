@@ -9,6 +9,7 @@ import 'package:raghif/domain/repositories/queue_repository.dart';
 import 'package:raghif/features/queue/owner_history_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 
+
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 void main() {
@@ -22,15 +23,15 @@ void main() {
   });
 
   PurchaseModel purchase(
-    int id,
+    String id,
     PurchaseStatus status, {
     String name = 'أحمد ناصر',
     String? nationalId = '900111222',
     String? phone = '0599111111',
   }) => PurchaseModel(
     id: id,
-    storeId: 1,
-    userId: 1,
+    storeId: 'store-1',
+    userId: 'user-1',
     purchaseDate: '2026-08-01',
     batchNumber: 1,
     status: status,
@@ -49,7 +50,7 @@ void main() {
         theme: AppTheme.light,
         builder: (context, child) =>
             Directionality(textDirection: TextDirection.rtl, child: child!),
-        home: OwnerHistoryScreen(controller: controller, storeId: 1),
+        home: OwnerHistoryScreen(controller: controller, storeId: 'store-1'),
       ),
     );
     await tester.pumpAndSettle();
@@ -57,7 +58,7 @@ void main() {
 
   testWidgets('lists each day with sold / collected / outstanding counts',
       (tester) async {
-    when(() => repo.getDailySummaries(1, limit: any(named: 'limit')))
+    when(() => repo.getDailySummaries('store-1', limit: any(named: 'limit')))
         .thenAnswer(
       (_) async => const [
         StoreDaySummary(
@@ -86,7 +87,7 @@ void main() {
   });
 
   testWidgets('empty history shows the placeholder', (tester) async {
-    when(() => repo.getDailySummaries(1, limit: any(named: 'limit')))
+    when(() => repo.getDailySummaries('store-1', limit: any(named: 'limit')))
         .thenAnswer((_) async => const []);
 
     await pumpHistory(tester);
@@ -95,7 +96,7 @@ void main() {
   });
 
   testWidgets('tapping a day opens that day with its buyers', (tester) async {
-    when(() => repo.getDailySummaries(1, limit: any(named: 'limit')))
+    when(() => repo.getDailySummaries('store-1', limit: any(named: 'limit')))
         .thenAnswer(
       (_) async => const [
         StoreDaySummary(
@@ -106,10 +107,10 @@ void main() {
         ),
       ],
     );
-    when(() => repo.getQueueForStore(1, '2026-08-02')).thenAnswer(
+    when(() => repo.getQueueForStore('store-1', '2026-08-02')).thenAnswer(
       (_) async => [
-        purchase(1, PurchaseStatus.collected),
-        purchase(2, PurchaseStatus.waiting, name: 'محمود سعيد'),
+        purchase('purchase-1', PurchaseStatus.collected),
+        purchase('purchase-2', PurchaseStatus.waiting, name: 'محمود سعيد'),
       ],
     );
 

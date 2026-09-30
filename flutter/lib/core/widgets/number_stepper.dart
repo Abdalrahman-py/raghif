@@ -13,6 +13,7 @@ class NumberStepper extends StatelessWidget {
     required this.decrementLabel,
     required this.incrementLabel,
     this.min = 0,
+    this.step = 1,
   });
 
   final int value;
@@ -20,6 +21,10 @@ class NumberStepper extends StatelessWidget {
   final String decrementLabel;
   final String incrementLabel;
   final int min;
+
+  /// How much one tap moves the value. Large ranges (300 bags a day) would
+  /// take dozens of +1 taps.
+  final int step;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +34,9 @@ class NumberStepper extends StatelessWidget {
         _StepperButton(
           icon: Icons.remove,
           label: decrementLabel,
-          onTap: value > min ? () => onChanged(value - 1) : null,
+          onTap: value > min
+              ? () => onChanged(value - step < min ? min : value - step)
+              : null,
         ),
         SizedBox(
           width: 40,
@@ -42,7 +49,7 @@ class NumberStepper extends StatelessWidget {
         _StepperButton(
           icon: Icons.add,
           label: incrementLabel,
-          onTap: () => onChanged(value + 1),
+          onTap: () => onChanged(value + step),
         ),
       ],
     );

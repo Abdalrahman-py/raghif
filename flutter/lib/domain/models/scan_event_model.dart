@@ -18,9 +18,9 @@ class ScanEventModel extends Equatable {
     this.scannedNationalId,
   });
 
-  final int id;
-  final int storeId;
-  final int? purchaseId;
+  final String id;
+  final String storeId;
+  final String? purchaseId;
   final String outcome;
   final String? scannedName;
   final String? scannedNationalId;

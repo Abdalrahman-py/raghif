@@ -21,7 +21,7 @@ void main() {
   });
 
   const testUser = UserModel(
-    id: 1,
+    id: 'user-1',
     phone: '0599111111',
     nationalId: '900111222',
     name: 'أحمد ناصر',
@@ -43,11 +43,9 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, Authenticated] when session exists and user is found',
       build: () {
-        when(() => mockAuthRepository.ensureSeeded())
-            .thenAnswer((_) async {});
         when(() => mockSessionStore.loadUserId())
-            .thenAnswer((_) async => 1);
-        when(() => mockAuthRepository.findById(1))
+            .thenAnswer((_) async => 'user-1');
+        when(() => mockAuthRepository.findById('user-1'))
             .thenAnswer((_) async => testUser);
         return AuthBloc(
           authRepository: mockAuthRepository,
@@ -64,8 +62,6 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, Unauthenticated] when no session exists',
       build: () {
-        when(() => mockAuthRepository.ensureSeeded())
-            .thenAnswer((_) async {});
         when(() => mockSessionStore.loadUserId())
             .thenAnswer((_) async => null);
         return AuthBloc(
@@ -146,11 +142,11 @@ void main() {
       build: () {
         when(
           () => mockAuthRepository.updateVerificationStatus(
-            1,
+            'user-1',
             VerificationStatus.verified,
           ),
         ).thenAnswer((_) async {});
-        when(() => mockAuthRepository.findById(1)).thenAnswer(
+        when(() => mockAuthRepository.findById('user-1')).thenAnswer(
           (_) async => testUser, // testUser is already verified
         );
         return AuthBloc(
@@ -160,7 +156,7 @@ void main() {
       },
       seed: () => const Authenticated(
         UserModel(
-          id: 1,
+          id: 'user-1',
           phone: '0599111111',
           nationalId: '900111222',
           name: 'أحمد ناصر',
@@ -174,7 +170,7 @@ void main() {
       verify: (_) {
         verify(
           () => mockAuthRepository.updateVerificationStatus(
-            1,
+            'user-1',
             VerificationStatus.verified,
           ),
         ).called(1);
@@ -222,9 +218,35 @@ void main() {
       );
 
       blocTest<AuthBloc, AuthState>(
+        'sends a code on a phone that has never seen this user',
+        build: () {
+          // Empty local cache: only the server knows the ID.
+          when(() => mockAuthRepository.findByNationalId('900111222'))
+              .thenAnswer((_) async => null);
+          when(() => mockAuthRepository.requestOtp('900111222'))
+              .thenAnswer((_) async => '4821');
+          return AuthBloc(
+            authRepository: mockAuthRepository,
+            sessionStore: mockSessionStore,
+          );
+        },
+        act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
+        expect: () => [
+          const AuthLoading(),
+          const AuthOtpSent(
+            nationalId: '900111222',
+            phone: '',
+            otpCode: '4821',
+          ),
+        ],
+      );
+
+      blocTest<AuthBloc, AuthState>(
         'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
         build: () {
           when(() => mockAuthRepository.findByNationalId('900999999'))
+              .thenAnswer((_) async => null);
+          when(() => mockAuthRepository.requestOtp('900999999'))
               .thenAnswer((_) async => null);
           return AuthBloc(
             authRepository: mockAuthRepository,
@@ -246,7 +268,7 @@ void main() {
           otpCode: '4821',
         ),
         build: () {
-          when(() => mockAuthRepository.loginWithOtp(nationalId: '900111222'))
+          when(() => mockAuthRepository.loginWithOtp(nationalId: '900111222', code: '4821'))
               .thenAnswer((_) async => testUser);
           return AuthBloc(
             authRepository: mockAuthRepository,

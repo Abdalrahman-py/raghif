@@ -1,8 +1,6 @@
 import '../models/user_model.dart';
 
 abstract class AuthRepository {
-  Future<void> ensureSeeded();
-
   Future<UserModel?> login({
     required String phone,
     required String pin,
@@ -13,13 +11,16 @@ abstract class AuthRepository {
     required String pin,
   });
 
+  /// [code] is the OTP the user entered; the backend checks it too, so a
+  /// national ID alone never yields a session.
   Future<UserModel?> loginWithOtp({
     required String nationalId,
+    required String code,
   });
 
   Future<String?> requestOtp(String nationalId);
 
-  Future<UserModel?> findById(int id);
+  Future<UserModel?> findById(String id);
 
   Future<UserModel?> findByNationalId(String nationalId);
 
@@ -43,9 +44,9 @@ abstract class AuthRepository {
     String? jawwalPayNumber,
   });
 
-  Future<void> updateVerificationStatus(int userId, VerificationStatus status);
+  Future<void> updateVerificationStatus(String userId, VerificationStatus status);
 
-  Future<void> updateJawwalPayNumber(int userId, String jawwalPayNumber);
+  Future<void> updateJawwalPayNumber(String userId, String jawwalPayNumber);
 
   Future<void> logout();
 }

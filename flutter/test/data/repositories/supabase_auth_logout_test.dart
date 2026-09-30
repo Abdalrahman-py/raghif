@@ -64,4 +64,16 @@ void main() {
     verify(() => auth.signOut()).called(1);
     expect(await SessionStore().loadUserId(), isNull);
   });
+
+  test('logout still completes when the server cannot be reached', () async {
+    // signOut() talks to the server; with the backend down it throws. That
+    // must not trap the user in a session they asked to leave.
+    SharedPreferences.setMockInitialValues({'session.userId': 'user-7'});
+    when(() => fcm.unregisterCurrentDeviceToken()).thenAnswer((_) async {});
+    when(() => auth.signOut()).thenThrow(AuthException('failed to fetch'));
+
+    await expectLater(repo.logout(), completes);
+
+    expect(await SessionStore().loadUserId(), isNull);
+  });
 }

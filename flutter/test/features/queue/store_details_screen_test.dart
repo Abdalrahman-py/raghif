@@ -15,6 +15,7 @@ import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/core/widgets/primary_button.dart';
 import 'package:raghif/features/queue/store_details_screen.dart';
 
+
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -25,7 +26,7 @@ void main() {
   late QueueController controller;
 
   const demoUser = DemoUser(
-    id: 1,
+    id: 'user-buyer',
     phone: demoBuyerPhone,
     pin: '1234',
     role: UserRole.buyer,
@@ -36,12 +37,12 @@ void main() {
     bool isOpen = true,
     int bagsRemaining = 10,
   }) => StoreModel(
-    id: 1,
+    id: 'store-1',
     name: 'مخبز الرمال',
     isOpen: isOpen,
     dailyBagLimit: 300,
     bagsRemaining: bagsRemaining,
-    ownerPhone: '0599000001',
+    ownerId: '0599000001',
     openTime: '08:00',
     closeTime: '10:00',
     area: 'الرمال',
@@ -124,7 +125,7 @@ void main() {
     final entry = StoreListEntry(
       store: store(),
       todayStatus: PurchaseStatus.notified,
-      todayPurchaseId: 42,
+      todayPurchaseId: 'purchase-42',
     );
     stubEntries([entry]);
     await pumpDetails(tester, entry);
@@ -161,8 +162,8 @@ void main() {
 
     verify(
       () => repo.setStorePinned(
-        userId: demoUser.id,
-        storeId: 1,
+        userId: any(named: 'userId'),
+        storeId: 'store-1',
         pinned: true,
       ),
     ).called(1);

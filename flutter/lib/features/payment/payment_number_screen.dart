@@ -7,6 +7,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import 'mock_jawwal_pay_service.dart';
 import 'payment_otp_screen.dart';
+import '../../core/widgets/labeled_field.dart';
 
 /// Screen where user reviews and confirms their registered Jawwal Pay number
 /// before the simulated OTP is generated.
@@ -92,11 +93,12 @@ class _PaymentNumberScreenState extends State<PaymentNumberScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: Strings.jawwalPayNumberLabel,
+                  LabeledField(
+                    label: Strings.jawwalPayNumberLabel,
+                    child: TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(),
                     ),
                   ),
                   if (_error != null) ...[

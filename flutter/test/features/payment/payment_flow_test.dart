@@ -1,16 +1,14 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
-import 'package:raghif/data/repositories/queue_repository_impl.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
 import 'package:raghif/features/payment/payment_number_screen.dart';
 import 'package:raghif/features/queue/confirmation_screen.dart';
 import 'package:raghif/features/queue/purchase_screen.dart';
-import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
+
+import '../../support/queue_test_harness.dart';
 
 Widget wrapWithMaterial(Widget child) {
   return MaterialApp(
@@ -92,6 +90,7 @@ void main() {
 
   group('PurchaseScreen Jawwal Pay integration', () {
     const testUser = DemoUser(
+      id: seededBuyerId,
       phone: '0599111111',
       pin: '1234',
       role: UserRole.buyer,
@@ -110,11 +109,10 @@ void main() {
         // subscriptions cleanly — an extra explicit controller
         // .dispose()/db.close() afterward re-touches an already-settled
         // stream and reliably hangs.
-        final db = AppDatabase(NativeDatabase.memory());
-        final repository = QueueRepositoryImpl(db);
-        await repository.ensureSeeded();
-        final controller = QueueController(repository);
-        final store = controller.stores.first;
+        final harness = buildQueueHarness();
+        final repo = harness.repo;
+        final controller = harness.controller;
+        final store = (await repo.getStoreById(seededStoreId))!;
 
         await tester.pumpWidget(
           wrapWithMaterial(
@@ -175,8 +173,7 @@ void main() {
 
         // Verify reservation exists in QueueController
         final blocker = await controller.blockingPurchaseFor(
-          testUser.phone,
-          store.id,
+          testUser.id,
           todayDateString(),
         );
         expect(blocker, isNotNull);
@@ -189,11 +186,10 @@ void main() {
     testWidgets('canceling payment flow does not create reservation', (
       tester,
     ) async {
-      final db = AppDatabase(NativeDatabase.memory());
-      final repository = QueueRepositoryImpl(db);
-      await repository.ensureSeeded();
-      final controller = QueueController(repository);
-      final store = controller.stores.first;
+      final harness = buildQueueHarness();
+      final repo = harness.repo;
+      final controller = harness.controller;
+      final store = (await repo.getStoreById(seededStoreId))!;
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -218,8 +214,7 @@ void main() {
 
       // Verify NO purchase was made
       final blocker = await controller.blockingPurchaseFor(
-        testUser.phone,
-        store.id,
+        testUser.id,
         todayDateString(),
       );
       expect(blocker, isNull);

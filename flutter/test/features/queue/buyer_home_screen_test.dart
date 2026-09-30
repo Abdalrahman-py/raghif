@@ -12,6 +12,7 @@ import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/buyer_home_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 
+
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -22,7 +23,7 @@ void main() {
   late QueueController controller;
 
   const demoUser = DemoUser(
-    id: 1,
+    id: 'user-buyer',
     phone: demoBuyerPhone,
     pin: '1234',
     role: UserRole.buyer,
@@ -33,9 +34,9 @@ void main() {
     PurchaseStatus status = PurchaseStatus.waiting,
     int batchNumber = 2,
   }) => PurchaseModel(
-    id: 7,
-    storeId: 1,
-    userId: 1,
+    id: 'purchase-7',
+    storeId: 'store-1',
+    userId: 'user-1',
     purchaseDate: '2026-08-01',
     batchNumber: batchNumber,
     status: status,
@@ -74,7 +75,7 @@ void main() {
 
   void stubTodayOrder(PurchaseModel? purchase) {
     when(
-      () => repo.getBlockingPurchase(any(), any(), userPhone: any(named: 'userPhone')),
+      () => repo.getBlockingPurchase(any(), any()),
     ).thenAnswer((_) async => purchase);
   }
 

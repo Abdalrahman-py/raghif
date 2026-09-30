@@ -19,6 +19,134 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed (CI)
+
+- **PRs run analyze + test only; the APK is built once per merge.** The single
+  `build` job used to analyze, test, build a release APK and upload it on every
+  PR update and every master push, so each PR built an app nobody looked at and
+  every merge repeated the PR's work. Now `ci.yml` (PRs) is `flutter analyze` +
+  `flutter test` and `release.yml` (merge to master, or on demand) builds the
+  arm64 APK and replaces the rolling `latest` release directly, with no
+  artifact upload/download hop. Setup shared through
+  `.github/actions/flutter`, Gradle caching through `setup-java`, and the
+  Flutter pin moved to `environment.flutter` in `pubspec.yaml` so local,
+  CI and release cannot disagree. The 180s shell timeout on the tests is gone
+  (the job's 10-minute limit covers a hang; the suite takes ~2 minutes).
+  Constitution VII amended accordingly (untracked file, 2026-09-30).
+
+### Deployed
+
+- 2026-09-30, project `mgmerkaokkffsypnkryj`: migration
+  `lock_direct_writes` applied (recorded as `20260930130626`) and
+  `auth-gateway` v14 deployed (seed-demo gated, OTP checked server-side).
+  Verified against the live project: anonymous callers are refused on the
+  owner RPCs, `select *` on `profiles` is refused for signed-in users while
+  named columns work, the demo owner signs in, and the owner aggregates
+  return. `SEED_DEMO_SECRET` is not set, so `seed-demo` is disabled; the
+  database already holds the demo world.
+
+### Fixed (sign-out)
+
+- **Sign-out works when the server cannot be reached.** `logout()` awaited
+  `signOut()`, which revokes the session on the server, so with the backend
+  down it threw, the bloc never emitted `Unauthenticated`, and confirming
+  the sign-out dialog did nothing. The revoke is best effort now and the
+  remembered user is always cleared.
+
+### Changed (login)
+
+- **Login is one question per screen.** National ID, then PIN, then in.
+  The first screen used to carry about nine competing things (a demo badge,
+  logo, title and subtitle, a card, two alternative-login links, a create-
+  account row and a demo-accounts card); it is now a field, a button and two
+  quiet links. The PIN is the normal way in and the code by "SMS" is behind
+  "forgot your PIN?" — previously the code was the default and the PIN a
+  link on a screen you only reached after asking for a code. The fourth PIN
+  digit signs you in. Demo accounts moved into a bottom sheet and sign in on
+  one tap. An ID with no account is told so with "create an account" right
+  beside it. System back goes back a step.
+- **Fixed: a new phone could not use the code login at all.** Asking for a
+  code first checked this device's cache for the user, so anyone with an
+  existing account on a fresh install was told to create one. The server
+  decides now.
+
+### Fixed
+
+- **Direct table writes are closed.** `purchases` and `scan_events` no longer
+  accept inserts/updates from the app, so `reserve_bag` (sold-out, batch
+  number, one bag a day) cannot be bypassed. `profiles.pin_hash` and `role`
+  are no longer readable or writable by the app — the owner's device used to
+  pull every buyer's bcrypt hash with `select *`; the sync now names its
+  columns. Migration `20260930130626_lock_direct_writes`.
+- **RPC rules moved into SQL.** `collect_purchase` refuses a batch that has
+  not been called; `record_scan` only takes known outcomes and never links a
+  purchase from another store; `save_store_allocation` locks the store row
+  (no oversell race) and no longer takes `is_open` from the client's cache.
+  The new RPCs are revoked from `anon`.
+- **Failed writes are no longer silent.** Owner actions, the scanner and pin
+  toggles report "did not happen" via `guardWrite` instead of leaving the
+  scanner stuck; server errors reach the UI as `BackendUnavailableException`
+  rather than raw driver errors, and only the exact sold-out message maps to
+  `StoreSoldOutException`.
+- **`auth-gateway`:** `seed-demo` is disabled unless the
+  `SEED_DEMO_SECRET` function secret is set and sent as `x-seed-secret`;
+  `otp-confirm` now checks the (mock) code server-side instead of minting a
+  session from a national ID alone (`loginWithOtp` takes the entered code).
+- Cache reads no longer invent facts (`batch_number ?? 1`, `createdAt = now`),
+  and an upgrade from an install that stored the session id as an int no
+  longer fails sign-in.
+- SQL tests: `flutter/supabase/tests/run.sh` applies every migration to a
+  throwaway Postgres (docker) and asserts the above as real roles.
+- **Accessibility floor (constitution V), measured in `test/a11y`.** Body
+  text is 16sp (was 15); field labels sit above the field at full size (the
+  floating label shrank to ~12.75sp once you typed); input outlines are
+  4.8:1 instead of 1.5:1; chip text on status tints is ~8:1; the demo rows
+  are 48dp with 8dp between them; Arabic styles no longer set `letterSpacing`
+  (it disables ligatures); the demo badge pads with `EdgeInsetsDirectional`.
+  Registration lost its box-in-box field cards; the owner's pending-pickup
+  count is a numeral, not a pill.
+- **Fewer expensive accidents.** Signing out and closing the bakery ask
+  first; the daily-bag stepper moves by 10.
+- **Boot no longer waits on the network.** The first store pull is not
+  awaited, so an unreachable backend shows the app instead of a permanent
+  splash screen.
+
+### Changed
+
+- **Postgres is the source of truth; drift is a cache.** The app used to
+  seed its own stores, buyers and queue on every install and decide the
+  rules on-device, with Supabase wired in behind a `USE_SUPABASE` flag as
+  a second opinion. That split is what let a receipt read "batch 4" while
+  the server had the same row as batch 1. Now:
+  - Every write is a Postgres RPC that authorizes itself
+    (`reserve_bag`, `notify_next_batch`, `collect_purchase`,
+    `set_store_open`, `record_scan`, `set_store_pinned`,
+    `save_store_allocation`). The owner's customer book and sales history
+    are computed in SQL.
+  - The demo world is seeded server-side and idempotently by
+    `seed_demo_buyers` / `seed_demo_stores` / `seed_demo_day`, driven by
+    the `seed-demo` Edge Function action. `DemoContentSeeder` and the
+    local `ensureSeeded()` calls are gone.
+  - Ids are Supabase UUIDs everywhere — device, server and QR code. The
+    local `INTEGER AUTOINCREMENT` ids and the `remote_id` mapping columns
+    are gone, along with the `dynamic` id parameters and `_parseInt`
+    coercion they forced on the controller.
+  - **Writes require the backend** and fail loudly
+    (`BackendUnavailableException`) instead of being applied locally and
+    reconciled later. Reads still serve from cache while offline.
+  - Drift schema v8 drops and recreates every table. There is no
+    column-by-column upgrade from v7: the old ids named rows that only
+    existed on one device, and a cache is cheap to refill.
+  - QR payload is v2. **v1 receipts no longer scan** — they carry integer
+    ids that identify nothing now, so they are rejected rather than
+    resolved to whatever row shares the number.
+  - Pickup is one-way: the old notified↔collected toggle is now
+    `collectPurchase`. Bread that has been handed over cannot be
+    un-handed, and the server offers no way back.
+  - Removed as dead: the `dio`/`retrofit` scaffold that never had a server
+    to talk to, the `useSupabase` flag, `pin_hash` from the local cache
+    (PIN checks are the auth-gateway's job), and `AuthRepositoryImpl`.
+
 ### Fixed
 
 - Push notifications — four defects found by tracing the live pipeline

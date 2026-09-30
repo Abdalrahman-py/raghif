@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/onboarding/onboarding_store.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../auth/login_screen.dart';
+import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/secondary_button.dart';
 import '../auth/registration_screen.dart';
 
 class _Slide {
@@ -13,13 +15,30 @@ class _Slide {
 }
 
 const _slides = [
-  _Slide(Icons.shopping_bag_outlined, Strings.onboardingTitle1, Strings.onboardingBody1),
-  _Slide(Icons.notifications_active_outlined, Strings.onboardingTitle2, Strings.onboardingBody2),
-  _Slide(Icons.verified_user_outlined, Strings.onboardingTitle3, Strings.onboardingBody3),
+  _Slide(
+    Icons.shopping_bag_outlined,
+    Strings.onboardingTitle1,
+    Strings.onboardingBody1,
+  ),
+  _Slide(
+    Icons.notifications_active_outlined,
+    Strings.onboardingTitle2,
+    Strings.onboardingBody2,
+  ),
+  _Slide(
+    Icons.verified_user_outlined,
+    Strings.onboardingTitle3,
+    Strings.onboardingBody3,
+  ),
 ];
 
-/// First-run intro carousel. Shown once per install (OnboardingStore),
-/// then hands off to registration (new users) or login (returning users).
+/// First-run intro carousel. Shown once per install (OnboardingStore), then
+/// hands off to registration (new users) or login (returning users).
+///
+/// Three slides is short enough that the last one carries the decision: the
+/// primary action turns into "إنشاء حساب" and logging in becomes a real
+/// secondary button, so a returning user never has to find the small skip link
+/// to get back into their account.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onDone});
 
@@ -30,6 +49,8 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  static const _pageAnimation = Duration(milliseconds: 250);
+
   final _pageController = PageController();
   int _page = 0;
 
@@ -45,34 +66,63 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _goToRegistration() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RegistrationScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const RegistrationScreen()));
     _finish();
   }
 
+  /// Hands off without pushing: main.dart swaps the root child to the login
+  /// screen, so pushing a second copy here only stacked two identical screens
+  /// and made the system back gesture appear to do nothing.
   void _goToLogin() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
     _finish();
+  }
+
+  void _goToPage(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: _pageAnimation,
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _next() {
+    _pageController.nextPage(duration: _pageAnimation, curve: Curves.easeOut);
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final isLast = _page == _slides.length - 1;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: TextButton(
-                  onPressed: _goToLogin,
-                  child: const Text(Strings.onboardingSkip),
-                ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Row(
+                children: [
+                  // RTL puts the first child on the right, so the step counter
+                  // reads first and "تخطي" takes the trailing corner.
+                  Expanded(
+                    child: Text(
+                      Strings.onboardingPageOf(_page + 1, _slides.length),
+                      style: textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _goToLogin,
+                    child: const Text(Strings.onboardingSkip),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -80,71 +130,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _pageController,
                 itemCount: _slides.length,
                 onPageChanged: (i) => setState(() => _page = i),
-                itemBuilder: (context, i) {
-                  final slide = _slides[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(slide.icon, size: 96, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(height: AppSpacing.xl),
-                        Text(
-                          slide.title,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.displayMedium,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          slide.body,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                itemBuilder: (context, i) => _SlideView(slide: _slides[i]),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _slides.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: i == _page ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: i == _page
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outline,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-            ),
+            _PageDots(page: _page, count: _slides.length, onTap: _goToPage),
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ElevatedButton(
-                    onPressed: isLast
-                        ? _goToRegistration
-                        : () => _pageController.nextPage(
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            ),
-                    child: Text(isLast ? Strings.onboardingGetStarted : Strings.onboardingNext),
+                  PrimaryButton(
+                    text: isLast
+                        ? Strings.onboardingGetStarted
+                        : Strings.onboardingNext,
+                    onPressed: isLast ? _goToRegistration : _next,
                   ),
                   if (isLast) ...[
                     const SizedBox(height: AppSpacing.sm),
-                    TextButton(
+                    SecondaryButton(
+                      text: Strings.onboardingHaveAccount,
                       onPressed: _goToLogin,
-                      child: const Text(Strings.onboardingHaveAccount),
                     ),
                   ],
                 ],
@@ -152,6 +162,129 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One slide: artwork badge, headline, body.
+///
+/// Scrollable, and the badge shrinks on short screens, so the 320x640dp
+/// deployment target can never push the copy out of the viewport (a RenderFlex
+/// overflow here would be a red-striped first impression).
+class _SlideView extends StatelessWidget {
+  const _SlideView({required this.slide});
+
+  final _Slide slide;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 400;
+        final badge = compact ? 120.0 : 152.0;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: badge,
+                  height: badge,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accentContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    slide.icon,
+                    size: compact ? 56 : 72,
+                    color: AppColors.accent,
+                  ),
+                ),
+                SizedBox(height: compact ? AppSpacing.md : AppSpacing.xl),
+                Text(
+                  slide.title,
+                  textAlign: TextAlign.center,
+                  style: textTheme.displayMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  slide.body,
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Page indicator. Each dot is a real target: 48dp of hit area around an 8dp
+/// mark, and it announces the page it leads to, because three unlabelled dots
+/// are invisible to a screen reader.
+class _PageDots extends StatelessWidget {
+  const _PageDots({
+    required this.page,
+    required this.count,
+    required this.onTap,
+  });
+
+  final int page;
+  final int count;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // Marks on a 32dp pitch — close enough to read as one control rather than
+    // three loose specks — while each dot keeps a full 48dp tap target, since
+    // the boxes overlap each other rather than sitting side by side.
+    const box = 48.0;
+    const pitch = 32.0;
+    return SizedBox(
+      height: box,
+      width: box + pitch * (count - 1),
+      child: Stack(
+        children: List.generate(count, (i) {
+          final selected = i == page;
+          return Positioned(
+            // Page 1 hangs off the right edge in Arabic.
+            left: rtl ? pitch * (count - 1 - i) : pitch * i,
+            top: 0,
+            width: box,
+            height: box,
+            child: Semantics(
+              label: Strings.onboardingPageOf(i + 1, count),
+              selected: selected,
+              button: true,
+              child: InkResponse(
+                key: ValueKey('onboarding-dot-$i'),
+                onTap: () => onTap(i),
+                radius: 24,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: selected ? 24 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: selected ? colors.primary : colors.outline,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

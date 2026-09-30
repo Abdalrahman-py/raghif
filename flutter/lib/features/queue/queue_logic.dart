@@ -41,10 +41,14 @@ String formatReadyTime(int millis) {
   return '$h:$m';
 }
 
-/// True when the owner must set today's allocation first: it's a new day, or
-/// the current bundles are gone.
+/// True when the owner must set today's allocation first.
+///
+/// Only asks the server's own counter now. `allocationDate` used to be
+/// compared against today, but it was never persisted — it defaulted to ''
+/// on every store, so this was permanently true. `bags_remaining` is reset
+/// by `save_store_allocation`, which makes it the real signal.
 bool needsAllocation(StoreModel store, String today) =>
-    store.allocationDate != today || store.bagsRemaining <= 0;
+    store.bagsRemaining <= 0;
 
 /// In-app low-stock warning threshold. Actual SMS/push delivery is out of
 /// scope for this prototype (decision D) — the app only surfaces the state.

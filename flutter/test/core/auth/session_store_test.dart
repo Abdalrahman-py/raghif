@@ -8,10 +8,16 @@ void main() {
 
     expect(await SessionStore().loadUserId(), isNull);
 
-    await SessionStore().saveUserId(7);
-    expect(await SessionStore().loadUserId(), 7);
+    await SessionStore().saveUserId('user-7');
+    expect(await SessionStore().loadUserId(), 'user-7');
 
     await SessionStore().clear();
+    expect(await SessionStore().loadUserId(), isNull);
+  });
+
+  test('a legacy int user id reads as "no session", not a crash', () async {
+    SharedPreferences.setMockInitialValues({'session.userId': 7});
+
     expect(await SessionStore().loadUserId(), isNull);
   });
 }

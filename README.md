@@ -6,9 +6,11 @@ WFP supplies selected markets with ~300 bags of bread daily (2kg pita, 3 ILS). T
 of people crowd a market at once. Raghif turns that into a queue: users reserve a bag from home
 the day before, and the market owner releases customers in batches, notified by SMS.
 
-## Status: prototype, in progress
+## Status: prototype on a live backend
 
-Flutter app under `flutter/`, local-only (drift/sqlite3), no backend wired up yet.
+Flutter app under `flutter/`, backed by a live Supabase project (Postgres +
+Realtime + Edge Functions + FCM push). The on-device `drift` database is a
+cache of that server, not a second source of truth.
 
 | File | What it is |
 |---|---|
@@ -17,14 +19,21 @@ Flutter app under `flutter/`, local-only (drift/sqlite3), no backend wired up ye
 | [TASKS.md](TASKS.md) | Flutter build backlog |
 | `flutter/` | Flutter app |
 
-## Prototype stack
+## Stack
 
-Flutter, drift (on-device sqlite). Storage is local — Supabase from the spec is
-**not wired up yet**.
+Flutter + Supabase. Postgres decides (reservations, batch release, pickup,
+allocation); `drift` caches the answers so the app still renders on a bad
+connection. Writes require the backend and fail loudly when it is
+unreachable — a reservation that did not reach Postgres did not happen.
 
 ```bash
-cd flutter && flutter run
+cd flutter
+cp .env.example .env   # then fill in your Supabase URL + anon key
+flutter run
 ```
+
+The demo world (bakeries, buyers, today's queue) is seeded **server-side**
+by the `seed-demo` Edge Function action, not by the app.
 
 ## Production stack (planned)
 
@@ -37,7 +46,7 @@ cd flutter && flutter run
 
 ## Business rules
 
-- One bag per national ID per store per day, no cancellations
+- One bag per national ID per day across all stores, no cancellations
 - Owner-set daily batch size
 - Bilingual AR/EN
 

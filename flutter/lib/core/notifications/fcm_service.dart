@@ -8,9 +8,8 @@ import 'notification_service.dart';
 /// surfaces incoming pushes while the app is foregrounded — backgrounded/
 /// killed delivery is shown by the OS directly from the FCM `notification`
 /// payload (see the `notify-batch` Edge Function), no extra code needed for
-/// that. Only meaningful behind `Env.useSupabase`: `device_tokens` and the
-/// notify-batch trigger both live server-side. See
-/// docs/supabase-migration-plan.md Phase 4.
+/// that. `device_tokens` and the notify-batch trigger both live
+/// server-side. See docs/supabase-migration-plan.md Phase 4.
 ///
 /// ponytail: web is skipped (`kIsWeb` guard) — web push needs a VAPID key
 /// and service worker this pass doesn't set up; the app is Android-first

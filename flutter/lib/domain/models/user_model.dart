@@ -15,7 +15,8 @@ class UserModel extends Equatable {
     this.verificationStatus = VerificationStatus.pending,
   });
 
-  final int id;
+  /// Supabase auth user / `profiles.id` UUID.
+  final String id;
   final String phone;
   final String nationalId;
   final String name;
@@ -27,7 +28,7 @@ class UserModel extends Equatable {
   bool get isVerified => verificationStatus == VerificationStatus.verified;
 
   UserModel copyWith({
-    int? id,
+    String? id,
     String? phone,
     String? nationalId,
     String? name,

@@ -5,76 +5,106 @@ import '../models/store_day_summary.dart';
 import '../models/store_list_entry.dart';
 import '../models/store_model.dart';
 
-/// Thrown by [QueueRepository.reserveBag] when the store has no bags left.
+/// Thrown by [QueueRepository.reserveBag] when the store has no bags left
+/// (or has closed) — decided by Postgres, not by the on-device cache.
 class StoreSoldOutException implements Exception {}
 
+/// Thrown by any write when the backend can't be reached.
+///
+/// Postgres is the source of truth, so a write that can't reach it has not
+/// happened. The app says so rather than recording it locally and letting
+/// two devices disagree about who holds the last bag. Reads keep working
+/// from cache while offline; writes do not.
+class BackendUnavailableException implements Exception {
+  const BackendUnavailableException([this.cause]);
+
+  final Object? cause;
+
+  @override
+  String toString() => 'BackendUnavailableException($cause)';
+}
+
+/// Reads come from the on-device cache (see `AppDatabase`), which the sync
+/// service keeps fed from Supabase. Writes go to Postgres RPCs, which own
+/// every rule worth enforcing — sold-out, one-bag-per-day, batch
+/// assignment, who may notify or collect.
+///
+/// Ids are Supabase UUIDs throughout: the same string identifies a row on
+/// the device, on the server and inside a QR code.
 abstract class QueueRepository {
-  Future<void> ensureSeeded();
+  /// Pulls the current server state into the cache. Safe to call often;
+  /// swallows connection errors, since reads are allowed to be stale.
+  Future<void> refresh();
 
   Stream<List<StoreModel>> watchStores();
 
   Future<List<StoreModel>> getStores();
 
-  Future<StoreModel?> getStoreById(int storeId);
+  Future<StoreModel?> getStoreById(String storeId);
+
+  /// The store this user owns, or null if they own none.
+  Future<StoreModel?> getStoreForOwner(String ownerId);
 
   /// The buyer's store list: every store plus that buyer's own context for it
   /// (pinned, today's order status, last purchase date), so the list can float
   /// the stores they actually use to the top and show extra detail on them.
   Stream<List<StoreListEntry>> watchStoreListForUser({
-    required int userId,
+    required String userId,
     required String today,
   });
 
-  /// Pins or un-pins [storeId] for [userId]. A pinned store always sorts to
-  /// the top of that buyer's list.
   Future<void> setStorePinned({
-    required int userId,
-    required int storeId,
+    required String userId,
+    required String storeId,
     required bool pinned,
   });
 
   /// Audit trail: records one QR scan attempt at pickup.
   Future<void> recordScan({
-    required int storeId,
+    required String storeId,
     required String outcome,
-    int? purchaseId,
+    String? purchaseId,
     String? scannedName,
     String? scannedNationalId,
   });
 
   /// Scan history for a store, newest first.
-  Future<List<ScanEventModel>> getScansForStore(int storeId, {int limit = 100});
-
-  Stream<List<PurchaseModel>> watchQueueForStore(int storeId, String date);
-
-  Future<List<PurchaseModel>> getQueueForStore(int storeId, String date);
-
-  Future<PurchaseModel?> getBlockingPurchase(
-    int userId,
-    String date, {
-    String? userPhone,
+  Future<List<ScanEventModel>> getScansForStore(
+    String storeId, {
+    int limit = 100,
   });
 
-  Future<PurchaseModel?> getPurchaseById(int purchaseId);
+  Stream<List<PurchaseModel>> watchQueueForStore(String storeId, String date);
 
-  Stream<PurchaseModel?> watchPurchaseById(int purchaseId);
+  Future<List<PurchaseModel>> getQueueForStore(String storeId, String date);
 
+  /// This buyer's order for [date], if any — the one-bag-per-day rule made
+  /// visible. Authoritative check happens server-side on reserve.
+  Future<PurchaseModel?> getBlockingPurchase(String userId, String date);
+
+  Future<PurchaseModel?> getPurchaseById(String purchaseId);
+
+  Stream<PurchaseModel?> watchPurchaseById(String purchaseId);
+
+  /// Reserves a bag for the signed-in user. The buyer is taken from the
+  /// session server-side, never passed in, so a client can't reserve on
+  /// someone else's behalf.
   Future<PurchaseModel> reserveBag({
-    required int userId,
-    required int storeId,
+    required String storeId,
     required String date,
   });
 
   /// Returns true if a waiting batch existed and was notified, false if
   /// there was nothing left to notify.
-  Future<bool> notifyNextBatch(int storeId, String date);
+  Future<bool> notifyNextBatch(String storeId, String date);
 
-  Future<void> updatePurchaseStatus(int purchaseId, PurchaseStatus newStatus);
+  /// Owner hands the bag over.
+  Future<void> collectPurchase(String purchaseId);
 
-  Future<void> setStoreOpen(int storeId, bool isOpen);
+  Future<void> setStoreOpen(String storeId, bool isOpen);
 
   Future<void> saveStoreAllocation(
-    int storeId, {
+    String storeId, {
     required int dailyLimit,
     required int batchSize,
     required String date,
@@ -82,11 +112,14 @@ abstract class QueueRepository {
     String? closeTime,
   });
 
-  Stream<List<CustomerSummaryModel>> watchCustomersForStore(int storeId);
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId);
 
-  Future<List<CustomerSummaryModel>> getCustomersForStore(int storeId);
+  Future<List<CustomerSummaryModel>> getCustomersForStore(String storeId);
 
   /// Per-day sales totals for a store, newest day first — the owner's history
-  /// browser. [notCollected] is the end-of-day leftover (paid, never picked up).
-  Future<List<StoreDaySummary>> getDailySummaries(int storeId, {int limit = 30});
+  /// browser. Computed by Postgres (`store_daily_summaries`).
+  Future<List<StoreDaySummary>> getDailySummaries(
+    String storeId, {
+    int limit = 30,
+  });
 }

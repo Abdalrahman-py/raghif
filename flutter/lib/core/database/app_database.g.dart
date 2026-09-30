@@ -9,14 +9,13 @@ class Stores extends Table with TableInfo<Stores, Store> {
   final String? _alias;
   Stores(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -27,16 +26,16 @@ class Stores extends Table with TableInfo<Stores, Store> {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
-  static const VerificationMeta _ownerPhoneMeta = const VerificationMeta(
-    'ownerPhone',
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
   );
-  late final GeneratedColumn<String> ownerPhone = GeneratedColumn<String>(
-    'owner_phone',
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
   );
   static const VerificationMeta _isOpenMeta = const VerificationMeta('isOpen');
   late final GeneratedColumn<bool> isOpen = GeneratedColumn<bool>(
@@ -56,8 +55,9 @@ class Stores extends Table with TableInfo<Stores, Store> {
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0',
+    defaultValue: const CustomExpression('0'),
   );
   static const VerificationMeta _bagsRemainingMeta = const VerificationMeta(
     'bagsRemaining',
@@ -67,8 +67,9 @@ class Stores extends Table with TableInfo<Stores, Store> {
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0',
+    defaultValue: const CustomExpression('0'),
   );
   static const VerificationMeta _openTimeMeta = const VerificationMeta(
     'openTime',
@@ -114,22 +115,11 @@ class Stores extends Table with TableInfo<Stores, Store> {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
-  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
-    'remoteId',
-  );
-  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
-    'remote_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: '',
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    ownerPhone,
+    ownerId,
     isOpen,
     dailyBagLimit,
     bagsRemaining,
@@ -137,7 +127,6 @@ class Stores extends Table with TableInfo<Stores, Store> {
     closeTime,
     batchSize,
     area,
-    remoteId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -153,6 +142,8 @@ class Stores extends Table with TableInfo<Stores, Store> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -162,13 +153,11 @@ class Stores extends Table with TableInfo<Stores, Store> {
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('owner_phone')) {
+    if (data.containsKey('owner_id')) {
       context.handle(
-        _ownerPhoneMeta,
-        ownerPhone.isAcceptableOrUnknown(data['owner_phone']!, _ownerPhoneMeta),
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_ownerPhoneMeta);
     }
     if (data.containsKey('is_open')) {
       context.handle(
@@ -184,8 +173,6 @@ class Stores extends Table with TableInfo<Stores, Store> {
           _dailyBagLimitMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_dailyBagLimitMeta);
     }
     if (data.containsKey('bags_remaining')) {
       context.handle(
@@ -195,8 +182,6 @@ class Stores extends Table with TableInfo<Stores, Store> {
           _bagsRemainingMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_bagsRemainingMeta);
     }
     if (data.containsKey('open_time')) {
       context.handle(
@@ -222,12 +207,6 @@ class Stores extends Table with TableInfo<Stores, Store> {
         area.isAcceptableOrUnknown(data['area']!, _areaMeta),
       );
     }
-    if (data.containsKey('remote_id')) {
-      context.handle(
-        _remoteIdMeta,
-        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
-      );
-    }
     return context;
   }
 
@@ -238,17 +217,17 @@ class Stores extends Table with TableInfo<Stores, Store> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Store(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      ownerPhone: attachedDatabase.typeMapping.read(
+      ownerId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}owner_phone'],
-      )!,
+        data['${effectivePrefix}owner_id'],
+      ),
       isOpen: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_open'],
@@ -277,10 +256,6 @@ class Stores extends Table with TableInfo<Stores, Store> {
         DriftSqlType.string,
         data['${effectivePrefix}area'],
       )!,
-      remoteId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}remote_id'],
-      ),
     );
   }
 
@@ -294,36 +269,28 @@ class Stores extends Table with TableInfo<Stores, Store> {
 }
 
 class Store extends DataClass implements Insertable<Store> {
-  final int id;
+  final String id;
   final String name;
-  final String ownerPhone;
+
+  /// Supabase profiles UUID of the owner. NULL for the browse-only demo
+  /// bakeries, which nobody signs in to manage.
+  final String? ownerId;
   final bool isOpen;
   final int dailyBagLimit;
   final int bagsRemaining;
 
-  /// Today's purchase window, "HH:mm" 24h, owner-set. Null when not set yet;
-  /// purely informational for buyers, doesn't itself gate `is_open`.
+  /// "HH:mm" 24h, owner-set. Informational for buyers; doesn't gate is_open.
   final String? openTime;
   final String? closeTime;
 
-  /// How many queue positions make up one notify-able batch. Purchases don't
-  /// store their own batch number: it's derived from queue position and this
-  /// value at read time, so changing it regroups the whole queue immediately.
+  /// How many queue positions make up one notify-able batch. The server
+  /// assigns each purchase its batch_number from this at reserve time.
   final int batchSize;
-
-  /// Neighborhood/area the bakery sits in, used to group and filter the buyer
-  /// store list (e.g. مخبز الرمال → الرمال). Free text in the prototype; the
-  /// buyer sees it as a filter chip, not as an exact address.
   final String area;
-
-  /// Supabase `stores` UUID once this store has been linked to the backend
-  /// (see data/sync/queue_sync_service.dart). NULL until the owner's
-  /// device links it (lazily, on first online allocation save).
-  final String? remoteId;
   const Store({
     required this.id,
     required this.name,
-    required this.ownerPhone,
+    this.ownerId,
     required this.isOpen,
     required this.dailyBagLimit,
     required this.bagsRemaining,
@@ -331,14 +298,15 @@ class Store extends DataClass implements Insertable<Store> {
     this.closeTime,
     required this.batchSize,
     required this.area,
-    this.remoteId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
-    map['owner_phone'] = Variable<String>(ownerPhone);
+    if (!nullToAbsent || ownerId != null) {
+      map['owner_id'] = Variable<String>(ownerId);
+    }
     map['is_open'] = Variable<bool>(isOpen);
     map['daily_bag_limit'] = Variable<int>(dailyBagLimit);
     map['bags_remaining'] = Variable<int>(bagsRemaining);
@@ -350,9 +318,6 @@ class Store extends DataClass implements Insertable<Store> {
     }
     map['batch_size'] = Variable<int>(batchSize);
     map['area'] = Variable<String>(area);
-    if (!nullToAbsent || remoteId != null) {
-      map['remote_id'] = Variable<String>(remoteId);
-    }
     return map;
   }
 
@@ -360,7 +325,9 @@ class Store extends DataClass implements Insertable<Store> {
     return StoresCompanion(
       id: Value(id),
       name: Value(name),
-      ownerPhone: Value(ownerPhone),
+      ownerId: ownerId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ownerId),
       isOpen: Value(isOpen),
       dailyBagLimit: Value(dailyBagLimit),
       bagsRemaining: Value(bagsRemaining),
@@ -372,9 +339,6 @@ class Store extends DataClass implements Insertable<Store> {
           : Value(closeTime),
       batchSize: Value(batchSize),
       area: Value(area),
-      remoteId: remoteId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(remoteId),
     );
   }
 
@@ -384,9 +348,9 @@ class Store extends DataClass implements Insertable<Store> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Store(
-      id: serializer.fromJson<int>(json['id']),
+      id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      ownerPhone: serializer.fromJson<String>(json['owner_phone']),
+      ownerId: serializer.fromJson<String?>(json['owner_id']),
       isOpen: serializer.fromJson<bool>(json['is_open']),
       dailyBagLimit: serializer.fromJson<int>(json['daily_bag_limit']),
       bagsRemaining: serializer.fromJson<int>(json['bags_remaining']),
@@ -394,16 +358,15 @@ class Store extends DataClass implements Insertable<Store> {
       closeTime: serializer.fromJson<String?>(json['close_time']),
       batchSize: serializer.fromJson<int>(json['batch_size']),
       area: serializer.fromJson<String>(json['area']),
-      remoteId: serializer.fromJson<String?>(json['remote_id']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'owner_phone': serializer.toJson<String>(ownerPhone),
+      'owner_id': serializer.toJson<String?>(ownerId),
       'is_open': serializer.toJson<bool>(isOpen),
       'daily_bag_limit': serializer.toJson<int>(dailyBagLimit),
       'bags_remaining': serializer.toJson<int>(bagsRemaining),
@@ -411,14 +374,13 @@ class Store extends DataClass implements Insertable<Store> {
       'close_time': serializer.toJson<String?>(closeTime),
       'batch_size': serializer.toJson<int>(batchSize),
       'area': serializer.toJson<String>(area),
-      'remote_id': serializer.toJson<String?>(remoteId),
     };
   }
 
   Store copyWith({
-    int? id,
+    String? id,
     String? name,
-    String? ownerPhone,
+    Value<String?> ownerId = const Value.absent(),
     bool? isOpen,
     int? dailyBagLimit,
     int? bagsRemaining,
@@ -426,11 +388,10 @@ class Store extends DataClass implements Insertable<Store> {
     Value<String?> closeTime = const Value.absent(),
     int? batchSize,
     String? area,
-    Value<String?> remoteId = const Value.absent(),
   }) => Store(
     id: id ?? this.id,
     name: name ?? this.name,
-    ownerPhone: ownerPhone ?? this.ownerPhone,
+    ownerId: ownerId.present ? ownerId.value : this.ownerId,
     isOpen: isOpen ?? this.isOpen,
     dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
     bagsRemaining: bagsRemaining ?? this.bagsRemaining,
@@ -438,15 +399,12 @@ class Store extends DataClass implements Insertable<Store> {
     closeTime: closeTime.present ? closeTime.value : this.closeTime,
     batchSize: batchSize ?? this.batchSize,
     area: area ?? this.area,
-    remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   Store copyWithCompanion(StoresCompanion data) {
     return Store(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      ownerPhone: data.ownerPhone.present
-          ? data.ownerPhone.value
-          : this.ownerPhone,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
       isOpen: data.isOpen.present ? data.isOpen.value : this.isOpen,
       dailyBagLimit: data.dailyBagLimit.present
           ? data.dailyBagLimit.value
@@ -458,7 +416,6 @@ class Store extends DataClass implements Insertable<Store> {
       closeTime: data.closeTime.present ? data.closeTime.value : this.closeTime,
       batchSize: data.batchSize.present ? data.batchSize.value : this.batchSize,
       area: data.area.present ? data.area.value : this.area,
-      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
 
@@ -467,15 +424,14 @@ class Store extends DataClass implements Insertable<Store> {
     return (StringBuffer('Store(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('ownerPhone: $ownerPhone, ')
+          ..write('ownerId: $ownerId, ')
           ..write('isOpen: $isOpen, ')
           ..write('dailyBagLimit: $dailyBagLimit, ')
           ..write('bagsRemaining: $bagsRemaining, ')
           ..write('openTime: $openTime, ')
           ..write('closeTime: $closeTime, ')
           ..write('batchSize: $batchSize, ')
-          ..write('area: $area, ')
-          ..write('remoteId: $remoteId')
+          ..write('area: $area')
           ..write(')'))
         .toString();
   }
@@ -484,7 +440,7 @@ class Store extends DataClass implements Insertable<Store> {
   int get hashCode => Object.hash(
     id,
     name,
-    ownerPhone,
+    ownerId,
     isOpen,
     dailyBagLimit,
     bagsRemaining,
@@ -492,7 +448,6 @@ class Store extends DataClass implements Insertable<Store> {
     closeTime,
     batchSize,
     area,
-    remoteId,
   );
   @override
   bool operator ==(Object other) =>
@@ -500,21 +455,20 @@ class Store extends DataClass implements Insertable<Store> {
       (other is Store &&
           other.id == this.id &&
           other.name == this.name &&
-          other.ownerPhone == this.ownerPhone &&
+          other.ownerId == this.ownerId &&
           other.isOpen == this.isOpen &&
           other.dailyBagLimit == this.dailyBagLimit &&
           other.bagsRemaining == this.bagsRemaining &&
           other.openTime == this.openTime &&
           other.closeTime == this.closeTime &&
           other.batchSize == this.batchSize &&
-          other.area == this.area &&
-          other.remoteId == this.remoteId);
+          other.area == this.area);
 }
 
 class StoresCompanion extends UpdateCompanion<Store> {
-  final Value<int> id;
+  final Value<String> id;
   final Value<String> name;
-  final Value<String> ownerPhone;
+  final Value<String?> ownerId;
   final Value<bool> isOpen;
   final Value<int> dailyBagLimit;
   final Value<int> bagsRemaining;
@@ -522,11 +476,11 @@ class StoresCompanion extends UpdateCompanion<Store> {
   final Value<String?> closeTime;
   final Value<int> batchSize;
   final Value<String> area;
-  final Value<String?> remoteId;
+  final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.ownerPhone = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.isOpen = const Value.absent(),
     this.dailyBagLimit = const Value.absent(),
     this.bagsRemaining = const Value.absent(),
@@ -534,28 +488,26 @@ class StoresCompanion extends UpdateCompanion<Store> {
     this.closeTime = const Value.absent(),
     this.batchSize = const Value.absent(),
     this.area = const Value.absent(),
-    this.remoteId = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   StoresCompanion.insert({
-    this.id = const Value.absent(),
+    required String id,
     required String name,
-    required String ownerPhone,
+    this.ownerId = const Value.absent(),
     this.isOpen = const Value.absent(),
-    required int dailyBagLimit,
-    required int bagsRemaining,
+    this.dailyBagLimit = const Value.absent(),
+    this.bagsRemaining = const Value.absent(),
     this.openTime = const Value.absent(),
     this.closeTime = const Value.absent(),
     this.batchSize = const Value.absent(),
     this.area = const Value.absent(),
-    this.remoteId = const Value.absent(),
-  }) : name = Value(name),
-       ownerPhone = Value(ownerPhone),
-       dailyBagLimit = Value(dailyBagLimit),
-       bagsRemaining = Value(bagsRemaining);
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
   static Insertable<Store> custom({
-    Expression<int>? id,
+    Expression<String>? id,
     Expression<String>? name,
-    Expression<String>? ownerPhone,
+    Expression<String>? ownerId,
     Expression<bool>? isOpen,
     Expression<int>? dailyBagLimit,
     Expression<int>? bagsRemaining,
@@ -563,12 +515,12 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Expression<String>? closeTime,
     Expression<int>? batchSize,
     Expression<String>? area,
-    Expression<String>? remoteId,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (ownerPhone != null) 'owner_phone': ownerPhone,
+      if (ownerId != null) 'owner_id': ownerId,
       if (isOpen != null) 'is_open': isOpen,
       if (dailyBagLimit != null) 'daily_bag_limit': dailyBagLimit,
       if (bagsRemaining != null) 'bags_remaining': bagsRemaining,
@@ -576,14 +528,14 @@ class StoresCompanion extends UpdateCompanion<Store> {
       if (closeTime != null) 'close_time': closeTime,
       if (batchSize != null) 'batch_size': batchSize,
       if (area != null) 'area': area,
-      if (remoteId != null) 'remote_id': remoteId,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   StoresCompanion copyWith({
-    Value<int>? id,
+    Value<String>? id,
     Value<String>? name,
-    Value<String>? ownerPhone,
+    Value<String?>? ownerId,
     Value<bool>? isOpen,
     Value<int>? dailyBagLimit,
     Value<int>? bagsRemaining,
@@ -591,12 +543,12 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Value<String?>? closeTime,
     Value<int>? batchSize,
     Value<String>? area,
-    Value<String?>? remoteId,
+    Value<int>? rowid,
   }) {
     return StoresCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      ownerPhone: ownerPhone ?? this.ownerPhone,
+      ownerId: ownerId ?? this.ownerId,
       isOpen: isOpen ?? this.isOpen,
       dailyBagLimit: dailyBagLimit ?? this.dailyBagLimit,
       bagsRemaining: bagsRemaining ?? this.bagsRemaining,
@@ -604,7 +556,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
       closeTime: closeTime ?? this.closeTime,
       batchSize: batchSize ?? this.batchSize,
       area: area ?? this.area,
-      remoteId: remoteId ?? this.remoteId,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -612,13 +564,13 @@ class StoresCompanion extends UpdateCompanion<Store> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (ownerPhone.present) {
-      map['owner_phone'] = Variable<String>(ownerPhone.value);
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
     }
     if (isOpen.present) {
       map['is_open'] = Variable<bool>(isOpen.value);
@@ -641,8 +593,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     if (area.present) {
       map['area'] = Variable<String>(area.value);
     }
-    if (remoteId.present) {
-      map['remote_id'] = Variable<String>(remoteId.value);
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -652,7 +604,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
     return (StringBuffer('StoresCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('ownerPhone: $ownerPhone, ')
+          ..write('ownerId: $ownerId, ')
           ..write('isOpen: $isOpen, ')
           ..write('dailyBagLimit: $dailyBagLimit, ')
           ..write('bagsRemaining: $bagsRemaining, ')
@@ -660,7 +612,7 @@ class StoresCompanion extends UpdateCompanion<Store> {
           ..write('closeTime: $closeTime, ')
           ..write('batchSize: $batchSize, ')
           ..write('area: $area, ')
-          ..write('remoteId: $remoteId')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -672,14 +624,13 @@ class Users extends Table with TableInfo<Users, User> {
   final String? _alias;
   Users(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
   );
   static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
   late final GeneratedColumn<String> phone = GeneratedColumn<String>(
@@ -687,8 +638,9 @@ class Users extends Table with TableInfo<Users, User> {
     aliasedName,
     false,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL UNIQUE',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
   );
   static const VerificationMeta _nationalIdMeta = const VerificationMeta(
     'nationalId',
@@ -698,19 +650,9 @@ class Users extends Table with TableInfo<Users, User> {
     aliasedName,
     false,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL UNIQUE',
-  );
-  static const VerificationMeta _pinHashMeta = const VerificationMeta(
-    'pinHash',
-  );
-  late final GeneratedColumn<String> pinHash = GeneratedColumn<String>(
-    'pin_hash',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -718,8 +660,9 @@ class Users extends Table with TableInfo<Users, User> {
     aliasedName,
     false,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
   );
   static const VerificationMeta _roleMeta = const VerificationMeta('role');
   late final GeneratedColumn<String> role = GeneratedColumn<String>(
@@ -754,28 +697,15 @@ class Users extends Table with TableInfo<Users, User> {
         $customConstraints: 'NOT NULL DEFAULT \'pending\'',
         defaultValue: const CustomExpression('\'pending\''),
       );
-  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
-    'remoteId',
-  );
-  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
-    'remote_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: '',
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     phone,
     nationalId,
-    pinHash,
     name,
     role,
     jawwalPayNumber,
     verificationStatus,
-    remoteId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -791,38 +721,26 @@ class Users extends Table with TableInfo<Users, User> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('phone')) {
       context.handle(
         _phoneMeta,
         phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
       );
-    } else if (isInserting) {
-      context.missing(_phoneMeta);
     }
     if (data.containsKey('national_id')) {
       context.handle(
         _nationalIdMeta,
         nationalId.isAcceptableOrUnknown(data['national_id']!, _nationalIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_nationalIdMeta);
-    }
-    if (data.containsKey('pin_hash')) {
-      context.handle(
-        _pinHashMeta,
-        pinHash.isAcceptableOrUnknown(data['pin_hash']!, _pinHashMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_pinHashMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
         name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
     }
     if (data.containsKey('role')) {
       context.handle(
@@ -848,12 +766,6 @@ class Users extends Table with TableInfo<Users, User> {
         ),
       );
     }
-    if (data.containsKey('remote_id')) {
-      context.handle(
-        _remoteIdMeta,
-        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
-      );
-    }
     return context;
   }
 
@@ -864,7 +776,7 @@ class Users extends Table with TableInfo<Users, User> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return User(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       phone: attachedDatabase.typeMapping.read(
@@ -874,10 +786,6 @@ class Users extends Table with TableInfo<Users, User> {
       nationalId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}national_id'],
-      )!,
-      pinHash: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}pin_hash'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -895,10 +803,6 @@ class Users extends Table with TableInfo<Users, User> {
         DriftSqlType.string,
         data['${effectivePrefix}verification_status'],
       )!,
-      remoteId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}remote_id'],
-      ),
     );
   }
 
@@ -912,49 +816,34 @@ class Users extends Table with TableInfo<Users, User> {
 }
 
 class User extends DataClass implements Insertable<User> {
-  final int id;
+  final String id;
   final String phone;
   final String nationalId;
-  final String pinHash;
   final String name;
   final String role;
   final String? jawwalPayNumber;
   final String verificationStatus;
-
-  /// Supabase auth.users/profiles UUID, once this row has been established
-  /// via the Supabase-backed AuthRepository (see
-  /// data/repositories/supabase_auth_repository.dart). NULL for
-  /// drift-only/local accounts. This table is a read cache of whichever
-  /// account authenticated on this device — not the identity source of
-  /// truth once Supabase is in use.
-  final String? remoteId;
   const User({
     required this.id,
     required this.phone,
     required this.nationalId,
-    required this.pinHash,
     required this.name,
     required this.role,
     this.jawwalPayNumber,
     required this.verificationStatus,
-    this.remoteId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['id'] = Variable<String>(id);
     map['phone'] = Variable<String>(phone);
     map['national_id'] = Variable<String>(nationalId);
-    map['pin_hash'] = Variable<String>(pinHash);
     map['name'] = Variable<String>(name);
     map['role'] = Variable<String>(role);
     if (!nullToAbsent || jawwalPayNumber != null) {
       map['jawwal_pay_number'] = Variable<String>(jawwalPayNumber);
     }
     map['verification_status'] = Variable<String>(verificationStatus);
-    if (!nullToAbsent || remoteId != null) {
-      map['remote_id'] = Variable<String>(remoteId);
-    }
     return map;
   }
 
@@ -963,16 +852,12 @@ class User extends DataClass implements Insertable<User> {
       id: Value(id),
       phone: Value(phone),
       nationalId: Value(nationalId),
-      pinHash: Value(pinHash),
       name: Value(name),
       role: Value(role),
       jawwalPayNumber: jawwalPayNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(jawwalPayNumber),
       verificationStatus: Value(verificationStatus),
-      remoteId: remoteId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(remoteId),
     );
   }
 
@@ -982,57 +867,49 @@ class User extends DataClass implements Insertable<User> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return User(
-      id: serializer.fromJson<int>(json['id']),
+      id: serializer.fromJson<String>(json['id']),
       phone: serializer.fromJson<String>(json['phone']),
       nationalId: serializer.fromJson<String>(json['national_id']),
-      pinHash: serializer.fromJson<String>(json['pin_hash']),
       name: serializer.fromJson<String>(json['name']),
       role: serializer.fromJson<String>(json['role']),
       jawwalPayNumber: serializer.fromJson<String?>(json['jawwal_pay_number']),
       verificationStatus: serializer.fromJson<String>(
         json['verification_status'],
       ),
-      remoteId: serializer.fromJson<String?>(json['remote_id']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'id': serializer.toJson<String>(id),
       'phone': serializer.toJson<String>(phone),
       'national_id': serializer.toJson<String>(nationalId),
-      'pin_hash': serializer.toJson<String>(pinHash),
       'name': serializer.toJson<String>(name),
       'role': serializer.toJson<String>(role),
       'jawwal_pay_number': serializer.toJson<String?>(jawwalPayNumber),
       'verification_status': serializer.toJson<String>(verificationStatus),
-      'remote_id': serializer.toJson<String?>(remoteId),
     };
   }
 
   User copyWith({
-    int? id,
+    String? id,
     String? phone,
     String? nationalId,
-    String? pinHash,
     String? name,
     String? role,
     Value<String?> jawwalPayNumber = const Value.absent(),
     String? verificationStatus,
-    Value<String?> remoteId = const Value.absent(),
   }) => User(
     id: id ?? this.id,
     phone: phone ?? this.phone,
     nationalId: nationalId ?? this.nationalId,
-    pinHash: pinHash ?? this.pinHash,
     name: name ?? this.name,
     role: role ?? this.role,
     jawwalPayNumber: jawwalPayNumber.present
         ? jawwalPayNumber.value
         : this.jawwalPayNumber,
     verificationStatus: verificationStatus ?? this.verificationStatus,
-    remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -1041,7 +918,6 @@ class User extends DataClass implements Insertable<User> {
       nationalId: data.nationalId.present
           ? data.nationalId.value
           : this.nationalId,
-      pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
       name: data.name.present ? data.name.value : this.name,
       role: data.role.present ? data.role.value : this.role,
       jawwalPayNumber: data.jawwalPayNumber.present
@@ -1050,7 +926,6 @@ class User extends DataClass implements Insertable<User> {
       verificationStatus: data.verificationStatus.present
           ? data.verificationStatus.value
           : this.verificationStatus,
-      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
 
@@ -1060,12 +935,10 @@ class User extends DataClass implements Insertable<User> {
           ..write('id: $id, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('pinHash: $pinHash, ')
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('jawwalPayNumber: $jawwalPayNumber, ')
-          ..write('verificationStatus: $verificationStatus, ')
-          ..write('remoteId: $remoteId')
+          ..write('verificationStatus: $verificationStatus')
           ..write(')'))
         .toString();
   }
@@ -1075,12 +948,10 @@ class User extends DataClass implements Insertable<User> {
     id,
     phone,
     nationalId,
-    pinHash,
     name,
     role,
     jawwalPayNumber,
     verificationStatus,
-    remoteId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1089,94 +960,82 @@ class User extends DataClass implements Insertable<User> {
           other.id == this.id &&
           other.phone == this.phone &&
           other.nationalId == this.nationalId &&
-          other.pinHash == this.pinHash &&
           other.name == this.name &&
           other.role == this.role &&
           other.jawwalPayNumber == this.jawwalPayNumber &&
-          other.verificationStatus == this.verificationStatus &&
-          other.remoteId == this.remoteId);
+          other.verificationStatus == this.verificationStatus);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
-  final Value<int> id;
+  final Value<String> id;
   final Value<String> phone;
   final Value<String> nationalId;
-  final Value<String> pinHash;
   final Value<String> name;
   final Value<String> role;
   final Value<String?> jawwalPayNumber;
   final Value<String> verificationStatus;
-  final Value<String?> remoteId;
+  final Value<int> rowid;
   const UsersCompanion({
     this.id = const Value.absent(),
     this.phone = const Value.absent(),
     this.nationalId = const Value.absent(),
-    this.pinHash = const Value.absent(),
     this.name = const Value.absent(),
     this.role = const Value.absent(),
     this.jawwalPayNumber = const Value.absent(),
     this.verificationStatus = const Value.absent(),
-    this.remoteId = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   UsersCompanion.insert({
-    this.id = const Value.absent(),
-    required String phone,
-    required String nationalId,
-    required String pinHash,
-    required String name,
+    required String id,
+    this.phone = const Value.absent(),
+    this.nationalId = const Value.absent(),
+    this.name = const Value.absent(),
     this.role = const Value.absent(),
     this.jawwalPayNumber = const Value.absent(),
     this.verificationStatus = const Value.absent(),
-    this.remoteId = const Value.absent(),
-  }) : phone = Value(phone),
-       nationalId = Value(nationalId),
-       pinHash = Value(pinHash),
-       name = Value(name);
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
   static Insertable<User> custom({
-    Expression<int>? id,
+    Expression<String>? id,
     Expression<String>? phone,
     Expression<String>? nationalId,
-    Expression<String>? pinHash,
     Expression<String>? name,
     Expression<String>? role,
     Expression<String>? jawwalPayNumber,
     Expression<String>? verificationStatus,
-    Expression<String>? remoteId,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (phone != null) 'phone': phone,
       if (nationalId != null) 'national_id': nationalId,
-      if (pinHash != null) 'pin_hash': pinHash,
       if (name != null) 'name': name,
       if (role != null) 'role': role,
       if (jawwalPayNumber != null) 'jawwal_pay_number': jawwalPayNumber,
       if (verificationStatus != null) 'verification_status': verificationStatus,
-      if (remoteId != null) 'remote_id': remoteId,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   UsersCompanion copyWith({
-    Value<int>? id,
+    Value<String>? id,
     Value<String>? phone,
     Value<String>? nationalId,
-    Value<String>? pinHash,
     Value<String>? name,
     Value<String>? role,
     Value<String?>? jawwalPayNumber,
     Value<String>? verificationStatus,
-    Value<String?>? remoteId,
+    Value<int>? rowid,
   }) {
     return UsersCompanion(
       id: id ?? this.id,
       phone: phone ?? this.phone,
       nationalId: nationalId ?? this.nationalId,
-      pinHash: pinHash ?? this.pinHash,
       name: name ?? this.name,
       role: role ?? this.role,
       jawwalPayNumber: jawwalPayNumber ?? this.jawwalPayNumber,
       verificationStatus: verificationStatus ?? this.verificationStatus,
-      remoteId: remoteId ?? this.remoteId,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1184,16 +1043,13 @@ class UsersCompanion extends UpdateCompanion<User> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
     }
     if (nationalId.present) {
       map['national_id'] = Variable<String>(nationalId.value);
-    }
-    if (pinHash.present) {
-      map['pin_hash'] = Variable<String>(pinHash.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1207,8 +1063,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (verificationStatus.present) {
       map['verification_status'] = Variable<String>(verificationStatus.value);
     }
-    if (remoteId.present) {
-      map['remote_id'] = Variable<String>(remoteId.value);
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
     }
     return map;
   }
@@ -1219,12 +1075,11 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('id: $id, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('pinHash: $pinHash, ')
           ..write('name: $name, ')
           ..write('role: $role, ')
           ..write('jawwalPayNumber: $jawwalPayNumber, ')
           ..write('verificationStatus: $verificationStatus, ')
-          ..write('remoteId: $remoteId')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1236,32 +1091,31 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
   final String? _alias;
   Purchases(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
   );
   static const VerificationMeta _storeIdMeta = const VerificationMeta(
     'storeId',
   );
-  late final GeneratedColumn<int> storeId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
     'store_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL REFERENCES stores(id)',
   );
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
-  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
     'user_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL REFERENCES users(id)',
   );
@@ -1284,8 +1138,9 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 1',
+    defaultValue: const CustomExpression('1'),
   );
   late final GeneratedColumnWithTypeConverter<PurchaseStatus, String> status =
       GeneratedColumn<String>(
@@ -1331,6 +1186,8 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('store_id')) {
       context.handle(
@@ -1367,8 +1224,6 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
           _batchNumberMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_batchNumberMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -1392,15 +1247,15 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Purchase(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}store_id'],
       )!,
       userId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
       purchaseDate: attachedDatabase.typeMapping.read(
@@ -1440,9 +1295,11 @@ class Purchases extends Table with TableInfo<Purchases, Purchase> {
 }
 
 class Purchase extends DataClass implements Insertable<Purchase> {
-  final int id;
-  final int storeId;
-  final int userId;
+  final String id;
+  final String storeId;
+  final String userId;
+
+  /// The day the bread is for, "yyyy-MM-dd" -- not a timestamp.
   final String purchaseDate;
   final int batchNumber;
   final PurchaseStatus status;
@@ -1459,9 +1316,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['store_id'] = Variable<int>(storeId);
-    map['user_id'] = Variable<int>(userId);
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['user_id'] = Variable<String>(userId);
     map['purchase_date'] = Variable<String>(purchaseDate);
     map['batch_number'] = Variable<int>(batchNumber);
     {
@@ -1491,9 +1348,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Purchase(
-      id: serializer.fromJson<int>(json['id']),
-      storeId: serializer.fromJson<int>(json['store_id']),
-      userId: serializer.fromJson<int>(json['user_id']),
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
+      userId: serializer.fromJson<String>(json['user_id']),
       purchaseDate: serializer.fromJson<String>(json['purchase_date']),
       batchNumber: serializer.fromJson<int>(json['batch_number']),
       status: serializer.fromJson<PurchaseStatus>(json['status']),
@@ -1504,9 +1361,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'store_id': serializer.toJson<int>(storeId),
-      'user_id': serializer.toJson<int>(userId),
+      'id': serializer.toJson<String>(id),
+      'store_id': serializer.toJson<String>(storeId),
+      'user_id': serializer.toJson<String>(userId),
       'purchase_date': serializer.toJson<String>(purchaseDate),
       'batch_number': serializer.toJson<int>(batchNumber),
       'status': serializer.toJson<PurchaseStatus>(status),
@@ -1515,9 +1372,9 @@ class Purchase extends DataClass implements Insertable<Purchase> {
   }
 
   Purchase copyWith({
-    int? id,
-    int? storeId,
-    int? userId,
+    String? id,
+    String? storeId,
+    String? userId,
     String? purchaseDate,
     int? batchNumber,
     PurchaseStatus? status,
@@ -1585,13 +1442,14 @@ class Purchase extends DataClass implements Insertable<Purchase> {
 }
 
 class PurchasesCompanion extends UpdateCompanion<Purchase> {
-  final Value<int> id;
-  final Value<int> storeId;
-  final Value<int> userId;
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> userId;
   final Value<String> purchaseDate;
   final Value<int> batchNumber;
   final Value<PurchaseStatus> status;
   final Value<int> createdAt;
+  final Value<int> rowid;
   const PurchasesCompanion({
     this.id = const Value.absent(),
     this.storeId = const Value.absent(),
@@ -1600,29 +1458,32 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     this.batchNumber = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   PurchasesCompanion.insert({
-    this.id = const Value.absent(),
-    required int storeId,
-    required int userId,
+    required String id,
+    required String storeId,
+    required String userId,
     required String purchaseDate,
-    required int batchNumber,
+    this.batchNumber = const Value.absent(),
     required PurchaseStatus status,
     required int createdAt,
-  }) : storeId = Value(storeId),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
        userId = Value(userId),
        purchaseDate = Value(purchaseDate),
-       batchNumber = Value(batchNumber),
        status = Value(status),
        createdAt = Value(createdAt);
   static Insertable<Purchase> custom({
-    Expression<int>? id,
-    Expression<int>? storeId,
-    Expression<int>? userId,
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? userId,
     Expression<String>? purchaseDate,
     Expression<int>? batchNumber,
     Expression<String>? status,
     Expression<int>? createdAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1632,17 +1493,19 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       if (batchNumber != null) 'batch_number': batchNumber,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   PurchasesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? storeId,
-    Value<int>? userId,
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? userId,
     Value<String>? purchaseDate,
     Value<int>? batchNumber,
     Value<PurchaseStatus>? status,
     Value<int>? createdAt,
+    Value<int>? rowid,
   }) {
     return PurchasesCompanion(
       id: id ?? this.id,
@@ -1652,6 +1515,7 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
       batchNumber: batchNumber ?? this.batchNumber,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -1659,13 +1523,13 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (storeId.present) {
-      map['store_id'] = Variable<int>(storeId.value);
+      map['store_id'] = Variable<String>(storeId.value);
     }
     if (userId.present) {
-      map['user_id'] = Variable<int>(userId.value);
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (purchaseDate.present) {
       map['purchase_date'] = Variable<String>(purchaseDate.value);
@@ -1681,6 +1545,9 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -1693,7 +1560,8 @@ class PurchasesCompanion extends UpdateCompanion<Purchase> {
           ..write('purchaseDate: $purchaseDate, ')
           ..write('batchNumber: $batchNumber, ')
           ..write('status: $status, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1705,34 +1573,33 @@ class ScanEvents extends Table with TableInfo<ScanEvents, ScanEvent> {
   final String? _alias;
   ScanEvents(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
   );
   static const VerificationMeta _storeIdMeta = const VerificationMeta(
     'storeId',
   );
-  late final GeneratedColumn<int> storeId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
     'store_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL REFERENCES stores(id)',
   );
   static const VerificationMeta _purchaseIdMeta = const VerificationMeta(
     'purchaseId',
   );
-  late final GeneratedColumn<int> purchaseId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> purchaseId = GeneratedColumn<String>(
     'purchase_id',
     aliasedName,
     true,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
     $customConstraints: 'NULL REFERENCES purchases(id)',
   );
@@ -1805,6 +1672,8 @@ class ScanEvents extends Table with TableInfo<ScanEvents, ScanEvent> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
     }
     if (data.containsKey('store_id')) {
       context.handle(
@@ -1864,15 +1733,15 @@ class ScanEvents extends Table with TableInfo<ScanEvents, ScanEvent> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ScanEvent(
       id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
       storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}store_id'],
       )!,
       purchaseId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}purchase_id'],
       ),
       outcome: attachedDatabase.typeMapping.read(
@@ -1904,9 +1773,9 @@ class ScanEvents extends Table with TableInfo<ScanEvents, ScanEvent> {
 }
 
 class ScanEvent extends DataClass implements Insertable<ScanEvent> {
-  final int id;
-  final int storeId;
-  final int? purchaseId;
+  final String id;
+  final String storeId;
+  final String? purchaseId;
   final String outcome;
   final String? scannedName;
   final String? scannedNationalId;
@@ -1923,10 +1792,10 @@ class ScanEvent extends DataClass implements Insertable<ScanEvent> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['store_id'] = Variable<int>(storeId);
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
     if (!nullToAbsent || purchaseId != null) {
-      map['purchase_id'] = Variable<int>(purchaseId);
+      map['purchase_id'] = Variable<String>(purchaseId);
     }
     map['outcome'] = Variable<String>(outcome);
     if (!nullToAbsent || scannedName != null) {
@@ -1963,9 +1832,9 @@ class ScanEvent extends DataClass implements Insertable<ScanEvent> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ScanEvent(
-      id: serializer.fromJson<int>(json['id']),
-      storeId: serializer.fromJson<int>(json['store_id']),
-      purchaseId: serializer.fromJson<int?>(json['purchase_id']),
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
+      purchaseId: serializer.fromJson<String?>(json['purchase_id']),
       outcome: serializer.fromJson<String>(json['outcome']),
       scannedName: serializer.fromJson<String?>(json['scanned_name']),
       scannedNationalId: serializer.fromJson<String?>(
@@ -1978,9 +1847,9 @@ class ScanEvent extends DataClass implements Insertable<ScanEvent> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'store_id': serializer.toJson<int>(storeId),
-      'purchase_id': serializer.toJson<int?>(purchaseId),
+      'id': serializer.toJson<String>(id),
+      'store_id': serializer.toJson<String>(storeId),
+      'purchase_id': serializer.toJson<String?>(purchaseId),
       'outcome': serializer.toJson<String>(outcome),
       'scanned_name': serializer.toJson<String?>(scannedName),
       'scanned_national_id': serializer.toJson<String?>(scannedNationalId),
@@ -1989,9 +1858,9 @@ class ScanEvent extends DataClass implements Insertable<ScanEvent> {
   }
 
   ScanEvent copyWith({
-    int? id,
-    int? storeId,
-    Value<int?> purchaseId = const Value.absent(),
+    String? id,
+    String? storeId,
+    Value<String?> purchaseId = const Value.absent(),
     String? outcome,
     Value<String?> scannedName = const Value.absent(),
     Value<String?> scannedNationalId = const Value.absent(),
@@ -2063,13 +1932,14 @@ class ScanEvent extends DataClass implements Insertable<ScanEvent> {
 }
 
 class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
-  final Value<int> id;
-  final Value<int> storeId;
-  final Value<int?> purchaseId;
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String?> purchaseId;
   final Value<String> outcome;
   final Value<String?> scannedName;
   final Value<String?> scannedNationalId;
   final Value<int> scannedAt;
+  final Value<int> rowid;
   const ScanEventsCompanion({
     this.id = const Value.absent(),
     this.storeId = const Value.absent(),
@@ -2078,26 +1948,30 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
     this.scannedName = const Value.absent(),
     this.scannedNationalId = const Value.absent(),
     this.scannedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   ScanEventsCompanion.insert({
-    this.id = const Value.absent(),
-    required int storeId,
+    required String id,
+    required String storeId,
     this.purchaseId = const Value.absent(),
     required String outcome,
     this.scannedName = const Value.absent(),
     this.scannedNationalId = const Value.absent(),
     required int scannedAt,
-  }) : storeId = Value(storeId),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
        outcome = Value(outcome),
        scannedAt = Value(scannedAt);
   static Insertable<ScanEvent> custom({
-    Expression<int>? id,
-    Expression<int>? storeId,
-    Expression<int>? purchaseId,
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? purchaseId,
     Expression<String>? outcome,
     Expression<String>? scannedName,
     Expression<String>? scannedNationalId,
     Expression<int>? scannedAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2107,17 +1981,19 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
       if (scannedName != null) 'scanned_name': scannedName,
       if (scannedNationalId != null) 'scanned_national_id': scannedNationalId,
       if (scannedAt != null) 'scanned_at': scannedAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   ScanEventsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? storeId,
-    Value<int?>? purchaseId,
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String?>? purchaseId,
     Value<String>? outcome,
     Value<String?>? scannedName,
     Value<String?>? scannedNationalId,
     Value<int>? scannedAt,
+    Value<int>? rowid,
   }) {
     return ScanEventsCompanion(
       id: id ?? this.id,
@@ -2127,6 +2003,7 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
       scannedName: scannedName ?? this.scannedName,
       scannedNationalId: scannedNationalId ?? this.scannedNationalId,
       scannedAt: scannedAt ?? this.scannedAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -2134,13 +2011,13 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (id.present) {
-      map['id'] = Variable<int>(id.value);
+      map['id'] = Variable<String>(id.value);
     }
     if (storeId.present) {
-      map['store_id'] = Variable<int>(storeId.value);
+      map['store_id'] = Variable<String>(storeId.value);
     }
     if (purchaseId.present) {
-      map['purchase_id'] = Variable<int>(purchaseId.value);
+      map['purchase_id'] = Variable<String>(purchaseId.value);
     }
     if (outcome.present) {
       map['outcome'] = Variable<String>(outcome.value);
@@ -2154,6 +2031,9 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
     if (scannedAt.present) {
       map['scanned_at'] = Variable<int>(scannedAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -2166,7 +2046,8 @@ class ScanEventsCompanion extends UpdateCompanion<ScanEvent> {
           ..write('outcome: $outcome, ')
           ..write('scannedName: $scannedName, ')
           ..write('scannedNationalId: $scannedNationalId, ')
-          ..write('scannedAt: $scannedAt')
+          ..write('scannedAt: $scannedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2178,22 +2059,22 @@ class StorePins extends Table with TableInfo<StorePins, StorePin> {
   final String? _alias;
   StorePins(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
-  late final GeneratedColumn<int> userId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
     'user_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL REFERENCES users(id)',
   );
   static const VerificationMeta _storeIdMeta = const VerificationMeta(
     'storeId',
   );
-  late final GeneratedColumn<int> storeId = GeneratedColumn<int>(
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
     'store_id',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL REFERENCES stores(id)',
   );
@@ -2256,11 +2137,11 @@ class StorePins extends Table with TableInfo<StorePins, StorePin> {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return StorePin(
       userId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
       storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.string,
         data['${effectivePrefix}store_id'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
@@ -2284,8 +2165,8 @@ class StorePins extends Table with TableInfo<StorePins, StorePin> {
 }
 
 class StorePin extends DataClass implements Insertable<StorePin> {
-  final int userId;
-  final int storeId;
+  final String userId;
+  final String storeId;
   final int createdAt;
   const StorePin({
     required this.userId,
@@ -2295,8 +2176,8 @@ class StorePin extends DataClass implements Insertable<StorePin> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['user_id'] = Variable<int>(userId);
-    map['store_id'] = Variable<int>(storeId);
+    map['user_id'] = Variable<String>(userId);
+    map['store_id'] = Variable<String>(storeId);
     map['created_at'] = Variable<int>(createdAt);
     return map;
   }
@@ -2315,8 +2196,8 @@ class StorePin extends DataClass implements Insertable<StorePin> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return StorePin(
-      userId: serializer.fromJson<int>(json['user_id']),
-      storeId: serializer.fromJson<int>(json['store_id']),
+      userId: serializer.fromJson<String>(json['user_id']),
+      storeId: serializer.fromJson<String>(json['store_id']),
       createdAt: serializer.fromJson<int>(json['created_at']),
     );
   }
@@ -2324,17 +2205,18 @@ class StorePin extends DataClass implements Insertable<StorePin> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'user_id': serializer.toJson<int>(userId),
-      'store_id': serializer.toJson<int>(storeId),
+      'user_id': serializer.toJson<String>(userId),
+      'store_id': serializer.toJson<String>(storeId),
       'created_at': serializer.toJson<int>(createdAt),
     };
   }
 
-  StorePin copyWith({int? userId, int? storeId, int? createdAt}) => StorePin(
-    userId: userId ?? this.userId,
-    storeId: storeId ?? this.storeId,
-    createdAt: createdAt ?? this.createdAt,
-  );
+  StorePin copyWith({String? userId, String? storeId, int? createdAt}) =>
+      StorePin(
+        userId: userId ?? this.userId,
+        storeId: storeId ?? this.storeId,
+        createdAt: createdAt ?? this.createdAt,
+      );
   StorePin copyWithCompanion(StorePinsCompanion data) {
     return StorePin(
       userId: data.userId.present ? data.userId.value : this.userId,
@@ -2365,8 +2247,8 @@ class StorePin extends DataClass implements Insertable<StorePin> {
 }
 
 class StorePinsCompanion extends UpdateCompanion<StorePin> {
-  final Value<int> userId;
-  final Value<int> storeId;
+  final Value<String> userId;
+  final Value<String> storeId;
   final Value<int> createdAt;
   final Value<int> rowid;
   const StorePinsCompanion({
@@ -2376,16 +2258,16 @@ class StorePinsCompanion extends UpdateCompanion<StorePin> {
     this.rowid = const Value.absent(),
   });
   StorePinsCompanion.insert({
-    required int userId,
-    required int storeId,
+    required String userId,
+    required String storeId,
     required int createdAt,
     this.rowid = const Value.absent(),
   }) : userId = Value(userId),
        storeId = Value(storeId),
        createdAt = Value(createdAt);
   static Insertable<StorePin> custom({
-    Expression<int>? userId,
-    Expression<int>? storeId,
+    Expression<String>? userId,
+    Expression<String>? storeId,
     Expression<int>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -2398,8 +2280,8 @@ class StorePinsCompanion extends UpdateCompanion<StorePin> {
   }
 
   StorePinsCompanion copyWith({
-    Value<int>? userId,
-    Value<int>? storeId,
+    Value<String>? userId,
+    Value<String>? storeId,
     Value<int>? createdAt,
     Value<int>? rowid,
   }) {
@@ -2415,10 +2297,10 @@ class StorePinsCompanion extends UpdateCompanion<StorePin> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     if (userId.present) {
-      map['user_id'] = Variable<int>(userId.value);
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (storeId.present) {
-      map['store_id'] = Variable<int>(storeId.value);
+      map['store_id'] = Variable<String>(storeId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
@@ -2464,23 +2346,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
 typedef $StoresCreateCompanionBuilder =
     StoresCompanion Function({
-      Value<int> id,
+      required String id,
       required String name,
-      required String ownerPhone,
-      Value<bool> isOpen,
-      required int dailyBagLimit,
-      required int bagsRemaining,
-      Value<String?> openTime,
-      Value<String?> closeTime,
-      Value<int> batchSize,
-      Value<String> area,
-      Value<String?> remoteId,
-    });
-typedef $StoresUpdateCompanionBuilder =
-    StoresCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String> ownerPhone,
+      Value<String?> ownerId,
       Value<bool> isOpen,
       Value<int> dailyBagLimit,
       Value<int> bagsRemaining,
@@ -2488,7 +2356,21 @@ typedef $StoresUpdateCompanionBuilder =
       Value<String?> closeTime,
       Value<int> batchSize,
       Value<String> area,
-      Value<String?> remoteId,
+      Value<int> rowid,
+    });
+typedef $StoresUpdateCompanionBuilder =
+    StoresCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> ownerId,
+      Value<bool> isOpen,
+      Value<int> dailyBagLimit,
+      Value<int> bagsRemaining,
+      Value<String?> openTime,
+      Value<String?> closeTime,
+      Value<int> batchSize,
+      Value<String> area,
+      Value<int> rowid,
     });
 
 final class $StoresReferences
@@ -2506,7 +2388,7 @@ final class $StoresReferences
     final manager = $PurchasesTableManager(
       $_db,
       $_db.purchases,
-    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_purchasesRefsTable($_db));
     return ProcessedTableManager(
@@ -2525,7 +2407,7 @@ final class $StoresReferences
     final manager = $ScanEventsTableManager(
       $_db,
       $_db.scanEvents,
-    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_scanEventsRefsTable($_db));
     return ProcessedTableManager(
@@ -2544,7 +2426,7 @@ final class $StoresReferences
     final manager = $StorePinsTableManager(
       $_db,
       $_db.storePins,
-    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.storeId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_storePinsRefsTable($_db));
     return ProcessedTableManager(
@@ -2561,7 +2443,7 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -2571,8 +2453,8 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2608,11 +2490,6 @@ class $StoresFilterComposer extends Composer<_$AppDatabase, Stores> {
 
   ColumnFilters<String> get area => $composableBuilder(
     column: $table.area,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get remoteId => $composableBuilder(
-    column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2700,7 +2577,7 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2710,8 +2587,8 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2749,11 +2626,6 @@ class $StoresOrderingComposer extends Composer<_$AppDatabase, Stores> {
     column: $table.area,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<String> get remoteId => $composableBuilder(
-    column: $table.remoteId,
-    builder: (column) => ColumnOrderings(column),
-  );
 }
 
 class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
@@ -2764,16 +2636,14 @@ class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<String> get ownerPhone => $composableBuilder(
-    column: $table.ownerPhone,
-    builder: (column) => column,
-  );
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
 
   GeneratedColumn<bool> get isOpen =>
       $composableBuilder(column: $table.isOpen, builder: (column) => column);
@@ -2799,9 +2669,6 @@ class $StoresAnnotationComposer extends Composer<_$AppDatabase, Stores> {
 
   GeneratedColumn<String> get area =>
       $composableBuilder(column: $table.area, builder: (column) => column);
-
-  GeneratedColumn<String> get remoteId =>
-      $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -2911,9 +2778,9 @@ class $StoresTableManager
               $StoresAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String> ownerPhone = const Value.absent(),
+                Value<String?> ownerId = const Value.absent(),
                 Value<bool> isOpen = const Value.absent(),
                 Value<int> dailyBagLimit = const Value.absent(),
                 Value<int> bagsRemaining = const Value.absent(),
@@ -2921,11 +2788,11 @@ class $StoresTableManager
                 Value<String?> closeTime = const Value.absent(),
                 Value<int> batchSize = const Value.absent(),
                 Value<String> area = const Value.absent(),
-                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => StoresCompanion(
                 id: id,
                 name: name,
-                ownerPhone: ownerPhone,
+                ownerId: ownerId,
                 isOpen: isOpen,
                 dailyBagLimit: dailyBagLimit,
                 bagsRemaining: bagsRemaining,
@@ -2933,25 +2800,25 @@ class $StoresTableManager
                 closeTime: closeTime,
                 batchSize: batchSize,
                 area: area,
-                remoteId: remoteId,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String id,
                 required String name,
-                required String ownerPhone,
+                Value<String?> ownerId = const Value.absent(),
                 Value<bool> isOpen = const Value.absent(),
-                required int dailyBagLimit,
-                required int bagsRemaining,
+                Value<int> dailyBagLimit = const Value.absent(),
+                Value<int> bagsRemaining = const Value.absent(),
                 Value<String?> openTime = const Value.absent(),
                 Value<String?> closeTime = const Value.absent(),
                 Value<int> batchSize = const Value.absent(),
                 Value<String> area = const Value.absent(),
-                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => StoresCompanion.insert(
                 id: id,
                 name: name,
-                ownerPhone: ownerPhone,
+                ownerId: ownerId,
                 isOpen: isOpen,
                 dailyBagLimit: dailyBagLimit,
                 bagsRemaining: bagsRemaining,
@@ -2959,7 +2826,7 @@ class $StoresTableManager
                 closeTime: closeTime,
                 batchSize: batchSize,
                 area: area,
-                remoteId: remoteId,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $StoresReferences(db, table, e)))
@@ -3047,27 +2914,25 @@ typedef $StoresProcessedTableManager =
     >;
 typedef $UsersCreateCompanionBuilder =
     UsersCompanion Function({
-      Value<int> id,
-      required String phone,
-      required String nationalId,
-      required String pinHash,
-      required String name,
-      Value<String> role,
-      Value<String?> jawwalPayNumber,
-      Value<String> verificationStatus,
-      Value<String?> remoteId,
-    });
-typedef $UsersUpdateCompanionBuilder =
-    UsersCompanion Function({
-      Value<int> id,
+      required String id,
       Value<String> phone,
       Value<String> nationalId,
-      Value<String> pinHash,
       Value<String> name,
       Value<String> role,
       Value<String?> jawwalPayNumber,
       Value<String> verificationStatus,
-      Value<String?> remoteId,
+      Value<int> rowid,
+    });
+typedef $UsersUpdateCompanionBuilder =
+    UsersCompanion Function({
+      Value<String> id,
+      Value<String> phone,
+      Value<String> nationalId,
+      Value<String> name,
+      Value<String> role,
+      Value<String?> jawwalPayNumber,
+      Value<String> verificationStatus,
+      Value<int> rowid,
     });
 
 final class $UsersReferences
@@ -3085,7 +2950,7 @@ final class $UsersReferences
     final manager = $PurchasesTableManager(
       $_db,
       $_db.purchases,
-    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_purchasesRefsTable($_db));
     return ProcessedTableManager(
@@ -3104,7 +2969,7 @@ final class $UsersReferences
     final manager = $StorePinsTableManager(
       $_db,
       $_db.storePins,
-    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_storePinsRefsTable($_db));
     return ProcessedTableManager(
@@ -3121,7 +2986,7 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -3133,11 +2998,6 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnFilters<String> get nationalId => $composableBuilder(
     column: $table.nationalId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get pinHash => $composableBuilder(
-    column: $table.pinHash,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3158,11 +3018,6 @@ class $UsersFilterComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnFilters<String> get verificationStatus => $composableBuilder(
     column: $table.verificationStatus,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get remoteId => $composableBuilder(
-    column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3225,7 +3080,7 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -3237,11 +3092,6 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
 
   ColumnOrderings<String> get nationalId => $composableBuilder(
     column: $table.nationalId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get pinHash => $composableBuilder(
-    column: $table.pinHash,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3264,11 +3114,6 @@ class $UsersOrderingComposer extends Composer<_$AppDatabase, Users> {
     column: $table.verificationStatus,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<String> get remoteId => $composableBuilder(
-    column: $table.remoteId,
-    builder: (column) => ColumnOrderings(column),
-  );
 }
 
 class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
@@ -3279,7 +3124,7 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get phone =>
@@ -3289,9 +3134,6 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
     column: $table.nationalId,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get pinHash =>
-      $composableBuilder(column: $table.pinHash, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -3308,9 +3150,6 @@ class $UsersAnnotationComposer extends Composer<_$AppDatabase, Users> {
     column: $table.verificationStatus,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get remoteId =>
-      $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
   Expression<T> purchasesRefs<T extends Object>(
     Expression<T> Function($PurchasesAnnotationComposer a) f,
@@ -3391,47 +3230,43 @@ class $UsersTableManager
               $UsersAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> id = const Value.absent(),
                 Value<String> phone = const Value.absent(),
                 Value<String> nationalId = const Value.absent(),
-                Value<String> pinHash = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> role = const Value.absent(),
                 Value<String?> jawwalPayNumber = const Value.absent(),
                 Value<String> verificationStatus = const Value.absent(),
-                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
                 phone: phone,
                 nationalId: nationalId,
-                pinHash: pinHash,
                 name: name,
                 role: role,
                 jawwalPayNumber: jawwalPayNumber,
                 verificationStatus: verificationStatus,
-                remoteId: remoteId,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required String phone,
-                required String nationalId,
-                required String pinHash,
-                required String name,
+                required String id,
+                Value<String> phone = const Value.absent(),
+                Value<String> nationalId = const Value.absent(),
+                Value<String> name = const Value.absent(),
                 Value<String> role = const Value.absent(),
                 Value<String?> jawwalPayNumber = const Value.absent(),
                 Value<String> verificationStatus = const Value.absent(),
-                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
                 phone: phone,
                 nationalId: nationalId,
-                pinHash: pinHash,
                 name: name,
                 role: role,
                 jawwalPayNumber: jawwalPayNumber,
                 verificationStatus: verificationStatus,
-                remoteId: remoteId,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $UsersReferences(db, table, e)))
@@ -3499,23 +3334,25 @@ typedef $UsersProcessedTableManager =
     >;
 typedef $PurchasesCreateCompanionBuilder =
     PurchasesCompanion Function({
-      Value<int> id,
-      required int storeId,
-      required int userId,
+      required String id,
+      required String storeId,
+      required String userId,
       required String purchaseDate,
-      required int batchNumber,
+      Value<int> batchNumber,
       required PurchaseStatus status,
       required int createdAt,
+      Value<int> rowid,
     });
 typedef $PurchasesUpdateCompanionBuilder =
     PurchasesCompanion Function({
-      Value<int> id,
-      Value<int> storeId,
-      Value<int> userId,
+      Value<String> id,
+      Value<String> storeId,
+      Value<String> userId,
       Value<String> purchaseDate,
       Value<int> batchNumber,
       Value<PurchaseStatus> status,
       Value<int> createdAt,
+      Value<int> rowid,
     });
 
 final class $PurchasesReferences
@@ -3526,7 +3363,7 @@ final class $PurchasesReferences
       db.stores.createAlias('purchases__store_id__stores__id');
 
   $StoresProcessedTableManager get storeId {
-    final $_column = $_itemColumn<int>('store_id')!;
+    final $_column = $_itemColumn<String>('store_id')!;
 
     final manager = $StoresTableManager(
       $_db,
@@ -3543,7 +3380,7 @@ final class $PurchasesReferences
       db.users.createAlias('purchases__user_id__users__id');
 
   $UsersProcessedTableManager get userId {
-    final $_column = $_itemColumn<int>('user_id')!;
+    final $_column = $_itemColumn<String>('user_id')!;
 
     final manager = $UsersTableManager(
       $_db,
@@ -3567,7 +3404,7 @@ final class $PurchasesReferences
     final manager = $ScanEventsTableManager(
       $_db,
       $_db.scanEvents,
-    ).filter((f) => f.purchaseId.id.sqlEquals($_itemColumn<int>('id')!));
+    ).filter((f) => f.purchaseId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_scanEventsRefsTable($_db));
     return ProcessedTableManager(
@@ -3584,7 +3421,7 @@ class $PurchasesFilterComposer extends Composer<_$AppDatabase, Purchases> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -3690,7 +3527,7 @@ class $PurchasesOrderingComposer extends Composer<_$AppDatabase, Purchases> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -3770,7 +3607,7 @@ class $PurchasesAnnotationComposer extends Composer<_$AppDatabase, Purchases> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get purchaseDate => $composableBuilder(
@@ -3893,13 +3730,14 @@ class $PurchasesTableManager
               $PurchasesAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> storeId = const Value.absent(),
-                Value<int> userId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<String> purchaseDate = const Value.absent(),
                 Value<int> batchNumber = const Value.absent(),
                 Value<PurchaseStatus> status = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion(
                 id: id,
                 storeId: storeId,
@@ -3908,16 +3746,18 @@ class $PurchasesTableManager
                 batchNumber: batchNumber,
                 status: status,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int storeId,
-                required int userId,
+                required String id,
+                required String storeId,
+                required String userId,
                 required String purchaseDate,
-                required int batchNumber,
+                Value<int> batchNumber = const Value.absent(),
                 required PurchaseStatus status,
                 required int createdAt,
+                Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion.insert(
                 id: id,
                 storeId: storeId,
@@ -3926,6 +3766,7 @@ class $PurchasesTableManager
                 batchNumber: batchNumber,
                 status: status,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4028,23 +3869,25 @@ typedef $PurchasesProcessedTableManager =
     >;
 typedef $ScanEventsCreateCompanionBuilder =
     ScanEventsCompanion Function({
-      Value<int> id,
-      required int storeId,
-      Value<int?> purchaseId,
+      required String id,
+      required String storeId,
+      Value<String?> purchaseId,
       required String outcome,
       Value<String?> scannedName,
       Value<String?> scannedNationalId,
       required int scannedAt,
+      Value<int> rowid,
     });
 typedef $ScanEventsUpdateCompanionBuilder =
     ScanEventsCompanion Function({
-      Value<int> id,
-      Value<int> storeId,
-      Value<int?> purchaseId,
+      Value<String> id,
+      Value<String> storeId,
+      Value<String?> purchaseId,
       Value<String> outcome,
       Value<String?> scannedName,
       Value<String?> scannedNationalId,
       Value<int> scannedAt,
+      Value<int> rowid,
     });
 
 final class $ScanEventsReferences
@@ -4055,7 +3898,7 @@ final class $ScanEventsReferences
       db.stores.createAlias('scan_events__store_id__stores__id');
 
   $StoresProcessedTableManager get storeId {
-    final $_column = $_itemColumn<int>('store_id')!;
+    final $_column = $_itemColumn<String>('store_id')!;
 
     final manager = $StoresTableManager(
       $_db,
@@ -4072,7 +3915,7 @@ final class $ScanEventsReferences
       db.purchases.createAlias('scan_events__purchase_id__purchases__id');
 
   $PurchasesProcessedTableManager? get purchaseId {
-    final $_column = $_itemColumn<int>('purchase_id');
+    final $_column = $_itemColumn<String>('purchase_id');
     if ($_column == null) return null;
     final manager = $PurchasesTableManager(
       $_db,
@@ -4094,7 +3937,7 @@ class $ScanEventsFilterComposer extends Composer<_$AppDatabase, ScanEvents> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
+  ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
@@ -4174,7 +4017,7 @@ class $ScanEventsOrderingComposer extends Composer<_$AppDatabase, ScanEvents> {
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
+  ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
@@ -4255,7 +4098,7 @@ class $ScanEventsAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
+  GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get outcome =>
@@ -4349,13 +4192,14 @@ class $ScanEventsTableManager
               $ScanEventsAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<int> storeId = const Value.absent(),
-                Value<int?> purchaseId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
+                Value<String?> purchaseId = const Value.absent(),
                 Value<String> outcome = const Value.absent(),
                 Value<String?> scannedName = const Value.absent(),
                 Value<String?> scannedNationalId = const Value.absent(),
                 Value<int> scannedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => ScanEventsCompanion(
                 id: id,
                 storeId: storeId,
@@ -4364,16 +4208,18 @@ class $ScanEventsTableManager
                 scannedName: scannedName,
                 scannedNationalId: scannedNationalId,
                 scannedAt: scannedAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required int storeId,
-                Value<int?> purchaseId = const Value.absent(),
+                required String id,
+                required String storeId,
+                Value<String?> purchaseId = const Value.absent(),
                 required String outcome,
                 Value<String?> scannedName = const Value.absent(),
                 Value<String?> scannedNationalId = const Value.absent(),
                 required int scannedAt,
+                Value<int> rowid = const Value.absent(),
               }) => ScanEventsCompanion.insert(
                 id: id,
                 storeId: storeId,
@@ -4382,6 +4228,7 @@ class $ScanEventsTableManager
                 scannedName: scannedName,
                 scannedNationalId: scannedNationalId,
                 scannedAt: scannedAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4463,15 +4310,15 @@ typedef $ScanEventsProcessedTableManager =
     >;
 typedef $StorePinsCreateCompanionBuilder =
     StorePinsCompanion Function({
-      required int userId,
-      required int storeId,
+      required String userId,
+      required String storeId,
       required int createdAt,
       Value<int> rowid,
     });
 typedef $StorePinsUpdateCompanionBuilder =
     StorePinsCompanion Function({
-      Value<int> userId,
-      Value<int> storeId,
+      Value<String> userId,
+      Value<String> storeId,
       Value<int> createdAt,
       Value<int> rowid,
     });
@@ -4484,7 +4331,7 @@ final class $StorePinsReferences
       db.users.createAlias('store_pins__user_id__users__id');
 
   $UsersProcessedTableManager get userId {
-    final $_column = $_itemColumn<int>('user_id')!;
+    final $_column = $_itemColumn<String>('user_id')!;
 
     final manager = $UsersTableManager(
       $_db,
@@ -4501,7 +4348,7 @@ final class $StorePinsReferences
       db.stores.createAlias('store_pins__store_id__stores__id');
 
   $StoresProcessedTableManager get storeId {
-    final $_column = $_itemColumn<int>('store_id')!;
+    final $_column = $_itemColumn<String>('store_id')!;
 
     final manager = $StoresTableManager(
       $_db,
@@ -4721,8 +4568,8 @@ class $StorePinsTableManager
               $StorePinsAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> userId = const Value.absent(),
-                Value<int> storeId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> storeId = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StorePinsCompanion(
@@ -4733,8 +4580,8 @@ class $StorePinsTableManager
               ),
           createCompanionCallback:
               ({
-                required int userId,
-                required int storeId,
+                required String userId,
+                required String storeId,
                 required int createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => StorePinsCompanion.insert(

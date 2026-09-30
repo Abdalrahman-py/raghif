@@ -39,7 +39,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      await _authRepository.ensureSeeded();
       final userId = await _sessionStore.loadUserId();
       if (userId == null) {
         emit(const Unauthenticated());
@@ -65,12 +64,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       final nationalId = event.nationalId.trim();
-      final user = await _authRepository.findByNationalId(nationalId);
-      if (user == null) {
-        emit(AuthSwitchToRegister(nationalId: nationalId));
-        return;
-      }
-
+      // The server decides whether the ID exists. The local cache only knows
+      // people who have signed in on this phone, so consulting it sent
+      // everyone on a new device to "create an account".
       final otp = await _authRepository.requestOtp(nationalId);
       if (otp == null) {
         emit(AuthSwitchToRegister(nationalId: nationalId));
@@ -85,7 +81,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthOtpSent(
         nationalId: nationalId,
-        phone: user.phone,
+        phone: (await _authRepository.findByNationalId(nationalId))?.phone ?? '',
         otpCode: otp,
       ));
     } catch (e) {
@@ -115,7 +111,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      final user = await _authRepository.loginWithOtp(nationalId: nationalId);
+      final user = await _authRepository.loginWithOtp(nationalId: nationalId, code: otp);
       if (user != null) {
         _pendingOtp = null;
         _pendingNationalId = null;

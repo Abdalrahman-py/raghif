@@ -26,7 +26,7 @@ class StoreListEntry extends Equatable {
   final PurchaseStatus? todayStatus;
 
   /// Id of that same order — lets the card/detail screen open its receipt.
-  final int? todayPurchaseId;
+  final String? todayPurchaseId;
 
   /// Most recent purchase date at this store ("YYYY-MM-DD"), any day. Null
   /// when the buyer has never bought here.

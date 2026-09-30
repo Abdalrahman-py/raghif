@@ -14,6 +14,7 @@ import 'purchase_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 import 'store_list_logic.dart';
+import 'write_guard.dart';
 
 /// Store details — the hub the buyer lands on from the store list.
 ///
@@ -67,7 +68,7 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
     );
   }
 
-  void _openReceipt(int purchaseId) {
+  void _openReceipt(String purchaseId) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConfirmationScreen(
@@ -100,10 +101,13 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
                   children: [
                     _IdentityCard(
                       entry: entry,
-                      onTogglePin: () => widget.controller.setStorePinned(
-                        widget.currentUser.id,
-                        store.id,
-                        !entry.pinned,
+                      onTogglePin: () => guardWrite(
+                        context,
+                        () => widget.controller.setStorePinned(
+                          widget.currentUser.id,
+                          store.id,
+                          !entry.pinned,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -163,9 +167,7 @@ class _IdentityCard extends StatelessWidget {
                     : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(store.name, style: textTheme.titleLarge),
-              ),
+              Expanded(child: Text(store.name, style: textTheme.titleLarge)),
               StatusChip(
                 text: available ? Strings.available : Strings.soldOut,
                 tone: available ? StatusTone.success : StatusTone.danger,
@@ -190,9 +192,7 @@ class _IdentityCard extends StatelessWidget {
                 entry.pinned ? Icons.push_pin : Icons.push_pin_outlined,
                 color: entry.pinned ? AppColors.accent : null,
               ),
-              label: Text(
-                entry.pinned ? Strings.unpinStore : Strings.pinStore,
-              ),
+              label: Text(entry.pinned ? Strings.unpinStore : Strings.pinStore),
             ),
           ),
         ],

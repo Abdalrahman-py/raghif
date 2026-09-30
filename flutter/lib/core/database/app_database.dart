@@ -7,7 +7,13 @@ export 'tables/converters.dart' show PurchaseStatus;
 
 part 'app_database.g.dart';
 
-/// On-device schema for the prototype (spec.md "Database Schema (local SQLDelight)").
+/// On-device **cache** of the Supabase schema.
+///
+/// Every table here mirrors its `public.*` counterpart column for column and
+/// is keyed by the same UUID. Rows arrive from the server through
+/// `QueueSyncService`; nothing in the app writes a business fact here first.
+/// Postgres decides, this remembers -- so the database can be deleted at any
+/// point and the only cost is a refetch.
 ///
 /// SQLDelight has no Dart/Flutter codegen target, so `drift` fills the same
 /// role here: SQL-first table definitions in `tables/*.drift` generate the
@@ -25,31 +31,23 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await m.addColumn(stores, stores.openTime);
-        await m.addColumn(stores, stores.closeTime);
-      }
-      if (from < 3) {
-        await m.addColumn(stores, stores.batchSize);
-      }
-      if (from < 4) {
-        await m.addColumn(stores, stores.area);
-        await m.createTable(storePins);
-      }
-      if (from < 5) {
-        await m.createTable(scanEvents);
-      }
-      if (from < 6) {
-        await m.addColumn(users, users.remoteId);
-      }
-      if (from < 7) {
-        await m.addColumn(stores, stores.remoteId);
+      // v8 re-keyed every table from INTEGER AUTOINCREMENT to the Supabase
+      // UUID and dropped the locally-seeded rows. There is no sensible
+      // column-by-column upgrade from the old shape: the old ids named
+      // records that only ever existed on this device. Since v8 this
+      // database is a cache, so the honest migration is to throw it away and
+      // let the sync service refill it from the server.
+      if (from < 8) {
+        for (final table in allTables) {
+          await m.drop(table);
+        }
+        await m.createAll();
       }
     },
   );

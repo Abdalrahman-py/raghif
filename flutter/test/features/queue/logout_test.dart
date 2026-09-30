@@ -13,6 +13,8 @@ import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 import '../../goldens/test_fonts.dart';
 
+import '../../support/queue_test_harness.dart';
+
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 
 void main() {
@@ -21,10 +23,10 @@ void main() {
 
   setUp(() {
     mockAuthBloc = MockAuthBloc();
-    controller = QueueController();
+    controller = buildQueueHarness().controller;
     when(() => mockAuthBloc.state).thenReturn(const Authenticated(
       UserModel(
-        id: 1,
+        id: 'user-1',
         phone: '0599111111',
         nationalId: '900111222',
         name: 'أحمد ناصر',
@@ -42,6 +44,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     const demoUser = DemoUser(
+      id: seededBuyerId,
       phone: '0599111111',
       pin: '1234',
       role: UserRole.buyer,
@@ -67,9 +70,39 @@ void main() {
     expect(logoutButton, findsOneWidget);
 
     await tester.tap(logoutButton);
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // Asked first: signing back in means recalling an ID and PIN.
+    expect(find.text(Strings.logoutConfirmTitle), findsOneWidget);
+    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
+
+    await tester.tap(find.text(Strings.logout).last);
+    await tester.pumpAndSettle();
 
     verify(() => mockAuthBloc.add(const LogoutRequestedEvent())).called(1);
+  });
+
+  testWidgets('cancelling the logout confirmation keeps the session',
+      (tester) async {
+    await tester.pumpWidget(
+      BlocProvider<AuthBloc>.value(
+        value: mockAuthBloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: OwnerDashboardScreen(
+            controller: controller,
+            storeId: seededStoreId,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip(Strings.logout));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Strings.cancelLabel));
+    await tester.pumpAndSettle();
+
+    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
   });
 
   testWidgets('OwnerDashboardScreen logout button dispatches LogoutRequestedEvent',
@@ -81,7 +114,7 @@ void main() {
           theme: AppTheme.light,
           home: OwnerDashboardScreen(
             controller: controller,
-            storeId: demoOwnerStoreId,
+            storeId: seededStoreId,
           ),
         ),
       ),
@@ -91,7 +124,14 @@ void main() {
     expect(logoutButton, findsOneWidget);
 
     await tester.tap(logoutButton);
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // Asked first: signing back in means recalling an ID and PIN.
+    expect(find.text(Strings.logoutConfirmTitle), findsOneWidget);
+    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
+
+    await tester.tap(find.text(Strings.logout).last);
+    await tester.pumpAndSettle();
 
     verify(() => mockAuthBloc.add(const LogoutRequestedEvent())).called(1);
   });
