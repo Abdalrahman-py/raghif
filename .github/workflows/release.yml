@@ -35,11 +35,49 @@ jobs:
 
       - run: yes | flutter doctor --android-licenses || true
 
+      # The shared Flutter action writes .env from .env.example (dummy values,
+      # fine for tests). A shipped APK needs the real backend, so overwrite it
+      # here and fail loudly rather than publish an app that cannot log in.
+      - name: Write real .env
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        working-directory: flutter
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Repo secrets SUPABASE_URL and SUPABASE_ANON_KEY must be set"
+            exit 1
+          fi
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > .env
+
+      # Real release keystore (build.gradle.kts reads android/key.properties).
+      # Without the secrets it falls back to the debug key, with a warning.
+      - name: Set up release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: flutter/android
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::KEYSTORE_BASE64 not set; signing with the debug key"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > release.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > key.properties
+
       # arm64-v8a only: it covers virtually every Android phone of the last
-      # ~6 years and skips the other ABIs' unstripped libraries. Release signs
-      # with the debug keystore (android/app/build.gradle.kts), so no secret.
+      # ~6 years and skips the other ABIs' unstripped libraries.
       - run: flutter build apk --release --target-platform android-arm64
         working-directory: flutter
+
+      # Fail the release if the APK is not validly signed.
+      - name: Verify APK signature
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs flutter/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Replace the rolling "latest" release
         env:

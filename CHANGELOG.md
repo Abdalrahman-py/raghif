@@ -19,6 +19,16 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (release build)
+
+- **The release APK now ships the real backend config and a real signature.**
+  It was built from the dummy `.env.example` (so the app could not reach
+  Supabase) and signed with the debug key. `release.yml` now writes `.env`
+  from the `SUPABASE_URL` / `SUPABASE_ANON_KEY` secrets (failing if unset),
+  signs with the `KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` /
+  `KEY_PASSWORD` secrets, and verifies the signature with `apksigner`.
+  Installs signed with the old debug key must be uninstalled once first.
+
 ### Fixed (login errors)
 
 - **A bad connection no longer reads as a wrong PIN or "not registered".**
