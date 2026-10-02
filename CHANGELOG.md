@@ -19,6 +19,13 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Removed (CI)
+
+- **Pixel golden tests are gone.** They failed on tiny rendering differences
+  between machines (e.g. a 0.11% diff on the store list) and blocked PRs over
+  UI changes, not broken behaviour. The widget and logic tests stay in CI.
+  `test/goldens/test_fonts.dart` is kept because other tests use it.
+
 ### Fixed (release build)
 
 - **The release APK now ships the real backend config and a real signature.**
