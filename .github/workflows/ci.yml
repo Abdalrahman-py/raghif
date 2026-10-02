@@ -26,8 +26,10 @@ jobs:
       # Expanded reporter + a per-test timeout so a leaked Drift connection
       # shows up as a named, stack-traced failure instead of a stalled job.
       - run: set -o pipefail; flutter test --reporter expanded --timeout 60s 2>&1 | tee test-output.txt
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-output
-          path: flutter/test-output.txt
+      - if: failure()
+        run: |
+          grep -nE "\[E\]|Some tests failed|EXCEPTION|Expected:|Actual:|Error|failed" test-output.txt | head -40 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/sum.txt
+          echo "::error title=test-summary::$(cat /tmp/sum.txt | head -c 3500)"
+          tail -n 30 test-output.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/tail.txt
+          echo "::error title=test-tail::$(cat /tmp/tail.txt | head -c 3500)"
+        working-directory: flutter
