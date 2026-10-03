@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/user_model.dart';
@@ -39,7 +38,6 @@ void main() {
   }) async {
     final bloc = AuthBloc(
       authRepository: FakeAuthRepository(users: users ?? const [buyer]),
-      sessionStore: SessionStore(),
     );
     addTearDown(bloc.close);
     await tester.pumpWidget(
@@ -167,7 +165,6 @@ void main() {
   ) async {
     final bloc = AuthBloc(
       authRepository: FakeAuthRepository(users: const []),
-      sessionStore: SessionStore(),
     );
     addTearDown(bloc.close);
     await tester.pumpWidget(
@@ -260,7 +257,6 @@ void main() {
         users: const [buyer],
         failWith: Exception('SocketException: Failed host lookup'),
       ),
-      sessionStore: SessionStore(),
     );
     addTearDown(bloc.close);
     await tester.pumpWidget(

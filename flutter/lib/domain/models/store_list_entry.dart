@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'store_model.dart';
-import '../../core/database/tables/converters.dart';
+import 'purchase_model.dart';
 
 /// One row of the buyer's store list: the store itself plus that buyer's own
 /// context for it. Everything here is per (user, store) — it's what lets the

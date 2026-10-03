@@ -45,10 +45,16 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
   }
 
   Future<void> _checkBlocker() async {
-    final blocker = await widget.controller.blockingPurchaseFor(
-      _userId,
-      todayDateString(),
-    );
+    final PurchaseModel? blocker;
+    try {
+      blocker = await widget.controller.blockingPurchaseFor(
+        _userId,
+        todayDateString(),
+      );
+    } on BackendUnavailableException {
+      // Unknown, not "none": reserve_bag enforces one bag a day regardless.
+      return;
+    }
     if (mounted) {
       setState(() {
         _blocker = blocker;
@@ -76,10 +82,17 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     if (!mounted) return;
 
     final date = todayDateString();
-    final blocker = await widget.controller.blockingPurchaseFor(
-      _userId,
-      date,
-    );
+    final PurchaseModel? blocker;
+    try {
+      blocker = await widget.controller.blockingPurchaseFor(_userId, date);
+    } on BackendUnavailableException {
+      if (!mounted) return;
+      setState(() => _isPaying = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(Strings.offlineWriteFailed)));
+      return;
+    }
     if (blocker != null) {
       if (!mounted) return;
       setState(() {

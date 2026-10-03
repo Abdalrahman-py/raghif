@@ -1,10 +1,7 @@
 import 'dart:io';
 
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raghif/core/auth/session_store.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/data/repositories/supabase_auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
@@ -19,7 +16,6 @@ class MockFunctionsClient extends Mock implements FunctionsClient {}
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late AppDatabase db;
   late MockFunctionsClient functions;
   late SupabaseAuthRepository repo;
 
@@ -29,18 +25,11 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    db = AppDatabase(NativeDatabase.memory());
     final client = MockSupabaseClient();
     functions = MockFunctionsClient();
     when(() => client.functions).thenReturn(functions);
-    repo = SupabaseAuthRepository(
-      client: client,
-      db: db,
-      sessionStore: SessionStore(),
-    );
+    repo = SupabaseAuthRepository(client: client);
   });
-
-  tearDown(() async => db.close());
 
   test('a 401 from the gateway is a wrong PIN: null', () async {
     gatewayReplies(const FunctionException(status: 401));

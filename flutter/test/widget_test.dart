@@ -1,10 +1,7 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:raghif/core/auth/session_store.dart';
-import 'package:raghif/core/database/app_database.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
@@ -19,13 +16,9 @@ void main() {
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    final db = AppDatabase(NativeDatabase.memory());
-    addTearDown(db.close);
-    final sessionStore = SessionStore();
 
     final authBloc = AuthBloc(
       authRepository: FakeAuthRepository(),
-      sessionStore: sessionStore,
     );
     await tester.pumpWidget(
       RaghifApp(
@@ -63,13 +56,9 @@ void main() {
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({'onboarding.seen': true});
-    final db = AppDatabase(NativeDatabase.memory());
-    addTearDown(db.close);
-    final sessionStore = SessionStore();
 
     final authBloc = AuthBloc(
       authRepository: FakeAuthRepository(),
-      sessionStore: sessionStore,
     );
     await tester.pumpWidget(
       RaghifApp(
@@ -93,7 +82,6 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({
       'onboarding.seen': true,
-      'session.userId': 'user-buyer',
     });
     const buyer = UserModel(
       id: 'user-buyer',
@@ -103,8 +91,7 @@ void main() {
       verificationStatus: VerificationStatus.verified,
     );
     final authBloc = AuthBloc(
-      authRepository: FakeAuthRepository(users: const [buyer]),
-      sessionStore: SessionStore(),
+      authRepository: FakeAuthRepository(users: const [buyer], sessionUserId: 'user-buyer'),
     );
     await tester.pumpWidget(
       RaghifApp(
@@ -140,7 +127,6 @@ void main() {
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding.seen': true,
-      'session.userId': 'user-buyer',
     });
     const buyer = UserModel(
       id: 'user-buyer',
@@ -150,8 +136,7 @@ void main() {
       verificationStatus: VerificationStatus.verified,
     );
     final authBloc = AuthBloc(
-      authRepository: FakeAuthRepository(users: const [buyer]),
-      sessionStore: SessionStore(),
+      authRepository: FakeAuthRepository(users: const [buyer], sessionUserId: 'user-buyer'),
     );
     await tester.pumpWidget(
       RaghifApp(

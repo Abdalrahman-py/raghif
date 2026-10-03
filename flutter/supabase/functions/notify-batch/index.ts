@@ -1,9 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Fired by a Postgres trigger (trigger_notify_batch, on public.purchases)
-// whenever notify_next_batch() flips a batch to 'notified'. Pushes to every
-// registered device of the buyers in *that batch*.
+// Every push the app receives comes from here. Two Postgres triggers on
+// public.purchases call it:
+//   - trigger_notify_purchase, on insert, with { purchaseId }: tells that
+//     buyer their reservation is confirmed and which batch they are in.
+//   - trigger_notify_batch, when notify_next_batch() flips a batch to
+//     'notified', with { storeId, purchaseDate, batchNumber }: pushes to every
+//     registered device of the buyers in *that batch*.
 //
 // verify_jwt is OFF because the caller is a DB trigger via pg_net, which has
 // no Supabase session to present. Authorization is instead a shared secret
@@ -112,10 +116,28 @@ Deno.serve(async (req: Request) => {
     return Response.json({ error: "invalid JSON" }, { status: 400 });
   }
 
+  if (body.purchaseId) {
+    const { data: purchase } = await admin
+      .from("purchases")
+      .select("user_id, batch_number, stores(name)")
+      .eq("id", body.purchaseId)
+      .single();
+    if (!purchase) {
+      return Response.json({ sent: 0, reason: "no such purchase" });
+    }
+    // deno-lint-ignore no-explicit-any
+    const storeName = (purchase as any).stores?.name ?? "المخبز";
+    return await pushTo(
+      [purchase.user_id],
+      `تم تأكيد حجزك في ${storeName}`,
+      `أنت الآن في الدفعة رقم ${purchase.batch_number}، سنشعرك عندما يحين دورك`,
+    );
+  }
+
   const { storeId, purchaseDate, batchNumber } = body;
   if (!storeId || !purchaseDate || batchNumber == null) {
     return Response.json(
-      { error: "missing storeId/purchaseDate/batchNumber" },
+      { error: "missing purchaseId, or storeId/purchaseDate/batchNumber" },
       { status: 400 },
     );
   }
@@ -144,6 +166,19 @@ Deno.serve(async (req: Request) => {
     return Response.json({ sent: 0, reason: "no notified purchases" });
   }
 
+  return await pushTo(
+    userIds,
+    "دفعتك جاهزة",
+    `${store?.name ?? "المخبز"}: حان دورك لاستلام الخبز`,
+  );
+});
+
+/// Sends one notification to every device registered to [userIds].
+async function pushTo(
+  userIds: string[],
+  title: string,
+  text: string,
+): Promise<Response> {
   const { data: tokens } = await admin
     .from("device_tokens")
     .select("fcm_token")
@@ -184,12 +219,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           message: {
             token,
-            notification: {
-              title: "دفعتك جاهزة",
-              body: `${
-                store?.name ?? "المخبز"
-              }: حان دورك لاستلام الخبز`,
-            },
+            notification: { title, body: text },
             android: {
               priority: "high",
               notification: { channel_id: FCM_CHANNEL_ID },
@@ -203,4 +233,4 @@ Deno.serve(async (req: Request) => {
   }
 
   return Response.json({ sent, total: fcmTokens.length });
-});
+}

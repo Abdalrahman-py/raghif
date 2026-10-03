@@ -10,15 +10,21 @@ a bug report — it is someone who walked to a market for nothing.
 
 ---
 
-## I. Postgres decides, the device remembers
+## I. Postgres decides, the device asks
 
-Supabase Postgres is the single source of truth. The on-device `drift` database
-is a **cache** and nothing else.
+Supabase Postgres is the single source of truth and the only source of data.
+The app keeps no local database: every screen reads Postgres (scoped by RLS)
+and stays current through Realtime. Who is signed in is the Supabase session;
+the profile behind it is read from the server every time.
 
 - No business fact is ever created locally first. Reservations, batch numbers,
   allocations and remaining counts come from the server or they do not exist.
-- Deleting the local database must cost a refetch and nothing else. If dropping
-  `drift` would lose data, the architecture is already broken.
+- One exception, kept on purpose: the signed-in buyer's latest receipt is
+  saved on the phone, written only from a server answer, so the pickup QR
+  still opens with no signal at the bakery. It is cleared on sign-out and
+  whenever the server says that order is gone.
+- Every notification is a server push (the `notify-batch` Edge Function). The
+  app raises none of its own.
 - Ids are server-generated UUIDs, stored verbatim. The same id means the same
   row on the device, on the server and in a QR code. No local autoincrement,
   no client/server id mapping.
@@ -30,8 +36,8 @@ A write that did not reach Postgres did not happen.
 - Writes fail loudly (`BackendUnavailableException`) and the UI tells the user.
 - No optimistic local write with later reconciliation. That is how two buyers
   end up holding the last bag.
-- Reads may be served from cache and should be, so the app still renders on a
-  bad connection.
+- Reads go to the server too. With no connection a screen shows nothing new
+  rather than something stale; the saved receipt is the only exception.
 
 ## III. Business rules live in SQL
 
@@ -137,6 +143,7 @@ is a known-stale owner file, not a requirement. Current live corrections:
 | Arabic-only, no bilingual work | 2026-09-06 | "Bilingual AR/EN" in `spec.md`, `README.md`, `UI_SPEC.md` |
 | One bag per national ID per day, all stores | 2026-09-06 | "per store per day" in `README.md` |
 | Supabase is the backend; `drift` is a permanent cache | 2026-09-19 | "local-only, never add Supabase" in `TASKS.md` |
+| Supabase is the only data source: no `drift` cache, the buyer's receipt excepted; notifications are server pushes only | 2026-10-03 | The 2026-09-19 ruling above, and "drift as permanent offline cache" in `spec.md` |
 
 ## Governance
 

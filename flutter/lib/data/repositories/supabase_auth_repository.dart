@@ -1,55 +1,51 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/auth/session_store.dart';
-import '../../core/database/app_database.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/notifications/fcm_service.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../receipt_store.dart';
 
 /// Auth backed by Supabase (national-ID + PIN, verified server-side by the
 /// `auth-gateway` Edge Function, which mints a real Supabase session — see
 /// docs/supabase-migration-plan.md).
 ///
-/// The local `users` drift table is kept as a read cache so session restore
-/// (`findById`) and profile lookups work offline once a user has signed in
-/// on this device at least once — it is not the identity source of truth
-/// once this repository is selected. `remote_id` bridges a cached local row
-/// to its Supabase `profiles` UUID; `pin_hash` is unused here (a
-/// `'supabase-managed'` placeholder satisfies the NOT NULL column) since PIN
-/// verification happens server-side via the Edge Function.
+/// Who is signed in is Supabase's own persisted session; the profile behind
+/// it is read from `profiles` every time. Nothing about the user is kept on
+/// the phone, except what the buyer's saved receipt already carries
+/// ([ReceiptStore]), which lets an offline restart still reach the receipt.
 class SupabaseAuthRepository implements AuthRepository {
   SupabaseAuthRepository({
     required SupabaseClient client,
-    required AppDatabase db,
-    required SessionStore sessionStore,
     FcmService? fcmService,
+    ReceiptStore? receipts,
   })  : _client = client,
-        _db = db,
-        _sessionStore = sessionStore,
-        _fcmService = fcmService;
+        _fcmService = fcmService,
+        _receipts = receipts ?? ReceiptStore();
 
   final SupabaseClient _client;
-  final AppDatabase _db;
-  final SessionStore _sessionStore;
   final FcmService? _fcmService;
+  final ReceiptStore _receipts;
 
-  UserModel _toDomain(User user) {
-    return UserModel(
-      id: user.id,
-      phone: user.phone,
-      nationalId: user.nationalId,
-      name: user.name,
-      role: user.role == 'owner' ? UserRole.owner : UserRole.buyer,
-      jawwalPayNumber: user.jawwalPayNumber,
-      verificationStatus: user.verificationStatus == 'verified'
-          ? VerificationStatus.verified
-          : VerificationStatus.pending,
-    );
-  }
+  /// Every profile column the app reads. Named, never `*`: `pin_hash` is
+  /// revoked in SQL and asking for it fails the whole request.
+  static const _profileColumns =
+      'id, phone, national_id, name, role, jawwal_pay_number, '
+      'verification_status';
+
+  static UserModel _userFromRow(Map<String, dynamic> row) => UserModel(
+        id: row['id'] as String,
+        phone: (row['phone'] as String?) ?? '',
+        nationalId: (row['national_id'] as String?) ?? '',
+        name: (row['name'] as String?) ?? '',
+        role: row['role'] == 'owner' ? UserRole.owner : UserRole.buyer,
+        jawwalPayNumber: row['jawwal_pay_number'] as String?,
+        verificationStatus: row['verification_status'] == 'verified'
+            ? VerificationStatus.verified
+            : VerificationStatus.pending,
+      );
 
   Future<Map<String, dynamic>> _invoke(
     String action,
@@ -82,29 +78,18 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<UserModel> _applySession(Map<String, dynamic> result) async {
     await _client.auth.setSession(result['refreshToken'] as String);
     final profile = Map<String, dynamic>.from(result['profile'] as Map);
-    final id = profile['remoteId'] as String;
-
-    // Straight upsert into the profile cache under the Supabase id. The old
-    // lookup-by-national-id + local-autoincrement dance is gone: there is
-    // no second id to reconcile any more.
-    await _db.into(_db.users).insertOnConflictUpdate(
-          UsersCompanion.insert(
-            id: id,
-            phone: Value(profile['phone'] as String? ?? ''),
-            nationalId: Value(profile['nationalId'] as String? ?? ''),
-            name: Value(profile['name'] as String? ?? ''),
-            role: Value(profile['role'] as String? ?? 'buyer'),
-            jawwalPayNumber: Value(profile['jawwalPayNumber'] as String?),
-            verificationStatus:
-                Value(profile['verificationStatus'] as String? ?? 'pending'),
-          ),
-        );
-
-    await _sessionStore.saveUserId(id);
     unawaited(_fcmService?.registerCurrentDeviceToken());
-    final row =
-        await (_db.select(_db.users)..where((u) => u.id.equals(id))).getSingle();
-    return _toDomain(row);
+    return UserModel(
+      id: profile['remoteId'] as String,
+      phone: profile['phone'] as String? ?? '',
+      nationalId: profile['nationalId'] as String? ?? '',
+      name: profile['name'] as String? ?? '',
+      role: profile['role'] == 'owner' ? UserRole.owner : UserRole.buyer,
+      jawwalPayNumber: profile['jawwalPayNumber'] as String?,
+      verificationStatus: profile['verificationStatus'] == 'verified'
+          ? VerificationStatus.verified
+          : VerificationStatus.pending,
+    );
   }
 
   @override
@@ -152,27 +137,46 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String?> requestOtp(String nationalId) async {
-    return _answered<String?>(() async {
+  Future<({String code, String phone})?> requestOtp(String nationalId) async {
+    return _answered(() async {
       final result =
           await _invoke('otp-request', {'nationalId': nationalId.trim()});
-      return result['otpCode'] as String?;
+      return (
+        code: result['otpCode'] as String,
+        phone: (result['phone'] as String?) ?? '',
+      );
     });
   }
 
   @override
-  Future<UserModel?> findById(String id) async {
-    final user = await (_db.select(_db.users)..where((u) => u.id.equals(id)))
-        .getSingleOrNull();
-    return user == null ? null : _toDomain(user);
+  Future<UserModel?> restoreSession() async {
+    final authUser = _client.auth.currentUser;
+    if (authUser == null) return null;
+    try {
+      return await findById(authUser.id);
+    } catch (_) {
+      // No signal at startup: a buyer with a saved receipt still gets in, far
+      // enough to show it at the bakery. Nobody else does.
+      final receipt = await _receipts.load();
+      if (receipt == null || receipt.userId != authUser.id) rethrow;
+      return UserModel(
+        id: receipt.userId,
+        phone: receipt.userPhone ?? '',
+        nationalId: receipt.userNationalId ?? '',
+        name: receipt.userName ?? '',
+        verificationStatus: VerificationStatus.verified,
+      );
+    }
   }
 
   @override
-  Future<UserModel?> findByNationalId(String nationalId) async {
-    final user = await (_db.select(_db.users)
-          ..where((u) => u.nationalId.equals(nationalId.trim())))
-        .getSingleOrNull();
-    return user == null ? null : _toDomain(user);
+  Future<UserModel?> findById(String id) async {
+    final row = await _client
+        .from('profiles')
+        .select(_profileColumns)
+        .eq('id', id)
+        .maybeSingle();
+    return row == null ? null : _userFromRow(row);
   }
 
   @override
@@ -241,15 +245,10 @@ class SupabaseAuthRepository implements AuthRepository {
     String userId,
     VerificationStatus status,
   ) async {
-    final statusStr =
-        status == VerificationStatus.verified ? 'verified' : 'pending';
-    // Server first: if this fails the write did not happen, and the cache
-    // must not claim otherwise.
-    await _client
-        .from('profiles')
-        .update({'verification_status': statusStr}).eq('id', userId);
-    await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
-        .write(UsersCompanion(verificationStatus: Value(statusStr)));
+    await _client.from('profiles').update({
+      'verification_status':
+          status == VerificationStatus.verified ? 'verified' : 'pending',
+    }).eq('id', userId);
   }
 
   @override
@@ -257,12 +256,9 @@ class SupabaseAuthRepository implements AuthRepository {
     String userId,
     String jawwalPayNumber,
   ) async {
-    final trimmed = jawwalPayNumber.trim();
     await _client
         .from('profiles')
-        .update({'jawwal_pay_number': trimmed}).eq('id', userId);
-    await (_db.update(_db.users)..where((u) => u.id.equals(userId)))
-        .write(UsersCompanion(jawwalPayNumber: Value(trimmed)));
+        .update({'jawwal_pay_number': jawwalPayNumber.trim()}).eq('id', userId);
   }
 
   @override
@@ -277,22 +273,15 @@ class SupabaseAuthRepository implements AuthRepository {
       // ignored: logout proceeds regardless
     }
     // signOut() revokes the session on the server, so it throws when the
-    // backend is down. Signing out is a local decision first: clear the
-    // remembered user regardless, or a dead connection leaves the person
+    // backend is down. Signing out is a local decision first: the local
+    // session is dropped regardless, or a dead connection leaves the person
     // pressing "sign out" with nothing happening.
     try {
       await _client.auth.signOut();
     } catch (_) {
       // ignored: the server-side revoke is best effort
     }
-    await _sessionStore.clear();
-    // The cache holds whatever RLS showed this account — for an owner, every
-    // buyer's name and national ID. The next person on this phone refills it
-    // from their own session.
-    await _db.transaction(() async {
-      for (final table in _db.allTables.toList().reversed) {
-        await _db.delete(table).go();
-      }
-    });
+    // The receipt carries this buyer's name and national ID.
+    await _receipts.clear();
   }
 }

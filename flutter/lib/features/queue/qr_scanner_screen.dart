@@ -7,6 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../../domain/models/purchase_model.dart';
 import 'qr_payload.dart';
 import 'qr_redemption.dart';
 import 'queue_controller.dart';
@@ -89,8 +90,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       return;
     }
 
-    final purchase = await widget.controller.purchaseById(payload.purchaseId);
     if (!mounted) return;
+    PurchaseModel? purchase;
+    final looked = await guardWrite(context, () async {
+      purchase = await widget.controller.purchaseById(payload.purchaseId);
+    });
+    if (!mounted) return;
+    if (!looked) return _abortScan();
     final result = evaluateQrRedemption(
       payload: payload,
       purchase: purchase,

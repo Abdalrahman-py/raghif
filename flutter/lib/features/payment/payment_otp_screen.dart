@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/i18n/strings.dart';
-import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
@@ -33,15 +32,8 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
   @override
   void initState() {
     super.initState();
+    // Mock payment, no SMS: the code is shown on this screen, not pushed.
     _currentCode = widget.service.generateCode();
-    _notifyOtp(_currentCode);
-  }
-
-  void _notifyOtp(String code) {
-    NotificationService.instance.showNotification(
-      title: Strings.otpNotificationTitle,
-      body: Strings.otpNotificationBody(code),
-    );
   }
 
   @override
@@ -55,7 +47,6 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
       _currentCode = widget.service.resendCode();
       _error = null;
     });
-    _notifyOtp(_currentCode);
   }
 
   void _confirm() async {
