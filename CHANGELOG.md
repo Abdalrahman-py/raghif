@@ -19,6 +19,17 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (sign-out)
+
+- **Signing out from any screen lands on the login screen, with nothing
+  behind it.** Signing out from the store list (a pushed screen) used to
+  leave the store list on screen, with the login form hidden underneath it
+  and reachable by pressing back. Crossing between signed in and signed out
+  now clears every pushed screen, wherever it happens.
+- **Signing out empties the on-device cache.** It held whatever the last
+  account could see; for an owner, that included every buyer's name and
+  national ID. The next account on the phone starts from its own data.
+
 ### Fixed (purchase cache)
 
 - **Purchases deleted on the server now disappear from the phone.** The

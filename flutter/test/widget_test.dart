@@ -134,4 +134,55 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+      'signing out from a pushed screen clears the stack: login, no way back',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding.seen': true,
+      'session.userId': 'user-buyer',
+    });
+    const buyer = UserModel(
+      id: 'user-buyer',
+      phone: '0599111111',
+      nationalId: '900111222',
+      name: 'أحمد ناصر',
+      verificationStatus: VerificationStatus.verified,
+    );
+    final authBloc = AuthBloc(
+      authRepository: FakeAuthRepository(users: const [buyer]),
+      sessionStore: SessionStore(),
+    );
+    await tester.pumpWidget(
+      RaghifApp(
+        authBloc: authBloc,
+        queueController: buildQueueHarness().controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The store list is a pushed route with its own sign-out button.
+    await tester.tap(find.text(Strings.browseStoresButton).first);
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.storeListTitle), findsOneWidget);
+
+    await tester.tap(find.byTooltip(Strings.logout));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(Strings.logout),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.storeListTitle), findsNothing);
+    expect(find.text(Strings.loginIdTitle), findsOneWidget);
+    // Back from login must leave the app, not reopen the signed-out screen.
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator).first);
+    expect(navigator.canPop(), isFalse);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
 }

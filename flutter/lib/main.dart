@@ -35,6 +35,7 @@ class RaghifApp extends StatefulWidget {
 class _RaghifAppState extends State<RaghifApp> {
   late final QueueController _controller;
   late final AuthBloc _authBloc;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   /// null while loading, then whether the intro carousel has been seen —
   /// shown once per install, ahead of login/registration.
@@ -65,79 +66,92 @@ class _RaghifAppState extends State<RaghifApp> {
   Widget build(BuildContext context) {
     return BlocProvider<AuthBloc>.value(
       value: _authBloc,
-      child: MaterialApp(
-        title: 'رغيف',
-        theme: AppTheme.light,
-        // Forced RTL regardless of device locale — this app is Arabic-only.
-        builder: (context, child) =>
-            Directionality(textDirection: TextDirection.rtl, child: child!),
-        home: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is AuthInitial) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+      // The root route below swaps between login and home by auth state,
+      // but routes pushed on top of it (store list, receipt, registration)
+      // would survive the swap: signing out from the store list left it on
+      // screen with the login form hidden underneath, one back press away.
+      // Crossing the signed-in/signed-out line clears them, whichever screen
+      // it happened on.
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (prev, curr) =>
+            (prev is Authenticated) != (curr is Authenticated),
+        listener: (_, _) =>
+            _navigatorKey.currentState?.popUntil((route) => route.isFirst),
+        child: MaterialApp(
+          navigatorKey: _navigatorKey,
+          title: 'رغيف',
+          theme: AppTheme.light,
+          // Forced RTL regardless of device locale — this app is Arabic-only.
+          builder: (context, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
+          home: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthInitial) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-            if (state is Authenticated) {
-              // Owners are pre-verified (seeded accounts); buyers go through
-              // mock ID/selfie capture once before they can buy.
-              if (!state.user.isOwner && !state.user.isVerified) {
-                return PhotoCaptureScreen(
-                  kind: PhotoCaptureKind.id,
-                  onContinue: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PhotoCaptureScreen(
-                        kind: PhotoCaptureKind.selfie,
-                        onContinue: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const WaitingForVerificationScreen(),
+              if (state is Authenticated) {
+                // Owners are pre-verified (seeded accounts); buyers go through
+                // mock ID/selfie capture once before they can buy.
+                if (!state.user.isOwner && !state.user.isVerified) {
+                  return PhotoCaptureScreen(
+                    kind: PhotoCaptureKind.id,
+                    onContinue: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PhotoCaptureScreen(
+                          kind: PhotoCaptureKind.selfie,
+                          onContinue: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const WaitingForVerificationScreen(),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  );
+                }
+
+                final demoUser = DemoUser(
+                  id: state.user.id,
+                  phone: state.user.phone,
+                  pin: '',
+                  role: state.user.isOwner ? UserRole.owner : UserRole.buyer,
+                  name: state.user.name,
+                  jawwalPayNumber: state.user.jawwalPayNumber,
                 );
+
+                return state.user.isOwner
+                    ? _OwnerHome(
+                        controller: _controller,
+                        ownerId: state.user.id,
+                      )
+                    : BuyerHomeScreen(
+                        controller: _controller,
+                        currentUser: demoUser,
+                      );
               }
 
-              final demoUser = DemoUser(
-                id: state.user.id,
-                phone: state.user.phone,
-                pin: '',
-                role: state.user.isOwner ? UserRole.owner : UserRole.buyer,
-                name: state.user.name,
-                jawwalPayNumber: state.user.jawwalPayNumber,
-              );
-
-              return state.user.isOwner
-                  ? _OwnerHome(
-                      controller: _controller,
-                      ownerId: state.user.id,
-                    )
-                  : BuyerHomeScreen(
-                      controller: _controller,
-                      currentUser: demoUser,
-                    );
-            }
-
-            // Unauthenticated, AuthLoading (session check or a login/register
-            // submit in flight), AuthFailure, AuthSwitchToRegister — all show
-            // the login form (after the once-per-install intro carousel);
-            // LoginScreen reads AuthBloc state itself for its own
-            // loading/error UI.
-            if (_hasSeenOnboarding == null) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (_hasSeenOnboarding == false) {
-              return OnboardingScreen(
-                onDone: () => setState(() => _hasSeenOnboarding = true),
-              );
-            }
-            return const LoginScreen();
-          },
+              // Unauthenticated, AuthLoading (session check or a login/register
+              // submit in flight), AuthFailure, AuthSwitchToRegister — all show
+              // the login form (after the once-per-install intro carousel);
+              // LoginScreen reads AuthBloc state itself for its own
+              // loading/error UI.
+              if (_hasSeenOnboarding == null) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (_hasSeenOnboarding == false) {
+                return OnboardingScreen(
+                  onDone: () => setState(() => _hasSeenOnboarding = true),
+                );
+              }
+              return const LoginScreen();
+            },
+          ),
         ),
       ),
     );
