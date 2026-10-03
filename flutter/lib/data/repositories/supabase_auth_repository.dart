@@ -286,5 +286,13 @@ class SupabaseAuthRepository implements AuthRepository {
       // ignored: the server-side revoke is best effort
     }
     await _sessionStore.clear();
+    // The cache holds whatever RLS showed this account — for an owner, every
+    // buyer's name and national ID. The next person on this phone refills it
+    // from their own session.
+    await _db.transaction(() async {
+      for (final table in _db.allTables.toList().reversed) {
+        await _db.delete(table).go();
+      }
+    });
   }
 }

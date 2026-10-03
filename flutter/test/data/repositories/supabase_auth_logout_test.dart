@@ -76,4 +76,25 @@ void main() {
 
     expect(await SessionStore().loadUserId(), isNull);
   });
+
+  test('logout empties the cache so the next account sees none of it',
+      () async {
+    when(() => fcm.unregisterCurrentDeviceToken()).thenAnswer((_) async {});
+    await db.into(db.stores).insert(StoresCompanion.insert(id: 's1', name: 'مخبز'));
+    await db.into(db.users).insert(UsersCompanion.insert(id: 'u1'));
+    await db.into(db.purchases).insert(PurchasesCompanion.insert(
+          id: 'p1',
+          storeId: 's1',
+          userId: 'u1',
+          purchaseDate: '2026-10-03',
+          status: PurchaseStatus.waiting,
+          createdAt: 0,
+        ));
+
+    await repo.logout();
+
+    for (final table in db.allTables) {
+      expect(await db.select(table).get(), isEmpty, reason: table.actualTableName);
+    }
+  });
 }
