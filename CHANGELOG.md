@@ -19,6 +19,25 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed (data source)
+
+- **The server is the only source of data.** The on-device `drift` database
+  is gone. Every screen now reads Supabase directly and updates live through
+  Realtime. The signed-in user is the Supabase session, and the profile
+  behind it is read from the server every time. Nothing about other users is
+  stored on the phone.
+- **One exception: the buyer's latest receipt is kept on the phone**, so the
+  pickup QR still opens with no signal at the bakery. It is written only from
+  a server answer, and cleared on sign-out or when the server says the order
+  is gone.
+- **Notifications come from the server only.** "Purchase confirmed" is now a
+  push sent by `notify-batch` (new trigger on purchase insert, migration
+  `20261003170000_notify_purchase_confirmed`). The phone no longer raises its
+  own "purchase confirmed", "batch released" or OTP notifications. The mock
+  login and payment codes are shown on screen, as before.
+- `constitution.md` §I–II, `spec.md` and `README.md` record the change
+  (ruling dated 2026-10-03).
+
 ### Fixed (sign-out)
 
 - **Signing out from any screen lands on the login screen, with nothing

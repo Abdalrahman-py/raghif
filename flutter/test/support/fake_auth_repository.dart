@@ -7,9 +7,16 @@ import 'package:raghif/domain/repositories/auth_repository.dart';
 /// auth: PIN verification is the auth-gateway Edge Function's job now, so
 /// there is no local implementation left to instantiate.
 class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.users = const [], this.failWith});
+  FakeAuthRepository({
+    this.users = const [],
+    this.failWith,
+    this.sessionUserId,
+  });
 
   final List<UserModel> users;
+
+  /// Who the persisted Supabase session belongs to at startup, if anyone.
+  String? sessionUserId;
 
   /// When set, sign-in calls throw it: a call that never got an answer
   /// (no connection), as opposed to a server that said no.
@@ -39,18 +46,22 @@ class FakeAuthRepository implements AuthRepository {
       _byNationalId(nationalId);
 
   @override
-  Future<String?> requestOtp(String nationalId) async {
+  Future<({String code, String phone})?> requestOtp(String nationalId) async {
     if (failWith != null) throw failWith!;
-    return _byNationalId(nationalId) == null ? null : '1234';
+    final user = _byNationalId(nationalId);
+    return user == null ? null : (code: '1234', phone: user.phone);
+  }
+
+  @override
+  Future<UserModel?> restoreSession() async {
+    if (sessionUserId == null) return null;
+    if (failWith != null) throw failWith!;
+    return findById(sessionUserId!);
   }
 
   @override
   Future<UserModel?> findById(String id) async =>
       users.where((u) => u.id == id).firstOrNull;
-
-  @override
-  Future<UserModel?> findByNationalId(String nationalId) async =>
-      _byNationalId(nationalId);
 
   @override
   Future<bool> nationalIdExists(String nationalId) async =>
@@ -99,5 +110,5 @@ class FakeAuthRepository implements AuthRepository {
   ) async {}
 
   @override
-  Future<void> logout() async {}
+  Future<void> logout() async => sessionUserId = null;
 }

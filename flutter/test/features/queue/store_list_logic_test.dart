@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/database/tables/converters.dart';
+import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/domain/models/store_list_entry.dart';
 import 'package:raghif/domain/models/store_model.dart';
 import 'package:raghif/features/queue/store_list_logic.dart';

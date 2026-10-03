@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/domain/repositories/auth_repository.dart';
@@ -9,15 +8,11 @@ import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
-class MockSessionStore extends Mock implements SessionStore {}
-
 void main() {
   late MockAuthRepository mockAuthRepository;
-  late MockSessionStore mockSessionStore;
 
   setUp(() {
     mockAuthRepository = MockAuthRepository();
-    mockSessionStore = MockSessionStore();
   });
 
   const testUser = UserModel(
@@ -34,7 +29,6 @@ void main() {
     test('initial state is AuthInitial', () {
       final bloc = AuthBloc(
         authRepository: mockAuthRepository,
-        sessionStore: mockSessionStore,
       );
       expect(bloc.state, const AuthInitial());
       bloc.close();
@@ -43,13 +37,10 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, Authenticated] when session exists and user is found',
       build: () {
-        when(() => mockSessionStore.loadUserId())
-            .thenAnswer((_) async => 'user-1');
-        when(() => mockAuthRepository.findById('user-1'))
+        when(() => mockAuthRepository.restoreSession())
             .thenAnswer((_) async => testUser);
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(const CheckAuthSessionEvent()),
@@ -62,11 +53,10 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, Unauthenticated] when no session exists',
       build: () {
-        when(() => mockSessionStore.loadUserId())
+        when(() => mockAuthRepository.restoreSession())
             .thenAnswer((_) async => null);
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(const CheckAuthSessionEvent()),
@@ -77,13 +67,26 @@ void main() {
     );
 
     blocTest<AuthBloc, AuthState>(
+      'says "offline" when the server cannot be asked who is signed in',
+      build: () {
+        when(() => mockAuthRepository.restoreSession())
+            .thenThrow(Exception('no connection'));
+        return AuthBloc(authRepository: mockAuthRepository);
+      },
+      act: (bloc) => bloc.add(const CheckAuthSessionEvent()),
+      expect: () => [
+        const AuthLoading(),
+        const AuthFailure(Strings.loginOffline),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
       'emits [AuthLoading, Authenticated] on successful login',
       build: () {
         when(() => mockAuthRepository.login(phone: '0599111111', pin: '1234'))
             .thenAnswer((_) async => testUser);
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(
@@ -104,7 +107,6 @@ void main() {
             .thenAnswer((_) async => true);
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(
@@ -128,7 +130,6 @@ void main() {
         ).thenThrow(Exception('SocketException: Failed host lookup'));
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(
@@ -147,7 +148,6 @@ void main() {
             .thenThrow(Exception('SocketException: Failed host lookup'));
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
@@ -166,7 +166,6 @@ void main() {
             .thenAnswer((_) async => false);
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(
@@ -192,7 +191,6 @@ void main() {
         );
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       seed: () => const Authenticated(
@@ -225,7 +223,6 @@ void main() {
             .thenAnswer((_) async {});
         return AuthBloc(
           authRepository: mockAuthRepository,
-          sessionStore: mockSessionStore,
         );
       },
       act: (bloc) => bloc.add(const LogoutRequestedEvent()),
@@ -238,13 +235,10 @@ void main() {
       blocTest<AuthBloc, AuthState>(
         'emits [AuthLoading, AuthOtpSent] when national ID exists',
         build: () {
-          when(() => mockAuthRepository.findByNationalId('900111222'))
-              .thenAnswer((_) async => testUser);
           when(() => mockAuthRepository.requestOtp('900111222'))
-              .thenAnswer((_) async => '4821');
+              .thenAnswer((_) async => (code: '4821', phone: '0599111111'));
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
@@ -259,39 +253,12 @@ void main() {
       );
 
       blocTest<AuthBloc, AuthState>(
-        'sends a code on a phone that has never seen this user',
-        build: () {
-          // Empty local cache: only the server knows the ID.
-          when(() => mockAuthRepository.findByNationalId('900111222'))
-              .thenAnswer((_) async => null);
-          when(() => mockAuthRepository.requestOtp('900111222'))
-              .thenAnswer((_) async => '4821');
-          return AuthBloc(
-            authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
-          );
-        },
-        act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900111222')),
-        expect: () => [
-          const AuthLoading(),
-          const AuthOtpSent(
-            nationalId: '900111222',
-            phone: '',
-            otpCode: '4821',
-          ),
-        ],
-      );
-
-      blocTest<AuthBloc, AuthState>(
         'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
         build: () {
-          when(() => mockAuthRepository.findByNationalId('900999999'))
-              .thenAnswer((_) async => null);
           when(() => mockAuthRepository.requestOtp('900999999'))
               .thenAnswer((_) async => null);
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(const RequestOtpEvent(nationalId: '900999999')),
@@ -313,7 +280,6 @@ void main() {
               .thenAnswer((_) async => testUser);
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(
@@ -335,7 +301,6 @@ void main() {
         build: () {
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(
@@ -360,7 +325,6 @@ void main() {
           ).thenAnswer((_) async => testUser);
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(
@@ -388,7 +352,6 @@ void main() {
               .thenAnswer((_) async => true);
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(
@@ -416,7 +379,6 @@ void main() {
               .thenAnswer((_) async => false);
           return AuthBloc(
             authRepository: mockAuthRepository,
-            sessionStore: mockSessionStore,
           );
         },
         act: (bloc) => bloc.add(

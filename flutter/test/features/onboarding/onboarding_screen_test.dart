@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
@@ -24,7 +23,6 @@ void main() {
         // The sign-up handoff pushes RegistrationScreen, which reads AuthBloc.
         value: AuthBloc(
           authRepository: FakeAuthRepository(),
-          sessionStore: SessionStore(),
         ),
         child: MaterialApp(
           theme: AppTheme.light,

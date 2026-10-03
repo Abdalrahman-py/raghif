@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/domain/repositories/auth_repository.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
@@ -11,15 +10,12 @@ import '../../support/finders.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
-class MockSessionStore extends Mock implements SessionStore {}
-
 void main() {
   late AuthBloc bloc;
 
   setUp(() {
     bloc = AuthBloc(
       authRepository: MockAuthRepository(),
-      sessionStore: MockSessionStore(),
     );
   });
 

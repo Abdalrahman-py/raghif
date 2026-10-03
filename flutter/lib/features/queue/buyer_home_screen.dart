@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/offline_notice.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
@@ -39,7 +40,7 @@ class BuyerHomeScreen extends StatefulWidget {
 }
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
-  late final Future<PurchaseModel?> _initialOrder;
+  late Future<PurchaseModel?> _initialOrder;
 
   @override
   void initState() {
@@ -95,6 +96,16 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return OfflineNotice(
+                    onRetry: () => setState(() {
+                      _initialOrder = widget.controller.blockingPurchaseFor(
+                        widget.currentUser.id,
+                        todayDateString(),
+                      );
+                    }),
+                  );
                 }
                 final purchase = snapshot.data;
                 if (purchase == null) {

@@ -18,4 +18,5 @@ for f in ../migrations/*.sql; do
   grep -v "create extension if not exists pg_net" "$f" | psql
 done
 psql < lock_direct_writes.sql
+psql < notify_purchase.sql
 echo "SQL tests passed"

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../../core/database/tables/converters.dart';
+import '../../domain/models/purchase_model.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shapes.dart';

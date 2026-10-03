@@ -93,6 +93,23 @@ void main() {
     expect(find.text(Strings.browseStoresButton), findsOneWidget);
   });
 
+  testWidgets('server unreachable → says so with a retry, not "no order"',
+      (tester) async {
+    when(() => repo.getBlockingPurchase(any(), any()))
+        .thenAnswer((_) async => throw const BackendUnavailableException('x'));
+    await pumpHome(tester);
+
+    expect(find.text(Strings.offlineRead), findsOneWidget);
+    expect(find.text(Strings.buyerHomeNoOrder), findsNothing);
+
+    stubTodayOrder(null);
+    await tester.tap(find.text(Strings.retryButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.offlineRead), findsNothing);
+    expect(find.text(Strings.buyerHomeNoOrder), findsOneWidget);
+  });
+
   testWidgets('shows the current order with store, status and batch',
       (tester) async {
     final purchase = order(status: PurchaseStatus.notified, batchNumber: 3);

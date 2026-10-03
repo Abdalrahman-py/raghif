@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../core/di/injection.dart';
-import '../../core/i18n/strings.dart';
-import '../../core/notifications/notification_service.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/scan_event_model.dart';
@@ -164,27 +162,17 @@ class QueueController extends ChangeNotifier {
     );
     _purchaseCache[purchase.id] = purchase;
     notifyListeners();
-    final storeName = purchase.storeName ?? storeById(storeId)?.name ?? '';
-    await NotificationService.instance.showNotification(
-      title: Strings.purchaseConfirmedNotificationTitle(storeName),
-      body: Strings.purchaseConfirmedNotificationBody(purchase.batchNumber),
-    );
+    // The "purchase confirmed" push is sent by the backend (notify-batch).
     return purchase;
   }
 
   /// Owner action: release the next un-notified batch. The push to those
-  /// buyers is sent by the backend (notify-batch Edge Function); the local
-  /// notification here is only feedback on the owner's own handset.
-  Future<void> notifyNextBatch(String storeId, String date) async {
+  /// buyers is sent by the backend (notify-batch Edge Function). Returns
+  /// false when there was no waiting batch left.
+  Future<bool> notifyNextBatch(String storeId, String date) async {
     final notified = await _repository.notifyNextBatch(storeId, date);
     notifyListeners();
-    if (notified) {
-      final storeName = storeById(storeId)?.name ?? '';
-      await NotificationService.instance.showNotification(
-        title: Strings.batchReadyNotificationTitle(storeName),
-        body: Strings.batchReadyNotificationBody,
-      );
-    }
+    return notified;
   }
 
   /// Owner action: hand the bag over.

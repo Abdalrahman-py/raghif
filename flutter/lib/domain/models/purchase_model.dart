@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import '../../core/database/tables/converters.dart';
 
-export '../../core/database/tables/converters.dart' show PurchaseStatus;
+/// A purchase's position in the collection workflow (spec.md `purchases.status`).
+enum PurchaseStatus { waiting, notified, collected }
 
 class PurchaseModel extends Equatable {
   const PurchaseModel({

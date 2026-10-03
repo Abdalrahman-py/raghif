@@ -24,9 +24,6 @@ class Strings {
   static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
-  static const otpNotificationTitle = 'رمز التحقق';
-  static String otpNotificationBody(String code) =>
-      'رمز التحقق الخاص بك: $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
@@ -138,6 +135,11 @@ class Strings {
   static const offlineWriteFailed =
       'تعذّر الاتصال بالخادم. لم يتم تنفيذ العملية، حاول مرة أخرى.';
 
+  /// A read that could not reach the server. There is no local copy to fall
+  /// back on (constitution I), so the screen says so instead of looking empty.
+  static const offlineRead = loginOffline;
+  static const retryButton = 'إعادة المحاولة';
+
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
   static String bagsRemaining(int remaining, int total) =>
@@ -190,14 +192,8 @@ class Strings {
   static const waitingReassurance = 'سيتم إشعارك عندما يحين دورك';
   static const estimatedTime = 'الوقت التقديري للجاهزية';
   static const statusNotified = 'خبزك جاهز!';
-  static String batchReadyNotificationTitle(String storeName) =>
-      'خبزك جاهز في $storeName';
   static const batchReadyNotificationBody =
       'حان دورك، توجه إلى المخبز لاستلام طلبك';
-  static String purchaseConfirmedNotificationTitle(String storeName) =>
-      'تم تأكيد حجزك في $storeName';
-  static String purchaseConfirmedNotificationBody(int batch) =>
-      'أنت الآن في الدفعة رقم $batch، سنشعرك عندما يحين دورك';
   static const returnToStores = 'العودة إلى المخابز';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =

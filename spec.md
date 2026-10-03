@@ -75,6 +75,12 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 ## Technical Decisions
 
+> **Status update (2026-10-03): no local database.** Supabase is the only
+> source of data: the `drift` cache described below was removed, every screen
+> reads Postgres and stays current through Realtime, and every notification is
+> a server push. The one thing kept on the phone is the buyer's latest
+> receipt, so the pickup QR opens with no signal. See `constitution.md` §I–II.
+>
 > **Status update (2026-09-19): moving to a live Supabase backend.** The
 > earlier "prototype scope: local-only, no Supabase" ruling (2026-09-06,
 > recorded in TASKS.md) is superseded by owner decision — the app is
@@ -96,7 +102,7 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 | Decision | Choice | Why |
 |---|---|---|
 | Platform | Flutter (Android-first) | Port of the Kotlin prototype — the port IS the prototype now |
-| Backend | **Supabase (Postgres + Realtime + Edge Functions)**, `drift` as permanent offline cache | Live multi-device state (queue/allocation must be shared across buyer + owner devices); drift keeps the app usable offline |
+| Backend | **Supabase (Postgres + Realtime + Edge Functions)**, no local database (buyer's receipt kept on the phone for offline pickup) | Live multi-device state (queue/allocation must be shared across buyer + owner devices); one source of data, so no device shows a stale answer |
 | Auth | National ID + PIN login, via a custom Edge Function issuing Supabase sessions | Preserves the no-SMS-needed UX while still getting real `auth.uid()`-backed RLS; real SMS/OTP gateway still unresolved (see Open Questions) |
 | Notifications | Push notifications (FCM), triggered from Supabase via Edge Functions; Realtime for in-app live updates | Supabase has no native push service — FCM handles backgrounded/killed delivery, Realtime complements it while the app is open |
 | Store discovery | Flat list by name | ~10 stores, no maps needed |
@@ -106,11 +112,9 @@ A mobile app that turns the market into a **digital queue + pre-order system**.
 
 ## Database Schema
 
-**Supabase Postgres is now the source of truth.** The on-device `drift` database
-mirrors this schema as an offline cache (kept permanently, not a temporary shim) —
-reads/writes go through Supabase when online, queue locally and replay when
-offline. UUID PKs are shared between drift and Postgres (client-generated at
-create time), so no separate server-id mapping is needed. Every synced table
+**Supabase Postgres is the source of truth and the only source of data.** The
+app reads it directly (no on-device mirror since 2026-10-03); writes are RPCs
+and fail when the server is unreachable. Every synced table
 carries `created_at`/`updated_at timestamptz` for sync cursors.
 
 ### stores

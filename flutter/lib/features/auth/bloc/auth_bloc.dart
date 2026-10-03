@@ -1,7 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/auth/session_store.dart';
 import '../../../core/i18n/strings.dart';
-import '../../../core/notifications/notification_service.dart';
 import '../../../domain/models/user_model.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -13,9 +11,7 @@ export 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required AuthRepository authRepository,
-    required SessionStore sessionStore,
   })  : _authRepository = authRepository,
-        _sessionStore = sessionStore,
         super(const AuthInitial()) {
     on<CheckAuthSessionEvent>(_onCheckAuthSession);
     on<RequestOtpEvent>(_onRequestOtp);
@@ -28,7 +24,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   final AuthRepository _authRepository;
-  final SessionStore _sessionStore;
 
   String? _pendingOtp;
   String? _pendingNationalId;
@@ -39,21 +34,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      final userId = await _sessionStore.loadUserId();
-      if (userId == null) {
-        emit(const Unauthenticated());
-        return;
-      }
-
-      final user = await _authRepository.findById(userId);
-      if (user != null) {
-        emit(Authenticated(user));
-      } else {
-        await _sessionStore.clear();
-        emit(const Unauthenticated());
-      }
+      final user = await _authRepository.restoreSession();
+      emit(user != null ? Authenticated(user) : const Unauthenticated());
     } catch (e) {
-      emit(AuthFailure(e.toString()));
+      // Signed in on this phone, but the server could not be asked who that
+      // is: the profile is not kept locally, so say so on the login screen.
+      emit(const AuthFailure(Strings.loginOffline));
     }
   }
 
@@ -73,16 +59,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
-      _pendingOtp = otp;
+      _pendingOtp = otp.code;
       _pendingNationalId = nationalId;
-      await NotificationService.instance.showNotification(
-        title: Strings.otpNotificationTitle,
-        body: Strings.otpNotificationBody(otp),
-      );
+      // No SMS gateway yet: the login screen shows the mock code itself.
       emit(AuthOtpSent(
         nationalId: nationalId,
-        phone: (await _authRepository.findByNationalId(nationalId))?.phone ?? '',
-        otpCode: otp,
+        phone: otp.phone,
+        otpCode: otp.code,
       ));
     } catch (e) {
       // The gateway answering "no" is handled in the repository; anything

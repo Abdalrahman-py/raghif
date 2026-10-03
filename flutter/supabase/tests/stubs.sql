@@ -18,8 +18,12 @@ create view vault.decrypted_secrets as select id, name, secret as decrypted_secr
 create function vault.create_secret(s text, n text, d text default null) returns uuid
   language sql as $$ insert into vault.secrets (name, secret) values (n, s) returning id $$;
 create schema net;
+-- Records every call so tests can assert what would have been sent.
+create table net.calls (url text, headers jsonb, body jsonb);
 create function net.http_post(url text, headers jsonb default '{}', body jsonb default '{}')
-  returns bigint language sql as $$ select 1::bigint $$;
+  returns bigint language sql as $$
+    insert into net.calls values (url, headers, body); select 1::bigint
+  $$;
 create publication supabase_realtime;
 
 grant usage on schema public, extensions to anon, authenticated, service_role;

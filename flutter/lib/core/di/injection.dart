@@ -1,17 +1,12 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../firebase_options.dart';
-import '../auth/session_store.dart';
 import '../config/env.dart';
-import '../database/app_database.dart';
 import '../notifications/fcm_service.dart';
 import '../notifications/notification_service.dart';
 import '../../data/repositories/supabase_auth_repository.dart';
 import '../../data/repositories/supabase_queue_repository.dart';
-import '../../data/sync/queue_sync_service.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
@@ -24,8 +19,8 @@ final GetIt sl = GetIt.instance;
 /// The old `USE_SUPABASE` flag picked between a Supabase path and a
 /// drift-only one that seeded and decided everything on-device. Keeping
 /// both meant two disagreeing sources of truth, which is what shipped the
-/// batch-number mismatch. There is one path now; drift is a cache behind
-/// it.
+/// batch-number mismatch. There is one path now, and no on-device database:
+/// every screen reads Supabase.
 Future<void> initDependencies() async {
   await Env.load();
 
@@ -34,12 +29,6 @@ Future<void> initDependencies() async {
     publishableKey: Env.supabaseAnonKey,
   );
   sl.registerSingleton<SupabaseClient>(Supabase.instance.client);
-
-  final db = AppDatabase();
-  sl.registerSingleton<AppDatabase>(db);
-
-  final sessionStore = SessionStore();
-  sl.registerSingleton<SessionStore>(sessionStore);
 
   sl.registerSingleton<NotificationService>(NotificationService.instance);
   await sl<NotificationService>().init();
@@ -52,38 +41,18 @@ Future<void> initDependencies() async {
   sl.registerSingleton<AuthRepository>(
     SupabaseAuthRepository(
       client: sl<SupabaseClient>(),
-      db: sl<AppDatabase>(),
-      sessionStore: sl<SessionStore>(),
       fcmService: sl<FcmService>(),
     ),
   );
 
-  final sync = QueueSyncService(client: sl<SupabaseClient>(), db: db);
-  sl.registerSingleton<QueueSyncService>(sync);
   sl.registerSingleton<QueueRepository>(
-    SupabaseQueueRepository(
-      client: sl<SupabaseClient>(),
-      db: db,
-      sync: sync,
-    ),
+    SupabaseQueueRepository(client: sl<SupabaseClient>()),
   );
 
   sl.registerFactory<AuthBloc>(
-    () => AuthBloc(
-      authRepository: sl<AuthRepository>(),
-      sessionStore: sl<SessionStore>(),
-    ),
+    () => AuthBloc(authRepository: sl<AuthRepository>()),
   );
   sl.registerLazySingleton<QueueController>(
     () => QueueController(sl<QueueRepository>()),
   );
-
-  // Stores are world-readable, so the bakery list is warm before login.
-  // Nothing is seeded here: the demo world lives in Postgres now
-  // (seed_demo_* / the seed-demo Edge Function action).
-  //
-  // Not awaited: boot must not wait on the network. With the backend down or
-  // slow, an awaited pull leaves the app on the splash screen forever, while
-  // the cache it would refresh is exactly what lets it render offline.
-  unawaited(sync.pullStores());
 }

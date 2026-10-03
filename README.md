@@ -9,8 +9,8 @@ the day before, and the market owner releases customers in batches, notified by 
 ## Status: prototype on a live backend
 
 Flutter app under `flutter/`, backed by a live Supabase project (Postgres +
-Realtime + Edge Functions + FCM push). The on-device `drift` database is a
-cache of that server, not a second source of truth.
+Realtime + Edge Functions + FCM push). The app keeps no local database:
+every screen reads the server.
 
 | File | What it is |
 |---|---|
@@ -23,8 +23,9 @@ cache of that server, not a second source of truth.
 ## Stack
 
 Flutter + Supabase. Postgres decides (reservations, batch release, pickup,
-allocation); `drift` caches the answers so the app still renders on a bad
-connection. Writes require the backend and fail loudly when it is
+allocation) and is the only source of data; the one thing kept on the phone is
+the buyer's latest receipt, so the pickup QR opens with no signal. Writes
+require the backend and fail loudly when it is
 unreachable — a reservation that did not reach Postgres did not happen.
 
 ```bash

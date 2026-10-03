@@ -4,7 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:raghif/core/auth/session_store.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_colors.dart';
 import 'package:raghif/core/theme/app_theme.dart';
@@ -81,7 +80,6 @@ void main() {
           const LoginScreen(),
           bloc: AuthBloc(
             authRepository: FakeAuthRepository(),
-            sessionStore: SessionStore(),
           ),
         ),
     'login PIN step': (t) async {
@@ -90,7 +88,6 @@ void main() {
         const LoginScreen(),
         bloc: AuthBloc(
           authRepository: FakeAuthRepository(),
-          sessionStore: SessionStore(),
         ),
       );
       await t.enterText(fieldByLabel(Strings.personalIdLabel), '900111222');
@@ -102,7 +99,6 @@ void main() {
           const RegistrationScreen(),
           bloc: AuthBloc(
             authRepository: FakeAuthRepository(),
-            sessionStore: SessionStore(),
           ),
         ),
     'owner dashboard': (t) async {

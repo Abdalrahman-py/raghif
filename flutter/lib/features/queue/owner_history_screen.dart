@@ -4,6 +4,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/theme/app_shapes.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/offline_notice.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_day_summary.dart';
@@ -45,6 +46,7 @@ class _OwnerHistoryScreenState extends State<OwnerHistoryScreen> {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) return const OfflineNotice();
                 final days = snapshot.data ?? const <StoreDaySummary>[];
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,6 +187,7 @@ class _OwnerHistoryDayScreenState extends State<OwnerHistoryDayScreen> {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) return const OfflineNotice();
                 final queue = snapshot.data ?? const <PurchaseModel>[];
                 if (queue.isEmpty) {
                   return Center(

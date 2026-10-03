@@ -18,11 +18,15 @@ abstract class AuthRepository {
     required String code,
   });
 
-  Future<String?> requestOtp(String nationalId);
+  /// The (mock) code and the phone it goes to, or null if the national ID
+  /// is not registered.
+  Future<({String code, String phone})?> requestOtp(String nationalId);
+
+  /// The signed-in user from the persisted Supabase session, with their
+  /// profile read from the server; null when nobody is signed in.
+  Future<UserModel?> restoreSession();
 
   Future<UserModel?> findById(String id);
-
-  Future<UserModel?> findByNationalId(String nationalId);
 
   Future<bool> nationalIdExists(String nationalId);
 

@@ -4,6 +4,7 @@ import 'core/di/injection.dart';
 import 'core/i18n/strings.dart';
 import 'core/onboarding/onboarding_store.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/offline_notice.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/demo_accounts.dart';
 import 'features/auth/login_screen.dart';
@@ -190,6 +191,15 @@ class _OwnerHomeState extends State<_OwnerHome> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: OfflineNotice(
+              onRetry: () => setState(() {
+                _store = widget.controller.storeForOwner(widget.ownerId);
+              }),
+            ),
           );
         }
         final store = snapshot.data;

@@ -1,10 +1,8 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../core/database/app_database.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/scan_event_model.dart';
@@ -12,28 +10,33 @@ import '../../domain/models/store_day_summary.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
-import '../sync/queue_sync_service.dart';
+import '../receipt_store.dart';
 
-/// The only [QueueRepository]. Postgres decides, drift remembers.
+/// The only [QueueRepository]. Supabase is the only source of data.
 ///
-/// Reads are served from the cache so the app stays usable on a bad
-/// connection, and every read kicks off a background refresh. Writes go
-/// straight to an RPC and then re-pull: none of them touch the cache
-/// directly, because a locally-applied write is a second opinion about
-/// state the server owns. That is what produced the batch-number
-/// disagreement the old split-brain design shipped with.
+/// Every read is a query against Postgres, scoped by RLS. `watch*` streams
+/// re-run their query whenever Realtime reports a change to `purchases` or
+/// `stores`, and after this device's own writes. Nothing is kept on the
+/// phone except the buyer's latest receipt ([ReceiptStore]), so the pickup
+/// QR still opens with no signal.
 class SupabaseQueueRepository implements QueueRepository {
   SupabaseQueueRepository({
     required SupabaseClient client,
-    required AppDatabase db,
-    required QueueSyncService sync,
+    ReceiptStore? receipts,
   })  : _client = client,
-        _db = db,
-        _sync = sync;
+        _receipts = receipts ?? ReceiptStore();
 
   final SupabaseClient _client;
-  final AppDatabase _db;
-  final QueueSyncService _sync;
+  final ReceiptStore _receipts;
+
+  /// Fires when server data may have changed: a Realtime event or a write
+  /// made from this device. Every live stream re-queries on it.
+  final _changes = StreamController<void>.broadcast();
+  RealtimeChannel? _channel;
+
+  /// Purchase row plus the buyer and store names the screens show.
+  static const _purchaseColumns =
+      '*, profiles(name, phone, national_id), stores(name)';
 
   // ------------------------------------------------------------- writes --
 
@@ -55,6 +58,13 @@ class SupabaseQueueRepository implements QueueRepository {
     }
   }
 
+  /// An RPC that changes server state: live streams re-query after it.
+  Future<T> _write<T>(String name, Map<String, dynamic> params) async {
+    final result = await _rpc<T>(name, params);
+    _changes.add(null);
+    return result;
+  }
+
   /// Message raised by `reserve_bag` when a store is shut or out of bags.
   @visibleForTesting
   static const soldOutMessage = 'store closed or sold out';
@@ -73,23 +83,25 @@ class SupabaseQueueRepository implements QueueRepository {
     required String storeId,
     required String date,
   }) async {
-    final row = await _rpc<Map<String, dynamic>>('reserve_bag', {
+    final row = await _write<Map<String, dynamic>>('reserve_bag', {
       'p_store_id': storeId,
       'p_purchase_date': date,
     });
-    await _sync.refreshAll();
-    final saved = await getPurchaseById(row['id'] as String);
-    if (saved != null) return saved;
-    // Cache didn't catch up (RLS timing, flaky pull) — the server's own row
-    // is still the truth, so hand that back rather than failing a write
-    // that succeeded.
-    return _purchaseFromRow(row);
+    try {
+      final saved = await getPurchaseById(row['id'] as String);
+      if (saved != null) return saved;
+    } catch (_) {
+      // The reservation went through; only the follow-up read failed.
+    }
+    final bare = purchaseFromRow(row);
+    await _receipts.save(bare);
+    return bare;
   }
 
   @override
   Future<bool> notifyNextBatch(String storeId, String date) async {
     try {
-      await _rpc<dynamic>('notify_next_batch', {
+      await _write<dynamic>('notify_next_batch', {
         'p_store_id': storeId,
         'p_purchase_date': date,
       });
@@ -102,24 +114,19 @@ class SupabaseQueueRepository implements QueueRepository {
       }
       rethrow;
     }
-    await _sync.refreshAll();
     return true;
   }
 
   @override
-  Future<void> collectPurchase(String purchaseId) async {
-    await _rpc<dynamic>('collect_purchase', {'p_purchase_id': purchaseId});
-    await _sync.pullPurchases();
-  }
+  Future<void> collectPurchase(String purchaseId) =>
+      _write<dynamic>('collect_purchase', {'p_purchase_id': purchaseId});
 
   @override
-  Future<void> setStoreOpen(String storeId, bool isOpen) async {
-    await _rpc<dynamic>('set_store_open', {
-      'p_store_id': storeId,
-      'p_is_open': isOpen,
-    });
-    await _sync.pullStores();
-  }
+  Future<void> setStoreOpen(String storeId, bool isOpen) =>
+      _write<dynamic>('set_store_open', {
+        'p_store_id': storeId,
+        'p_is_open': isOpen,
+      });
 
   @override
   Future<void> saveStoreAllocation(
@@ -129,17 +136,15 @@ class SupabaseQueueRepository implements QueueRepository {
     required String date,
     String? openTime,
     String? closeTime,
-  }) async {
-    await _rpc<dynamic>('save_store_allocation', {
-      'p_store_id': storeId,
-      'p_daily_bag_limit': dailyLimit,
-      'p_batch_size': batchSize,
-      'p_purchase_date': date,
-      'p_open_time': _time(openTime),
-      'p_close_time': _time(closeTime),
-    });
-    await _sync.pullStores();
-  }
+  }) =>
+      _write<dynamic>('save_store_allocation', {
+        'p_store_id': storeId,
+        'p_daily_bag_limit': dailyLimit,
+        'p_batch_size': batchSize,
+        'p_purchase_date': date,
+        'p_open_time': _time(openTime),
+        'p_close_time': _time(closeTime),
+      });
 
   @override
   Future<void> recordScan({
@@ -148,199 +153,267 @@ class SupabaseQueueRepository implements QueueRepository {
     String? purchaseId,
     String? scannedName,
     String? scannedNationalId,
-  }) async {
-    await _rpc<dynamic>('record_scan', {
-      'p_store_id': storeId,
-      'p_outcome': outcome,
-      'p_purchase_id': purchaseId,
-      'p_scanned_name': scannedName,
-      'p_scanned_national_id': scannedNationalId,
-    });
-    await _sync.pullScanEvents();
-  }
+  }) =>
+      _write<dynamic>('record_scan', {
+        'p_store_id': storeId,
+        'p_outcome': outcome,
+        'p_purchase_id': purchaseId,
+        'p_scanned_name': scannedName,
+        'p_scanned_national_id': scannedNationalId,
+      });
 
   @override
   Future<void> setStorePinned({
     required String userId,
     required String storeId,
     required bool pinned,
-  }) async {
-    await _rpc<dynamic>('set_store_pinned', {
-      'p_store_id': storeId,
-      'p_pinned': pinned,
-    });
-    await _sync.pullPins();
-  }
+  }) =>
+      _write<dynamic>('set_store_pinned', {
+        'p_store_id': storeId,
+        'p_pinned': pinned,
+      });
 
   // -------------------------------------------------------------- reads --
 
-  @override
-  Future<void> refresh() => _sync.refreshAll();
+  /// Runs [query]; anything that is not an answer from the server becomes
+  /// [BackendUnavailableException], same as for writes.
+  Future<T> _read<T>(Future<T> Function() query) async {
+    try {
+      return await query();
+    } catch (e) {
+      throw BackendUnavailableException(e);
+    }
+  }
 
-  @override
-  Stream<List<StoreModel>> watchStores() {
-    unawaited(_sync.pullStores());
-    return _db.select(_db.stores).watch().map(
-          (rows) => rows.map(_storeFrom).toList(),
-        );
+  /// [fetch] now, then again on every change. A failed fetch keeps the last
+  /// value on screen and retries shortly, instead of erroring the stream.
+  ///
+  /// ponytail: re-runs the whole query per change; fine for one pilot store,
+  /// filter Realtime by store_id if the queue ever gets large.
+  Stream<T> _live<T>(Future<T> Function() fetch) {
+    late final StreamController<T> out;
+    StreamSubscription<void>? changes;
+    Timer? retry;
+
+    Future<void> emit() async {
+      retry?.cancel();
+      try {
+        final value = await fetch();
+        if (!out.isClosed) out.add(value);
+      } catch (_) {
+        if (!out.isClosed) {
+          retry = Timer(const Duration(seconds: 10), emit);
+        }
+      }
+    }
+
+    out = StreamController<T>(
+      onListen: () {
+        _listenForServerChanges();
+        changes = _changes.stream.listen((_) => emit());
+        emit();
+      },
+      onCancel: () async {
+        retry?.cancel();
+        await changes?.cancel();
+        await out.close();
+      },
+    );
+    return out.stream;
+  }
+
+  void _listenForServerChanges() {
+    _channel ??= _client
+        .channel('public-changes')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'purchases',
+          callback: (_) => _changes.add(null),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'stores',
+          callback: (_) => _changes.add(null),
+        )
+        .subscribe();
   }
 
   @override
-  Future<List<StoreModel>> getStores() async {
-    await _sync.pullStores();
-    final rows = await _db.select(_db.stores).get();
-    return rows.map(_storeFrom).toList();
-  }
+  Future<void> refresh() async => _changes.add(null);
 
   @override
-  Future<StoreModel?> getStoreById(String storeId) async {
-    final row = await (_db.select(_db.stores)
-          ..where((s) => s.id.equals(storeId)))
-        .getSingleOrNull();
-    return row == null ? null : _storeFrom(row);
-  }
+  Stream<List<StoreModel>> watchStores() => _live(getStores);
 
   @override
-  Future<StoreModel?> getStoreForOwner(String ownerId) async {
-    await _sync.pullStores();
-    final row = await (_db.select(_db.stores)
-          ..where((s) => s.ownerId.equals(ownerId))
-          ..limit(1))
-        .getSingleOrNull();
-    return row == null ? null : _storeFrom(row);
-  }
+  Future<List<StoreModel>> getStores() => _read(() async {
+        final rows = await _client.from('stores').select().order('created_at');
+        return rows.map(storeFromRow).toList();
+      });
+
+  @override
+  Future<StoreModel?> getStoreById(String storeId) => _read(() async {
+        final row = await _client
+            .from('stores')
+            .select()
+            .eq('id', storeId)
+            .maybeSingle();
+        return row == null ? null : storeFromRow(row);
+      });
+
+  @override
+  Future<StoreModel?> getStoreForOwner(String ownerId) => _read(() async {
+        final row = await _client
+            .from('stores')
+            .select()
+            .eq('owner_id', ownerId)
+            .limit(1)
+            .maybeSingle();
+        return row == null ? null : storeFromRow(row);
+      });
 
   @override
   Stream<List<StoreListEntry>> watchStoreListForUser({
     required String userId,
     required String today,
   }) {
-    unawaited(_sync.refreshAll());
-    final query = _db.select(_db.stores).join([
-      leftOuterJoin(
-        _db.storePins,
-        _db.storePins.storeId.equalsExp(_db.stores.id) &
-            _db.storePins.userId.equals(userId),
-      ),
-    ]);
+    return _live(() async {
+      final stores = await getStores();
+      final (pins, mine) = await _read(
+        () async => (
+          await _client
+              .from('store_pins')
+              .select('store_id')
+              .eq('user_id', userId),
+          await _client
+              .from('purchases')
+              .select('id, store_id, purchase_date, status')
+              .eq('user_id', userId)
+              .order('purchase_date', ascending: false),
+        ),
+      );
+      final pinned = pins.map((p) => p['store_id'] as String).toSet();
 
-    return query.watch().asyncMap((rows) async {
-      final purchases = await (_db.select(_db.purchases)
-            ..where((p) => p.userId.equals(userId)))
-          .get();
-
-      return rows.map((row) {
-        final store = row.readTable(_db.stores);
-        final mine = purchases.where((p) => p.storeId == store.id).toList()
-          ..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
-        final todays = mine.where((p) => p.purchaseDate == today).firstOrNull;
+      return stores.map((store) {
+        final atStore = mine.where((p) => p['store_id'] == store.id);
+        final todays =
+            atStore.where((p) => p['purchase_date'] == today).firstOrNull;
         return StoreListEntry(
-          store: _storeFrom(store),
-          pinned: row.readTableOrNull(_db.storePins) != null,
-          todayStatus: todays?.status,
-          todayPurchaseId: todays?.id,
-          lastPurchaseDate: mine.firstOrNull?.purchaseDate,
+          store: store,
+          pinned: pinned.contains(store.id),
+          todayStatus: todays == null ? null : _status(todays['status']),
+          todayPurchaseId: todays?['id'] as String?,
+          lastPurchaseDate: atStore.firstOrNull?['purchase_date'] as String?,
         );
       }).toList();
     });
   }
 
   @override
-  Stream<List<PurchaseModel>> watchQueueForStore(String storeId, String date) {
-    unawaited(_sync.pullPurchases());
-    return _queueQuery(storeId, date).watch().map(_purchasesFromJoin);
-  }
+  Stream<List<PurchaseModel>> watchQueueForStore(String storeId, String date) =>
+      _live(() => getQueueForStore(storeId, date));
 
   @override
   Future<List<PurchaseModel>> getQueueForStore(
     String storeId,
     String date,
-  ) async {
-    await _sync.pullPurchases();
-    return _purchasesFromJoin(await _queueQuery(storeId, date).get());
-  }
-
-  JoinedSelectStatement _queueQuery(String storeId, String date) {
-    return (_db.select(_db.purchases)
-          ..where((p) => p.storeId.equals(storeId) & p.purchaseDate.equals(date))
-          ..orderBy([(p) => OrderingTerm.asc(p.createdAt)]))
-        .join([
-      leftOuterJoin(_db.users, _db.users.id.equalsExp(_db.purchases.userId)),
-      leftOuterJoin(_db.stores, _db.stores.id.equalsExp(_db.purchases.storeId)),
-    ]);
-  }
+  ) =>
+      _read(() async {
+        final rows = await _client
+            .from('purchases')
+            .select(_purchaseColumns)
+            .eq('store_id', storeId)
+            .eq('purchase_date', date)
+            .order('created_at');
+        return rows.map(purchaseFromRow).toList();
+      });
 
   @override
   Future<PurchaseModel?> getBlockingPurchase(String userId, String date) async {
-    final row = await (_db.select(_db.purchases)
-          ..where((p) => p.userId.equals(userId) & p.purchaseDate.equals(date)))
-        .getSingleOrNull();
-    return row == null ? null : _purchaseFrom(row);
+    try {
+      final row = await _client
+          .from('purchases')
+          .select(_purchaseColumns)
+          .eq('user_id', userId)
+          .eq('purchase_date', date)
+          .maybeSingle();
+      if (row == null) {
+        // The server has no order today, so a saved one must not resurface.
+        await _receipts.clear();
+        return null;
+      }
+      final purchase = purchaseFromRow(row);
+      await _receipts.save(purchase);
+      return purchase;
+    } catch (e) {
+      // No signal: the saved receipt stands in, if it is this buyer's today.
+      final saved = await _receipts.load();
+      if (saved != null && saved.userId == userId && saved.purchaseDate == date) {
+        return saved;
+      }
+      throw BackendUnavailableException(e);
+    }
   }
 
   @override
   Future<PurchaseModel?> getPurchaseById(String purchaseId) async {
-    final rows = await (_db.select(_db.purchases)
-          ..where((p) => p.id.equals(purchaseId)))
-        .join([
-      leftOuterJoin(_db.users, _db.users.id.equalsExp(_db.purchases.userId)),
-      leftOuterJoin(_db.stores, _db.stores.id.equalsExp(_db.purchases.storeId)),
-    ]).get();
-    final list = _purchasesFromJoin(rows);
-    return list.isEmpty ? null : list.first;
+    try {
+      final row = await _client
+          .from('purchases')
+          .select(_purchaseColumns)
+          .eq('id', purchaseId)
+          .maybeSingle();
+      if (row == null) return null;
+      final purchase = purchaseFromRow(row);
+      if (purchase.userId == _client.auth.currentUser?.id) {
+        await _receipts.save(purchase);
+      }
+      return purchase;
+    } catch (e) {
+      final saved = await _receipts.load();
+      if (saved?.id == purchaseId) return saved;
+      throw BackendUnavailableException(e);
+    }
   }
 
   @override
-  Stream<PurchaseModel?> watchPurchaseById(String purchaseId) {
-    return (_db.select(_db.purchases)..where((p) => p.id.equals(purchaseId)))
-        .join([
-          leftOuterJoin(_db.users, _db.users.id.equalsExp(_db.purchases.userId)),
-          leftOuterJoin(
-            _db.stores,
-            _db.stores.id.equalsExp(_db.purchases.storeId),
-          ),
-        ])
-        .watch()
-        .map((rows) {
-          final list = _purchasesFromJoin(rows);
-          return list.isEmpty ? null : list.first;
-        });
-  }
+  Stream<PurchaseModel?> watchPurchaseById(String purchaseId) =>
+      _live(() => getPurchaseById(purchaseId));
 
   @override
   Future<List<ScanEventModel>> getScansForStore(
     String storeId, {
     int limit = 100,
-  }) async {
-    await _sync.pullScanEvents();
-    final rows = await (_db.select(_db.scanEvents)
-          ..where((s) => s.storeId.equals(storeId))
-          ..orderBy([(s) => OrderingTerm.desc(s.scannedAt)])
-          ..limit(limit))
-        .get();
-    return rows
-        .map(
-          (r) => ScanEventModel(
-            id: r.id,
-            storeId: r.storeId,
-            purchaseId: r.purchaseId,
-            outcome: r.outcome,
-            scannedName: r.scannedName,
-            scannedNationalId: r.scannedNationalId,
-            scannedAtMillis: r.scannedAt,
-          ),
-        )
-        .toList();
-  }
+  }) =>
+      _read(() async {
+        final rows = await _client
+            .from('scan_events')
+            .select()
+            .eq('store_id', storeId)
+            .order('scanned_at', ascending: false)
+            .limit(limit);
+        return rows
+            .map(
+              (r) => ScanEventModel(
+                id: r['id'] as String,
+                storeId: r['store_id'] as String,
+                purchaseId: r['purchase_id'] as String?,
+                outcome: (r['outcome'] as String?) ?? '',
+                scannedName: r['scanned_name'] as String?,
+                scannedNationalId: r['scanned_national_id'] as String?,
+                scannedAtMillis: _millis(r['scanned_at']),
+              ),
+            )
+            .toList();
+      });
 
   // Computed by Postgres (`store_customers` / `store_daily_summaries`) so the
-  // owner's numbers come from the same rows the queue does, not from a
-  // partial mirror.
+  // owner's numbers come from the same rows the queue does.
 
   @override
-  Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId) {
-    return Stream.fromFuture(getCustomersForStore(storeId));
-  }
+  Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId) =>
+      _live(() => getCustomersForStore(storeId));
 
   @override
   Future<List<CustomerSummaryModel>> getCustomersForStore(
@@ -381,64 +454,55 @@ class SupabaseQueueRepository implements QueueRepository {
 
   // ------------------------------------------------------------ mapping --
 
-  StoreModel _storeFrom(Store row) => StoreModel(
-        id: row.id,
-        name: row.name,
-        isOpen: row.isOpen,
-        dailyBagLimit: row.dailyBagLimit,
-        bagsRemaining: row.bagsRemaining,
-        ownerId: row.ownerId,
-        batchSize: row.batchSize,
-        openTime: row.openTime,
-        closeTime: row.closeTime,
-        area: row.area,
+  @visibleForTesting
+  static StoreModel storeFromRow(Map<String, dynamic> row) => StoreModel(
+        id: row['id'] as String,
+        name: (row['name'] as String?) ?? '',
+        isOpen: (row['is_open'] as bool?) ?? false,
+        dailyBagLimit: (row['daily_bag_limit'] as int?) ?? 0,
+        bagsRemaining: (row['bags_remaining'] as int?) ?? 0,
+        ownerId: row['owner_id'] as String?,
+        batchSize: (row['batch_size'] as int?) ?? 20,
+        openTime: _hhmm(row['open_time'] as String?),
+        closeTime: _hhmm(row['close_time'] as String?),
+        area: (row['area'] as String?) ?? '',
       );
 
-  PurchaseModel _purchaseFrom(Purchase row) => PurchaseModel(
-        id: row.id,
-        storeId: row.storeId,
-        userId: row.userId,
-        purchaseDate: row.purchaseDate,
-        batchNumber: row.batchNumber,
-        status: row.status,
-        createdAtMillis: row.createdAt,
-      );
-
-  List<PurchaseModel> _purchasesFromJoin(List<TypedResult> rows) {
-    return rows.map((row) {
-      final purchase = row.readTable(_db.purchases);
-      final user = row.readTableOrNull(_db.users);
-      final store = row.readTableOrNull(_db.stores);
-      return PurchaseModel(
-        id: purchase.id,
-        storeId: purchase.storeId,
-        userId: purchase.userId,
-        purchaseDate: purchase.purchaseDate,
-        batchNumber: purchase.batchNumber,
-        status: purchase.status,
-        createdAtMillis: purchase.createdAt,
-        userName: user?.name,
-        userPhone: user?.phone,
-        userNationalId: user?.nationalId,
-        storeName: store?.name,
-      );
-    }).toList();
+  /// A `purchases` row, with the embedded `profiles` / `stores` names when
+  /// the query asked for them (and RLS let this user see them).
+  @visibleForTesting
+  static PurchaseModel purchaseFromRow(Map<String, dynamic> row) {
+    final buyer = row['profiles'] as Map<String, dynamic>?;
+    final store = row['stores'] as Map<String, dynamic>?;
+    return PurchaseModel(
+      id: row['id'] as String,
+      storeId: row['store_id'] as String,
+      userId: row['user_id'] as String,
+      purchaseDate: row['purchase_date'] as String,
+      batchNumber: row['batch_number'] as int,
+      status: _status(row['status']),
+      createdAtMillis: _millis(row['created_at']),
+      userName: buyer?['name'] as String?,
+      userPhone: buyer?['phone'] as String?,
+      userNationalId: buyer?['national_id'] as String?,
+      storeName: store?['name'] as String?,
+    );
   }
 
-  PurchaseModel _purchaseFromRow(Map<String, dynamic> row) => PurchaseModel(
-        id: row['id'] as String,
-        storeId: row['store_id'] as String,
-        userId: row['user_id'] as String,
-        purchaseDate: row['purchase_date'] as String,
-        batchNumber: row['batch_number'] as int,
-        status: switch (row['status'] as String?) {
-          'notified' => PurchaseStatus.notified,
-          'collected' => PurchaseStatus.collected,
-          _ => PurchaseStatus.waiting,
-        },
-        createdAtMillis:
-            DateTime.parse(row['created_at'] as String).millisecondsSinceEpoch,
-      );
+  static PurchaseStatus _status(Object? value) => switch (value) {
+        'notified' => PurchaseStatus.notified,
+        'collected' => PurchaseStatus.collected,
+        _ => PurchaseStatus.waiting,
+      };
+
+  static int _millis(Object? iso) =>
+      DateTime.parse(iso! as String).millisecondsSinceEpoch;
+
+  /// Postgres `time` comes back as "HH:mm:ss"; the UI wants "HH:mm".
+  static String? _hhmm(String? value) {
+    if (value == null || value.length < 5) return value;
+    return value.substring(0, 5);
+  }
 
   /// Postgres `time` wants "HH:mm:ss"; the UI carries "HH:mm".
   static String? _time(String? hhmm) {
