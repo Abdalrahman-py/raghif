@@ -19,6 +19,21 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (release signing and config)
+
+- **Release builds no longer ship with a throwaway debug key.** The release
+  workflow used to fall back to the runner's debug key when the keystore
+  secrets were missing; that key changes every run, so phones could not
+  update over an earlier install. It now fails instead, and the signature
+  check rejects any APK signed with the debug key.
+- **Local release builds use the real keystore.** `storeFile` in
+  `android/key.properties` is now resolved from `android/app/` (Flutter's
+  documented layout), where the keystore actually lives. Before, the path
+  never matched and local builds were silently debug-signed.
+- **Supabase URL and anon key can be repo Variables.** The release workflow
+  reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from repo variables first, then
+  secrets. Both ship inside the APK, so they are not secret.
+
 ### Removed (CI)
 
 - **Pixel golden tests are gone.** They failed on tiny rendering differences
