@@ -32,7 +32,7 @@ Workflow rules this changelog lives by:
   is gone.
 - **Notifications come from the server only.** "Purchase confirmed" is now a
   push sent by `notify-batch` (new trigger on purchase insert, migration
-  `20261003170000_notify_purchase_confirmed`). The phone no longer raises its
+  `20261003172252_notify_purchase_confirmed`). The phone no longer raises its
   own "purchase confirmed", "batch released" or OTP notifications. The mock
   login and payment codes are shown on screen, as before.
 - `constitution.md` §I–II, `spec.md` and `README.md` record the change

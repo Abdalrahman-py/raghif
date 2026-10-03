@@ -1,4 +1,4 @@
--- Asserts 20261003170000_notify_purchase_confirmed.sql: every new purchase
+-- Asserts 20261003172252_notify_purchase_confirmed.sql: every new purchase
 -- asks notify-batch to push its confirmation, with the shared secret.
 
 insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000e1');
