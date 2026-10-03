@@ -63,6 +63,14 @@ const DEMO_ACCOUNTS = [
     jawwalPayNumber: "0599000002",
     role: "owner",
   },
+  {
+    phone: "0599444555",
+    pin: "1234",
+    nationalId: "900444555",
+    name: "حسن الخليلي",
+    jawwalPayNumber: "0599000003",
+    role: "buyer",
+  },
 ];
 
 // Dummy buyers that populate the demo queue. They exist so the owner's

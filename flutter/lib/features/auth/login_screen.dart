@@ -232,6 +232,13 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: AppSpacing.sm),
               _demoRow(
                 sheetContext,
+                demoBuyer2Name,
+                demoBuyer2NationalId,
+                demoBuyer2Pin,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _demoRow(
+                sheetContext,
                 Strings.demoOwnerLabel,
                 demoOwnerNationalId,
                 demoOwnerPin,
