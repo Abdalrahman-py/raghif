@@ -19,6 +19,20 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed (purchase cache)
+
+- **Purchases deleted on the server now disappear from the phone.** The
+  sync only ever added or replaced cached purchases, so a purchase removed
+  server-side kept showing as "already bought today" until the app's data
+  was cleared. Each pull now drops cached purchases the server no longer
+  returns.
+
+### Added (demo accounts)
+
+- **Second demo buyer, حسن الخليلي** (`900444555`, PIN `1234`), in the login
+  screen's demo sheet and the `seed-demo` account list, so two phones can
+  test the queue at once (each account gets one bag a day).
+
 ### Fixed (release signing and config)
 
 - **Release builds no longer ship with a throwaway debug key.** The release

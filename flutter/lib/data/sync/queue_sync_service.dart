@@ -111,6 +111,12 @@ class QueueSyncService {
           .toSet();
 
       await _db.batch((b) {
+        // Mirror deletions too: a purchase removed on the server must not
+        // live on here as "already bought today".
+        b.deleteWhere(
+          _db.purchases,
+          (p) => p.id.isNotIn(list.map((row) => row['id'] as String)),
+        );
         for (final row in list) {
           // A purchase whose buyer or store this device may not read would
           // violate the cache's own foreign keys; skip rather than invent a
