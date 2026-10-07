@@ -1,6 +1,8 @@
-/// Demo account constants used to seed the local database on first run
-/// (see AuthRepository.ensureSeeded). Mirrors app/.../data/AppDatabase.kt's
-/// DEMO_* constants.
+/// Demo sign-in accounts shown on the login screen. They exist on the server
+/// only if someone ran the gated `seed-demo` action of the auth-gateway Edge
+/// Function (supabase/functions/auth-gateway); the app never creates them.
+/// Keep in sync with DEMO_ACCOUNTS there. Never seed them into a project that
+/// holds real identities: the PIN is public.
 const demoBuyerPhone = '0599111111';
 const demoBuyerPin = '1234';
 const demoBuyerNationalId = '900111222';
