@@ -26,7 +26,16 @@ const SEED_DEMO_SECRET = Deno.env.get("SEED_DEMO_SECRET");
 // Mock OTP — no real SMS gateway yet (spec.md open question); the app shows
 // this code on screen. Enforced here, not just in the client, so
 // `otp-confirm` cannot mint a session from a national ID alone.
+//
+// OFF BY DEFAULT. The code is a constant, so while this is on, anyone who
+// knows a national ID can sign in as that person: it is an account-takeover
+// switch, not a login method. Turn it on only for a demo or a staging
+// project that holds no real identities:
+//   supabase secrets set ALLOW_MOCK_OTP=true
+// and unset it before real data goes in. National ID + PIN login (guarded by
+// the lockout in verify_pin_and_get_profile) is the only default sign-in.
 const MOCK_OTP = "4821";
+const ALLOW_MOCK_OTP = Deno.env.get("ALLOW_MOCK_OTP") === "true";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -325,6 +334,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case "otp-request": {
+        if (!ALLOW_MOCK_OTP) return json({ error: "otp login disabled" }, 403);
         const { nationalId } = body;
         const { data: profile, error } = await admin.rpc(
           "find_profile_by_national_id",
@@ -337,6 +347,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case "otp-confirm": {
+        if (!ALLOW_MOCK_OTP) return json({ error: "otp login disabled" }, 403);
         const { nationalId, otpCode } = body;
         if (otpCode !== MOCK_OTP) {
           return json({ error: "invalid code" }, 401);
@@ -361,6 +372,9 @@ Deno.serve(async (req: Request) => {
         return json({ error: `unknown action: ${action}` }, 400);
     }
   } catch (err) {
-    return json({ error: (err as Error).message ?? "internal error" }, 500);
+    // Log the cause server-side; never hand driver/Auth internals (constraint
+    // names, SQL text, "user already registered") to an unauthenticated caller.
+    console.error(`auth-gateway ${action} failed`, err);
+    return json({ error: "internal error" }, 500);
   }
 });

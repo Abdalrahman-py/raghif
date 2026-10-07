@@ -12,7 +12,7 @@ insert into public.purchases (id, store_id, user_id, purchase_date, batch_number
   values ('00000000-0000-0000-0000-0000000000d1',
           '00000000-0000-0000-0000-0000000000f1',
           '00000000-0000-0000-0000-0000000000e1',
-          current_date, 1);
+          (now() at time zone 'Asia/Gaza')::date, 1);
 
 do $$
 declare c record; n int;

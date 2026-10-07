@@ -37,9 +37,9 @@ insert into public.stores (id, name, owner_id, is_open, daily_bag_limit, bags_re
 
 -- Buyers reserve through the RPC: the only way in.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
-select public.reserve_bag('10000000-0000-0000-0000-000000000001', current_date);
+select public.reserve_bag('10000000-0000-0000-0000-000000000001', (now() at time zone 'Asia/Gaza')::date);
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
-select public.reserve_bag('10000000-0000-0000-0000-000000000002', current_date);
+select public.reserve_bag('10000000-0000-0000-0000-000000000002', (now() at time zone 'Asia/Gaza')::date);
 
 -- profiles: the owner reads buyers' rows, never their pin_hash or a raw *.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
@@ -64,7 +64,7 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
 select pg_temp.must_fail(
   $$insert into public.purchases (store_id, user_id, purchase_date, batch_number)
     values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b',
-            current_date + 1, 1)$$,
+            (now() at time zone 'Asia/Gaza')::date + 1, 1)$$,
   'row-level security');
 
 -- collect_purchase: a waiting batch is refused, a notified one is collected,
@@ -75,7 +75,7 @@ create temp table t_purchase as
 grant select on t_purchase to authenticated;
 select pg_temp.must_fail(
   $$select public.collect_purchase((select id from t_purchase))$$, 'not notified');
-select public.notify_next_batch('10000000-0000-0000-0000-000000000001', current_date);
+select public.notify_next_batch('10000000-0000-0000-0000-000000000001', (now() at time zone 'Asia/Gaza')::date);
 select public.collect_purchase((select id from t_purchase));
 do $$ begin
   if (select status from public.collect_purchase((select id from t_purchase))) <> 'collected'
@@ -121,14 +121,14 @@ select public.set_store_open('10000000-0000-0000-0000-000000000001', false);
 do $$
 declare v public.stores;
 begin
-  v := public.save_store_allocation('10000000-0000-0000-0000-000000000001', 10, 3, current_date, '08:00', '10:00');
+  v := public.save_store_allocation('10000000-0000-0000-0000-000000000001', 10, 3, (now() at time zone 'Asia/Gaza')::date, '08:00', '10:00');
   if v.bags_remaining <> 9 then raise exception 'remaining should be 10 - 1 sold, got %', v.bags_remaining; end if;
   if v.is_open then raise exception 'allocation must not reopen a closed store'; end if;
   if v.batch_size <> 3 then raise exception 'batch size not saved'; end if;
 end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
 select pg_temp.must_fail(
-  $$select public.save_store_allocation('10000000-0000-0000-0000-000000000001', 10, 3, current_date)$$,
+  $$select public.save_store_allocation('10000000-0000-0000-0000-000000000001', 10, 3, (now() at time zone 'Asia/Gaza')::date)$$,
   'not the store owner');
 
 -- anon may not call any owner RPC.

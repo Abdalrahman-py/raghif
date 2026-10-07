@@ -26,3 +26,13 @@ jobs:
       # Expanded reporter + a per-test timeout so a leaked Drift connection
       # shows up as a named, stack-traced failure instead of a stalled job.
       - run: flutter test --reporter expanded --timeout 60s
+
+  # Applies every migration to a disposable Postgres and runs the SQL tests
+  # (RLS, grants, RPC rules). These are the checks behind constitution III, and
+  # until this job existed nothing ran them automatically.
+  sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - run: bash flutter/supabase/tests/run.sh

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Applies every migration to a throwaway Postgres and runs lock_direct_writes.sql.
+# Applies every migration to a throwaway Postgres, then runs each *.sql test below.
 # Needs docker; touches nothing but the disposable container.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,4 +19,5 @@ for f in ../migrations/*.sql; do
 done
 psql < lock_direct_writes.sql
 psql < notify_purchase.sql
+psql < reserve_and_pin.sql
 echo "SQL tests passed"
