@@ -19,6 +19,45 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Security and correctness (2026-10-07 review — see `docs/BACKEND-REVIEW-2026-10.md`)
+
+- **Mock OTP login is off by default.** It accepted a fixed code for any
+  national ID, which let anyone sign in as anyone. It now needs the server flag
+  `ALLOW_MOCK_OTP=true` (demo/staging only). *Until that is set, the app's
+  default OTP sign-in answers 403; PIN sign-in is unchanged.*
+- **PIN lockout.** Five wrong PINs lock the account for 15 minutes; the counters
+  are server-only. Unknown IDs cost the same time as wrong PINs. PINs must be
+  exactly 4 digits server-side.
+- **`reserve_bag` is bounded and idempotent.** The date must be today or
+  tomorrow in Gaza by server time (was: any date, so one ID could hold many
+  bags). Retrying a reservation that already succeeded returns it instead of an
+  error. New migration `20261007210000_harden_reserve_stores_and_pin_login`.
+- **`stores` accept no direct writes.** Owners could set `bags_remaining`
+  directly or delete the store (cascading every purchase); they now use the RPCs.
+- Edge Function errors no longer leak internal messages to callers.
+
+### Added
+
+- SQL tests `reserve_and_pin.sql`, and a `sql` job in CI that applies every
+  migration to a disposable Postgres and runs all SQL tests (they were manual).
+- `docs/ARCHITECTURE.md` (where logic lives and why — answers "business logic as
+  SQL"), `docs/BACKEND-REVIEW-2026-10.md` (26 findings with status).
+
+### Changed (documentation)
+
+- `spec.md` rewritten: requirement IDs, roles, rules, lifecycle, RPC catalogue,
+  decision log, open questions. Stale `drift`/bilingual/SMS wording removed.
+- `constitution.md`: server owns the calendar; retry-safe writes; no direct table
+  writes; mocks never simulate authentication; SQL tests in CI; amendment log.
+- `TASKS.md`: prioritised P0/P1/P2 backlog from the review. `README.md` corrected.
+  Historical banners on `docs/supabase-migration-plan.md` and the 2026-09-05 audit.
+
+### Removed
+
+- `lib/core/auth/pin_hash.dart` (unused client-side hashing) and the unused
+  dependencies `crypto`, `freezed_annotation`, `json_annotation`, `intl`,
+  `easy_localization`, `build_runner`, `freezed`, `json_serializable`.
+
 ### Changed (data source)
 
 - **The server is the only source of data.** The on-device `drift` database

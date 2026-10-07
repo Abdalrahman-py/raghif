@@ -51,6 +51,15 @@ Rules are enforced where they cannot be bypassed, not where they are convenient.
 - The service-role key never ships in the app. Service-role work happens in
   Edge Functions.
 - A client-side check is a UX affordance, never the enforcement.
+- The server owns the calendar. A date the client sends is a request,
+  validated against `Asia/Gaza` server time; the phone's clock decides nothing.
+  (Amended 2026-10-07.)
+- Tables accept no direct writes from the app. The RPC is the only door; a new
+  table ships with its grants, RLS and a SQL test in the same PR.
+  (Amended 2026-10-07.)
+- Every write is safe to retry: repeating a request whose answer was lost
+  returns the same result and never takes a second bag. Connections drop the
+  response as often as the request. (Amended 2026-10-07.)
 
 ## IV. Identity data is dangerous
 
@@ -89,6 +98,11 @@ prototype simulates them.
 - No mock ever writes a fact that a real integration would later contradict —
   no fake "paid" state, no fake delivery receipt.
 - Demo data is seeded **server-side** (`seed_demo_*`), never by each install.
+- A mock may simulate a *delivery* (a code shown on screen). It may never
+  simulate an *authentication or verification*: any mock that can mint a
+  session is off by default behind an explicit server flag, and is never enabled
+  on a project that holds real identities. Demo accounts with public PINs are
+  never seeded into such a project. (Amended 2026-10-07; see review R-01, R-03.)
 
 ## VII. Green CI or it is not done
 
@@ -97,6 +111,8 @@ PR. The APK is built once per merge to `master` (`release.yml`), not on every
 PR — a PR's APK was built, uploaded and never used. (Amended 2026-09-30: this
 used to require the APK build on every push and PR.)
 
+- SQL tests (`flutter/supabase/tests/`) run on every PR (`ci.yml`, job `sql`).
+  Every RPC rule and every grant/RLS guarantee has one. (Amended 2026-10-07.)
 - Non-trivial logic ships with a test. Repository, sync, RPC-boundary and
   QR-decode logic are non-trivial by default.
 - Tests do not leak database connections or streams; the CI timeout exists
@@ -144,6 +160,7 @@ is a known-stale owner file, not a requirement. Current live corrections:
 | One bag per national ID per day, all stores | 2026-09-06 | "per store per day" in `README.md` |
 | Supabase is the backend; `drift` is a permanent cache | 2026-09-19 | "local-only, never add Supabase" in `TASKS.md` |
 | Supabase is the only data source: no `drift` cache, the buyer's receipt excepted; notifications are server pushes only | 2026-10-03 | The 2026-09-19 ruling above, and "drift as permanent offline cache" in `spec.md` |
+| Server owns the calendar; reservations idempotent; stores written only through RPCs; PIN lockout; mock OTP off by default | 2026-10-07 | Any spec or code that trusts a client date, retries as an error, or writes `stores` directly |
 
 ## Governance
 
@@ -153,3 +170,12 @@ that violates it does not merge, however well it works.
 Amending it: state the principle changed, the date, and why, in the PR that
 changes it — and update the stale document it supersedes in the same PR. An
 undocumented amendment is not one.
+
+### Amendment log
+
+| Date | Section | Change | Why |
+|---|---|---|---|
+| 2026-10-03 | I, II | No local database; receipt-only cache; server-only notifications | One source of truth |
+| 2026-10-07 | III | Server calendar, RPC-only writes, retry-safe writes | Review R-04…R-06 |
+| 2026-10-07 | VI | Mocks may simulate delivery, never authentication | Review R-01, R-03 |
+| 2026-10-07 | VII | SQL tests required in CI | Review R-18 |

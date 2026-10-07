@@ -1,200 +1,235 @@
-# Bread Distribution App — Product Spec
+# Raghif — Product Specification
 
-## Problem
+| | |
+|---|---|
+| Status | Prototype on a live backend, preparing a one-store pilot |
+| Last reviewed | 2026-10-07 |
+| Owner | Project owner (rulings in [constitution.md](constitution.md) §Authority) |
+| Read with | [constitution.md](constitution.md) (rules), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (how), [UI_SPEC.md](UI_SPEC.md) (look), [TASKS.md](TASKS.md) (what next), [docs/BACKEND-REVIEW-2026-10.md](docs/BACKEND-REVIEW-2026-10.md) (known gaps) |
 
-WFP provides bags of bread (2kg pita, 3 ILS) through selected markets in Gaza. Each market receives ~300 bags daily. Currently, hundreds of people crowd the market at once — chaos, no order, unsafe.
-
-## Solution
-
-A mobile app that turns the market into a **digital queue + pre-order system**.
-- Users reserve a bag from home the day before
-- Market owners release customers in controlled batches (e.g., 20 at a time)
-- Each batch gets notified by SMS when their bread is ready
-- No crowd, no rush, everyone knows when to come
-
----
-
-## Decided Features
-
-### User Side
-
-**Registration & Auth**
-- Registration: phone number + national ID + 4-digit PIN
-- Login identifier is national ID (unique, verifies the user) — not phone number
-  - Default: OTP login — user enters national ID, app looks up the phone on file for
-    that ID, simulates sending an OTP to it (shown on-screen — no real SMS gateway in
-    the prototype), user enters the code to confirm
-  - Alternate: PIN login — national ID + the 4-digit PIN set at registration, reached
-    via a "log in with PIN instead" link on the OTP screen (only works if that ID has
-    a PIN on file)
-
-**Buying Flow**
-- Flat list of ~10 stores by name (no GPS — users recognize their local bakery)
-- Each store shows: available / sold out
-- One bag per national ID per day, across all stores (not per-store)
-- Pre-order today for tomorrow's bread or whenever the owner sets the timeframe for purchasing
-- Fixed price: 3 ILS
-
-**Waiting & Pickup**
-- After purchase: confirmation with batch status
-- User can check app anytime to see if their batch has been called
-- SMS notification when batch is released: "Your bread is ready at [Store Name]"
-- Push notification serves as fallback for SMS
-
-### Market Owner Side
-
-**Daily Dashboard**
-- Set today's allocation (bags received from WFP)
-- "Remaining: X / Y" live counter
-- Purchase window: ON/OFF toggle
-- Batch size: owner-set (e.g., 20 per batch)
-
-**Buyer Queue**
-- Chronological list of today's buyers
-- Grouped into batches (batch 1, batch 2, batch 3...)
-- Each buyer row shows: phone number, national ID, purchase time
-- Notified batches = green, waiting batches = gray
-
-**Batch Release**
-- "Notify Next Batch" button — appears only when un-notified buyers exist
-- Owner taps → confirms → SMS go out → batch moves to notified
-- Owner releases next batch once current batch is collected
-
-**Owner Identification**
-- Hardcoded by phone number
-- Same app, role-based switch — no separate app needed
-
-### Business Rules
-- No cancellations — bag is paid for and owed
-- No reseller blocking (for now)
-- No collection workflow defined yet — will learn during pilot
-- Sold out = user sees "Sold out" only
-- Start with 1 store, be on-site to train and monitor
+Requirement IDs (`AUTH-1`, `BR-3`, …) are stable: reference them in issues,
+PRs and tests. A requirement is "built" only when a test cites it or the
+review doc says why not.
 
 ---
 
-## Technical Decisions
+## 1. Purpose
 
-> **Status update (2026-10-03): no local database.** Supabase is the only
-> source of data: the `drift` cache described below was removed, every screen
-> reads Postgres and stays current through Realtime, and every notification is
-> a server push. The one thing kept on the phone is the buyer's latest
-> receipt, so the pickup QR opens with no signal. See `constitution.md` §I–II.
->
-> **Status update (2026-09-19): moving to a live Supabase backend.** The
-> earlier "prototype scope: local-only, no Supabase" ruling (2026-09-06,
-> recorded in TASKS.md) is superseded by owner decision — the app is
-> migrating to Supabase (Postgres + Realtime + Auth + Edge Functions) as the
-> real backend, with the on-device `drift` database kept **permanently** as
-> an offline cache/read layer (not a temporary shim). See
-> `docs/supabase-migration-plan.md` (or the plan history) for the phased
-> rollout. The SMS gateway is still unresolved (see Open Questions) — auth
-> uses a custom Edge Function issuing sessions rather than Supabase's
-> built-in phone-auth, so this doesn't block the migration.
->
-> **Tooling note:** the `app/` Kotlin prototype uses SQLDelight (Kotlin/KMP-only — no
-> Dart/Flutter codegen target). For the Flutter port, [`drift`](https://pub.dev/packages/drift)
-> is the Dart-ecosystem equivalent — same SQL-file-first, generated-typesafe-query-code
-> approach, sqlite3-backed. Confirmed by five independent implementations (PRs #15, #17,
-> #19, #20, #21) converging on the same choice; see issue #4 for the full history.
-> `drift` remains the local offline-cache technology under the new architecture.
+WFP supplies selected markets in Gaza with about 300 bags of bread a day (2 kg
+pita, 3 ILS per bag). Today hundreds of people arrive at once: no order, no
+fairness, no safety. Raghif turns the market into a **digital queue with
+pre-orders**: a buyer reserves a bag from home, the market owner releases
+buyers in batches, and each batch is told when to come.
 
-| Decision | Choice | Why |
-|---|---|---|
-| Platform | Flutter (Android-first) | Port of the Kotlin prototype — the port IS the prototype now |
-| Backend | **Supabase (Postgres + Realtime + Edge Functions)**, no local database (buyer's receipt kept on the phone for offline pickup) | Live multi-device state (queue/allocation must be shared across buyer + owner devices); one source of data, so no device shows a stale answer |
-| Auth | National ID + PIN login, via a custom Edge Function issuing Supabase sessions | Preserves the no-SMS-needed UX while still getting real `auth.uid()`-backed RLS; real SMS/OTP gateway still unresolved (see Open Questions) |
-| Notifications | Push notifications (FCM), triggered from Supabase via Edge Functions; Realtime for in-app live updates | Supabase has no native push service — FCM handles backgrounded/killed delivery, Realtime complements it while the app is open |
-| Store discovery | Flat list by name | ~10 stores, no maps needed |
-| Language | Bilingual AR | arabic only app |
+### Goals
+- G1. Nobody crowds the market: arrivals are spread by batch.
+- G2. Fairness: one bag per person per day, first-come order, visible to the owner.
+- G3. Works for low-literacy users on cheap Android phones, outdoors, on bad networks.
+- G4. Cannot lose or double-sell a bag (the numbers are the product).
+
+### Non-goals (do not build without a ruling)
+Maps/GPS, multiple languages, a second payment provider, reseller detection,
+cancellations or refunds, a web app, more than one pilot store's special cases.
+
+### Pilot success criteria (proposed — owner to confirm)
+One store, on-site, one full week: every reservation honoured or explained;
+zero double-booked bags; owner releases batches without help by day 3; the
+collection workflow (§5.4) is written down from what actually happened.
 
 ---
 
-## Database Schema
+## 2. Users and roles
 
-**Supabase Postgres is the source of truth and the only source of data.** The
-app reads it directly (no on-device mirror since 2026-10-03); writes are RPCs
-and fail when the server is unreachable. Every synced table
-carries `created_at`/`updated_at timestamptz` for sync cursors.
-
-### stores
-| Column | Type | Notes |
+| Role | Who | Can |
 |---|---|---|
-| id | uuid | PK |
-| name | text | e.g. "Al-Rimal Bakery" |
-| owner_id | uuid | FK → auth.users (replaces the old owner_phone match) |
-| is_open | boolean | purchase window toggle |
-| daily_bag_limit | int | set by owner each morning |
-| bags_remaining | int | live counter, check constraint >= 0 |
-| open_time / close_time | time | purchase window |
-| batch_size | int | default 20 |
-| area | text | |
-| updated_at | timestamptz | sync cursor |
+| **Buyer** | Resident with a national ID | Browse stores, reserve one bag per day, see batch status, show a pickup receipt |
+| **Store owner** | One person per store, assigned by the operator | Everything a buyer can, plus run their store's day (§4.3) |
+| **Operator** | Project team | Creates stores and owner accounts out of band; there is no in-app admin |
 
-RLS: public read (buyers browse without auth); insert/update restricted to `auth.uid() = owner_id`.
+"Owner" is a property of the store (`stores.owner_id`), granted by the
+operator. A self-registered account is always a buyer.
 
-### profiles
-(was `users` locally — renamed to avoid colliding with Supabase's own `auth.users`)
+## 3. Glossary
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK, = auth.users.id |
-| phone | text | unique |
-| national_id | text | unique |
-| pin_hash | text | bcrypt via pgcrypto (migrated from the prototype's plain hash) |
-| role | text | `buyer` \| `owner` |
-| jawwal_pay_number | text | |
-| verification_status | text | `pending` \| `verified` |
-| updated_at | timestamptz | sync cursor |
-
-RLS: self read/update; store owners can read profiles of buyers who purchased at their store.
-
-### purchases
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| store_id | uuid | FK → stores |
-| user_id | uuid | FK → profiles |
-| purchase_date | date | which day the bread is for |
-| batch_number | int | which notification wave |
-| status | text (check) | `waiting` → `notified` → `collected` |
-| created_at | timestamptz | preserves purchase order |
-| updated_at | timestamptz | sync cursor |
-
-UNIQUE constraint: (user_id, purchase_date). RLS: buyer owns their rows; store
-owner reads/updates rows for their store. Writes go through a `reserve_bag`
-Postgres RPC (SECURITY DEFINER) so the sold-out check and the one-bag-per-day
-uniqueness are enforced atomically server-side, not racily on-device.
-
-### device_tokens (new)
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| user_id | uuid | FK → profiles |
-| fcm_token | text | |
-| platform | text | |
-| updated_at | timestamptz | |
-
-RLS: owner-only; the `notify-batch` Edge Function uses the service role to
-read across users for push fan-out. See Notifications section below.
-
-`store_pins` and `scan_events` keep their existing shape, UUID'd and owner-scoped via RLS.
+**Bag** — one unit of bread; the thing being rationed. **Allocation** — bags the
+store received for a day (`daily_bag_limit`). **Reservation / purchase** — a
+buyer's claim on one bag for one day. **Batch** — a group of consecutive
+reservations (size set by the owner) released together. **Release / notify** —
+the owner calls a batch. **Collect** — the owner confirms the buyer took the
+bag. **Gaza day** — the calendar date in `Asia/Gaza`, by the server's clock.
 
 ---
 
-## Open Questions
+## 4. Functional requirements
 
-| # | Question | Status |
-|---|---|---|
-| 1 | **Jawwal Pay integration** — Does their business API support the SMS verification code flow? What payment methods do they offer for online merchants? A mock version of the expected flow (number entry → OTP → confirm) is specced for the prototype; real API integration is still unconfirmed. | ⚠️ BLOCKER (prototype uses a mock) — Must confirm with Jawwal Pay / supervisor |
-| 5 | **WFP approval** — Required before expanding beyond pilot store. | External dependency |
+### 4.1 Accounts and sign-in
+- AUTH-1. Register with phone, national ID, name, 4-digit PIN, and a Jawwal Pay number. Phone and national ID are unique. Self-registration creates a buyer.
+- AUTH-2. Sign in with national ID **or** phone, plus PIN. Five wrong PINs lock that account for 15 minutes; the response never says which part was wrong.
+- AUTH-3. OTP sign-in (national ID → code) is a **demo-only mock**, shown on screen, and disabled unless the backend sets `ALLOW_MOCK_OTP=true` (constitution VI). It is not a production login.
+- AUTH-4. The session survives app restarts; sign-out clears it and the saved receipt.
+- AUTH-5. Registration includes ID-photo and selfie capture (camera only, never gallery) and a simulated "waiting for verification" step that auto-approves. Real verification is out of scope for the prototype; the screen says it is simulated.
+- AUTH-6. PIN, national ID and phone are never logged, put in a URL, or shown in an error (constitution IV).
+
+### 4.2 Buying
+- BUY-1. A flat list of stores by name, each showing **available** or **sold out**. No GPS.
+- BUY-2. A buyer may pin stores; pins are stored server-side so a new phone keeps the order.
+- BUY-3. A buyer reserves **one bag** for **today or tomorrow** (bounded by the server, BR-2). Price is fixed at 3 ILS; the prototype simulates payment with a Jawwal Pay mock (§10) and the counter-side collection workflow is undefined until the pilot (§5.4).
+- BUY-4. Repeating a reservation request for the same store and day returns the existing reservation, not an error (retries are normal on bad networks).
+- BUY-5. After reserving, the buyer sees a confirmation: store, day, batch number, status; and a pickup receipt that opens offline (§4.4).
+- BUY-6. The buyer sees live status: `waiting` → `notified` (batch called) → `collected`.
+- BUY-7. Sold out or closed shows "Sold out" and nothing else.
+
+### 4.3 Store owner
+- OWN-1. **Allocation:** set today's bag count, batch size and purchase window (open/close time); open and close the window with a toggle. Changing the allocation recomputes `remaining = limit − sold` for that day atomically.
+- OWN-2. **Live counter:** "Remaining X / Y".
+- OWN-3. **Queue:** today's reservations in purchase order, grouped by batch; each row shows name, phone, national ID and time. Called batches are visually distinct from waiting ones by colour **and** icon/text.
+- OWN-4. **Notify next batch:** shown only when un-called buyers exist; confirm first; calls the lowest waiting batch and triggers one push per buyer in it.
+- OWN-5. **Collect:** scan the buyer's receipt (or pick the row) → mark collected. A batch that has not been called yet cannot be collected; a second scan reports "already collected".
+- OWN-6. Every scan outcome, including failures, is recorded for audit.
+- OWN-7. **History:** per day — sold, collected, not collected. **Customers:** who bought, how often, last day.
+- OWN-8. An owner sees only their own store's buyers; a buyer's data is never visible to other stores (constitution IV).
+
+### 4.4 Pickup receipt
+- RCP-1. The receipt shows a QR the owner scans; it must open without signal, so the latest receipt is the single thing cached on the phone, written only from a server answer and cleared on sign-out or when the server says the order is gone.
+- RCP-2. *(Target, not built — review R-26.)* The QR carries an opaque, expiring, single-use server token only; no name or national ID. Redemption is one atomic server call that returns identity at that moment. Until then the prototype QR is a client-built JSON (version 2) that includes personal data and is validated against the owner's local queue. It must not be used with real identities.
+
+### 4.5 Notifications
+- NTF-1. Reservation confirmed → push to that buyer's devices, sent by the server.
+- NTF-2. Batch called → push to every device of the buyers in **that** batch only.
+- NTF-3. The app raises no notification of its own (constitution I).
+- NTF-4. Push is the channel (decision D-5). The original SMS requirement is deferred until a gateway exists; push is also the fallback the original spec asked for. Delivery is best-effort today and not recorded (review R-09).
 
 ---
 
-## Process
+## 5. Business rules
 
-1. Confirm Jawwal Pay integration (supervisor meeting)
-2. Get WFP blessing for pilot
-3. Build prototype: Flutter + drift (local DB, nothing hosted)
-4. Pilot with 1 store — be on-site, train owner, learn collection workflow
-5. Iterate and expand to ~10 stores
+- BR-1. **One bag per national ID per day, across all stores.** Enforced by a database unique constraint on (buyer, day), not by the app.
+- BR-2. **The server decides the day** (`Asia/Gaza`). A reservation's date must be today or tomorrow; anything else is refused.
+- BR-3. **No cancellations.** The bag is owed to the buyer; there are no refunds. What happens to uncollected bags is open (Q-4).
+- BR-4. **Batches:** a reservation's batch is `⌊reservations so far that day ÷ batch size⌋ + 1`, assigned at reservation time under a store lock. Batch size changes affect only later reservations.
+- BR-5. **Remaining bags** never go below zero; reserving decrements, allocation changes recompute from the day's sold count.
+- BR-6. **Sold-out** is decided in Postgres at reservation time, never from a client-held count.
+- BR-7. **Release order:** the owner calls the lowest-numbered waiting batch; batches cannot be skipped.
+- BR-8. **No reseller blocking** in the pilot.
+- BR-9. **Fixed price** 3 ILS.
+
+### 5.1 Purchase lifecycle
+
+```
+reserve ──▶ waiting ──(owner notifies batch)──▶ notified ──(owner scans/collects)──▶ collected
+```
+Only these transitions exist; `collected` is terminal; `collect` on a `waiting`
+purchase is refused; `collect` on `collected` is a harmless repeat.
+
+### 5.2 Scan outcomes
+`checkedIn`, `alreadyCollected`, `batchNotCalledYet`, `notFoundHere`,
+`wrongStore`, `invalidCode`.
+
+### 5.3 Purchase window
+`is_open` plus optional `open_time`/`close_time` set what buyers may reserve.
+Today the server enforces `is_open` and the remaining count; `open_time` /
+`close_time` are informational (Q-6).
+
+### 5.4 Collection workflow
+Deliberately undefined until the on-site pilot (what the owner checks at the
+counter, how disputes are settled). Record what is learned here.
+
+---
+
+## 6. Non-functional requirements
+
+- NFR-1 **Accessibility is the product** — see constitution V (≥16sp body, ≥48dp targets, never colour alone, Arabic RTL only, no motion-forward UI).
+- NFR-2 **Reliability** — a write that did not reach Postgres did not happen and says so; retries are safe (BUY-4); reads show nothing new rather than stale data.
+- NFR-3 **Security & privacy** — RLS on every table, owner/buyer isolation, bcrypt PINs, no service-role key in the app, lockout on PIN guessing, no personal data in logs or QR codes (RCP-2).
+- NFR-4 **Performance** — one store, up to ~300 reservations a day; a batch release wakes one batch of buyers at once. Reservation must stay correct under a burst of concurrent requests for the last bags (a SQL concurrency test is TASKS P1-6).
+- NFR-5 **Supportability** — cheap Android phones; Flutter pinned in one place; every PR passes analyze, Flutter tests and SQL tests.
+- NFR-6 **Operability** — a runbook (who, how to revoke sessions, restore) exists before the pilot (TASKS P1-5).
+
+---
+
+## 7. Data model
+
+The migrations in `flutter/supabase/migrations/` are the schema's source of
+truth; this section states the **meaning and invariants**, not every column.
+
+| Table | Purpose | Key invariants |
+|---|---|---|
+| `profiles` | One per user; `id` = `auth.users.id` | phone and national ID unique; `pin_hash` bcrypt, never client-readable; `role` server-only; lockout counters server-only |
+| `stores` | A bakery | `bags_remaining ≥ 0`; world-readable; **written only through RPCs** |
+| `purchases` | A reservation | UNIQUE (`user_id`, `purchase_date`); status ∈ waiting/notified/collected; written only through RPCs |
+| `store_pins` | Buyer's pinned stores | owner-only |
+| `scan_events` | Pickup audit trail | store-owner read only; written by `record_scan` |
+| `device_tokens` | FCM tokens | owner-only; service role reads for fan-out |
+
+Known model gap: `stores.bags_remaining` is a single counter although buyers
+can pre-order for tomorrow (review R-08). The target is a per-(store, day)
+allocation row.
+
+## 8. Roles, access and secrets
+See [docs/ARCHITECTURE.md §4](docs/ARCHITECTURE.md). Anonymous users read
+`stores` only; buyers read their own rows; owners read their store's purchases
+and those buyers' profiles (never `pin_hash`); all writes are RPCs.
+
+## 9. Interfaces
+
+### 9.1 RPC catalogue (callable by `authenticated` unless noted)
+| RPC | Caller | Effect | Refusals |
+|---|---|---|---|
+| `reserve_bag(store, date)` | buyer | Reserve one bag; idempotent per store/day | not authenticated; invalid purchase date; store closed or sold out; already reserved a bag today |
+| `notify_next_batch(store, date)` | owner | Flip the lowest waiting batch to `notified`; triggers push | not the store owner; no waiting batch |
+| `collect_purchase(purchase)` | owner | `notified` → `collected` | not the store owner; batch not notified yet |
+| `save_store_allocation(store, limit, batch, date, open?, close?)` | owner | Set limit/batch/window; recompute remaining | not the store owner |
+| `set_store_open(store, open)` | owner | Toggle the purchase window | not the store owner |
+| `record_scan(store, outcome, …)` | owner | Append an audit row | not the store owner; unknown outcome |
+| `set_store_pinned(store, pinned)` | buyer | Pin/unpin | not authenticated |
+| `store_customers(store)`, `store_daily_summaries(store, limit)` | owner | Aggregates | not the store owner |
+| `check_availability`, `create_profile`, `verify_pin_and_get_profile`, `find_profile_by_national_id`, `seed_demo_*` | **service role only** | Auth gateway and seeding | — |
+
+### 9.2 Edge Functions
+- `auth-gateway` — register, PIN login, (demo) OTP, availability check, gated demo seed.
+- `notify-batch` — called only by database triggers with a shared secret; sends FCM pushes.
+
+### 9.3 Realtime
+Changes to `purchases` and `stores` trigger client re-queries. Realtime is a
+refresh signal; data always comes from a query under RLS.
+
+---
+
+## 10. External dependencies and simulations
+
+| Dependency | State | In the app |
+|---|---|---|
+| Jawwal Pay | Unconfirmed API; **mocked** (number → OTP → success) | Flow says it is simulated; success writes no "paid" fact. `verification_status` is currently cosmetic (D-1) |
+| SMS gateway | None | Not used; push replaces it (D-5) |
+| FCM | Live; needs `FCM_SERVICE_ACCOUNT` | Real pushes |
+| WFP | Pilot approval pending | External gate before any expansion |
+
+## 11. Decision log
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-09-06 | Arabic only; one bag per ID per day across stores | Scope; fairness |
+| 2026-09-19 | Supabase backend with custom ID+PIN gateway issuing real sessions | Shared live state; no SMS gateway yet |
+| 2026-10-03 | No local database; buyer's receipt the only cache; server-only notifications | One source of truth; no stale answers |
+| 2026-10-07 | Server owns the calendar, reservations idempotent, stores RPC-only writes, PIN lockout, mock OTP off by default | Review R-01…R-06 |
+
+## 12. Open questions
+
+| # | Question | Owner | Status |
+|---|---|---|---|
+| Q-1 | Jawwal Pay: does the merchant API support the verification-code flow; what methods for online merchants? | Supervisor meeting | ⚠️ Blocker for real payments; prototype mocks it |
+| Q-2 | WFP approval to run the pilot | Project owner | External dependency |
+| Q-3 | Real SMS gateway for notifications and OTP? | Project owner | Deferred; push is used |
+| Q-4 | What happens to bags not collected by closing time? | Project owner | Open (D-4) |
+| Q-5 | Is `verification_status` enforced before a purchase? | Project owner | Open (D-1) |
+| Q-6 | Should the server enforce `open_time`/`close_time`? | Project owner | Open |
+| Q-7 | Per-day allocation and rollover rules (R-08, D-2) | Project owner | Open |
+| Q-8 | 4-digit PIN acceptable for the pilot (D-3)? | Project owner | Open |
+
+## 13. Pilot process
+
+1. Confirm Jawwal Pay (Q-1) and WFP blessing (Q-2).
+2. Close the P0 items in [TASKS.md](TASKS.md).
+3. Seed **nothing** demo-related into the pilot project; create the store and owner as the operator.
+4. One store, on site, train the owner, write §5.4 from what happens.
+5. Iterate; expand to ~10 stores only after WFP approval and a staging environment exist.

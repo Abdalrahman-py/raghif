@@ -1,3 +1,8 @@
+> **Historical (2026-09-19).** This plan described a phased move that kept a
+> `drift` offline cache. That was superseded on 2026-10-03 (no local database;
+> see `constitution.md` §I and `docs/ARCHITECTURE.md`). Kept for the record;
+> do not build from it.
+
 # Supabase Migration Plan
 
 Decision (2026-09-19, repo owner): move Raghif from a local-only prototype to
