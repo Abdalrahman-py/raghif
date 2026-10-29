@@ -35,6 +35,13 @@ jobs:
 
       - run: yes | flutter doctor --android-licenses || true
 
+      # gradle.properties is tuned for a 6 GB laptop (1536 MB heap). Jetifier
+      # needs more than that to transform the Flutter engine jar on a CI
+      # runner — it died with "Java heap space" at :app:compileDebugKotlin.
+      - name: Raise Gradle heap for CI
+        run: sed -i 's#^org.gradle.jvmargs=.*#org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError#' android/gradle.properties
+        working-directory: flutter
+
       # The composite action writes the dummy .env.example. Both APKs are
       # handed to testers, so overwrite it with the real backend and fail
       # loudly instead of shipping an app that cannot log in.
