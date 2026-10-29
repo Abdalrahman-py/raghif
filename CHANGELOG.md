@@ -24,6 +24,7 @@ Workflow rules this changelog lives by:
 - Indexed `notification_inbox.purchase_id` for the purchase-delete cascade, and revoked the unused `TRUNCATE`/`REFERENCES`/`TRIGGER` grants from `anon`/`authenticated` plus anon's unused DML — row level security is no longer the only barrier on the older tables.
 - Applied the four redesign migrations and the hardening migration to the live project through the Supabase MCP; the inbox and profile/postpone SQL suites now run against that schema and pass (rollback-only).
 - Added `.github/workflows/apk.yml`: debug and release APKs built with the real Supabase project from repo variables, uploaded as one artifact, never replacing the rolling `latest` release. Both APK workflows raise the Gradle heap to 4 GB on runners only — the 1536 MB laptop setting OOMs Jetifier on the Flutter engine jar.
+- Added `AGENTS.md`: the queue/RLS invariants, the open security decisions, and the unmerged `chore/backend-hardening-and-spec-rewrite` work any agent must reconcile before changing the backend.
 
 ### Added — 2026-10-27 — buyer Stitch flow
 
