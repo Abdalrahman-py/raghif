@@ -5,8 +5,6 @@ name: APK builds
 # release.yml this does not touch the rolling "latest" release, so a design
 # branch build can never replace the master build people are using.
 on:
-  push:
-    branches: [design/stitch-redesign]
   workflow_dispatch:
 
 permissions:
