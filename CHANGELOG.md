@@ -18,6 +18,13 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Fixed — 2026-10-29 — migration audit and team APK builds
+
+- Classified the two live Gaza City areas the governorate backfill missed (Sheikh Radwan, Tal al-Hawa), so every current store is reachable from the governorate screen instead of only browse-all.
+- Indexed `notification_inbox.purchase_id` for the purchase-delete cascade, and revoked the unused `TRUNCATE`/`REFERENCES`/`TRIGGER` grants from `anon`/`authenticated` plus anon's unused DML — row level security is no longer the only barrier on the older tables.
+- Applied the four redesign migrations and the hardening migration to the live project through the Supabase MCP; the inbox and profile/postpone SQL suites now run against that schema and pass (rollback-only).
+- Added `.github/workflows/apk.yml`: debug and release APKs built with the real Supabase project from repo variables, uploaded as one artifact, never replacing the rolling `latest` release.
+
 ### Added — 2026-10-27 — buyer Stitch flow
 
 - Added governorate and area selection, an authenticated notification inbox, account/profile editing and tomorrow-postponement confirmation directly in the existing Flutter project. Reused the established cream/brown theme, RTL typography and existing layers; added buyer Home/My booking/Account navigation and owner account/inbox actions.

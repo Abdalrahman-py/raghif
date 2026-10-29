@@ -12,6 +12,10 @@ create table public.notification_inbox (
 );
 create index notification_inbox_user_created_idx
   on public.notification_inbox(user_id, created_at desc, id desc);
+-- The FK cascade from purchases deletes by purchase_id; without this every
+-- purchase delete scans the whole inbox.
+create index notification_inbox_purchase_idx
+  on public.notification_inbox(purchase_id);
 alter table public.notification_inbox enable row level security;
 revoke all on public.notification_inbox from public, anon, authenticated;
 grant select on public.notification_inbox to authenticated;
