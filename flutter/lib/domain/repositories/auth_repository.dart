@@ -6,7 +6,8 @@ import '../models/user_model.dart';
 class AccountBlockedException implements Exception {
   const AccountBlockedException(this.reason);
 
-  /// `account_disabled` or `store_archived` (what the gateway sends).
+  /// `account_disabled`, `store_archived` or `login_locked` (too many wrong
+  /// PINs; what the gateway sends).
   final String reason;
 
   @override
@@ -43,17 +44,6 @@ abstract class AuthRepository {
     required String nationalId,
     required String pin,
   });
-
-  /// [code] is the OTP the user entered; the backend checks it too, so a
-  /// national ID alone never yields a session.
-  Future<UserModel?> loginWithOtp({
-    required String nationalId,
-    required String code,
-  });
-
-  /// The (mock) code and the phone it goes to, or null if the national ID
-  /// is not registered.
-  Future<({String code, String phone})?> requestOtp(String nationalId);
 
   /// The signed-in user from the persisted Supabase session, with their
   /// profile read from the server; null when nobody is signed in.

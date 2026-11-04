@@ -56,7 +56,6 @@ void main() {
   }
 
   Finder nationalIdField() => fieldByLabel(Strings.personalIdLabel);
-  Finder otpField() => fieldByLabel(Strings.otpLabel);
   Finder pinField() => fieldByLabel(Strings.pinLabel);
 
   /// Unmounts the screen so its resend cooldown timer is cancelled — a live
@@ -81,7 +80,6 @@ void main() {
     expect(find.text(Strings.continueButton), findsOneWidget);
     // Nothing that asks a second question or offers a second way in.
     expect(pinField(), findsNothing);
-    expect(otpField(), findsNothing);
     expect(find.text(Strings.forgotPin), findsNothing);
   });
 
@@ -163,9 +161,7 @@ void main() {
   testWidgets('an ID with no account is told so, with registration beside it', (
     tester,
   ) async {
-    final bloc = AuthBloc(
-      authRepository: FakeAuthRepository(users: const []),
-    );
+    final bloc = AuthBloc(authRepository: FakeAuthRepository(users: const []));
     addTearDown(bloc.close);
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(
@@ -190,41 +186,24 @@ void main() {
     expect(find.text(Strings.createAccountLink), findsOneWidget);
   });
 
-  testWidgets('forgot PIN sends the code and shows it, resend on cooldown', (
-    tester,
-  ) async {
-    await pumpLogin(tester);
-    await reachPinStep(tester);
-
-    await tester.tap(find.text(Strings.forgotPin));
-    // pumpAndSettle would spin against the 1s resend countdown.
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-
-    expect(find.text(Strings.loginOtpTitle), findsOneWidget);
-    expect(otpField(), findsOneWidget);
-    expect(find.text(Strings.demoOtpBanner('1234')), findsOneWidget);
-    expect(find.text(Strings.demoOtpTapToFill), findsOneWidget);
-    expect(find.text(Strings.resendOtpIn(30)), findsOneWidget);
-
-    await unmount(tester);
-  });
-
-  testWidgets('tapping the shown code fills it and signs the user in', (
+  testWidgets('forgot PIN points to support and never shows a code', (
     tester,
   ) async {
     final bloc = await pumpLogin(tester);
     await reachPinStep(tester);
+
     await tester.tap(find.text(Strings.forgotPin));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.text(Strings.demoOtpTapToFill));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text(Strings.forgotPinTitle), findsOneWidget);
+    expect(find.text(Strings.forgotPinBody), findsOneWidget);
+    // No second sign-in route: still signed out, no code anywhere.
+    expect(bloc.state, isNot(isA<Authenticated>()));
+    expect(find.textContaining('4821'), findsNothing);
 
-    expect(bloc.state, isA<Authenticated>());
-    expect((bloc.state as Authenticated).user.nationalId, buyer.nationalId);
+    await tester.tap(find.text(Strings.ok));
+    await tester.pumpAndSettle();
+    expect(find.text(Strings.forgotPinTitle), findsNothing);
 
     await unmount(tester);
   });
@@ -249,42 +228,43 @@ void main() {
     expect((bloc.state as Authenticated).user.nationalId, demoBuyerNationalId);
   });
 
-  testWidgets('a PIN attempt with no connection says so, not "not registered"', (
-    tester,
-  ) async {
-    final bloc = AuthBloc(
-      authRepository: FakeAuthRepository(
-        users: const [buyer],
-        failWith: Exception('SocketException: Failed host lookup'),
-      ),
-    );
-    addTearDown(bloc.close);
-    await tester.pumpWidget(
-      BlocProvider<AuthBloc>.value(
-        value: bloc,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          builder: (context, child) =>
-              Directionality(textDirection: TextDirection.rtl, child: child!),
-          home: const LoginScreen(),
+  testWidgets(
+    'a PIN attempt with no connection says so, not "not registered"',
+    (tester) async {
+      final bloc = AuthBloc(
+        authRepository: FakeAuthRepository(
+          users: const [buyer],
+          failWith: Exception('SocketException: Failed host lookup'),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      addTearDown(bloc.close);
+      await tester.pumpWidget(
+        BlocProvider<AuthBloc>.value(
+          value: bloc,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            builder: (context, child) =>
+                Directionality(textDirection: TextDirection.rtl, child: child!),
+            home: const LoginScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.enterText(nationalIdField(), buyer.nationalId);
-    await tester.tap(find.text(Strings.continueButton));
-    await tester.pumpAndSettle();
-    await tester.enterText(pinField(), '1234');
-    await tester.pumpAndSettle();
+      await tester.enterText(nationalIdField(), buyer.nationalId);
+      await tester.tap(find.text(Strings.continueButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(pinField(), '1234');
+      await tester.pumpAndSettle();
 
-    expect(find.text(Strings.loginOffline), findsOneWidget);
-    expect(find.text(Strings.nationalIdNotFound), findsNothing);
-    // Nothing to register for: the connection is the problem, and the PIN
-    // field is still there to try again.
-    expect(find.text(Strings.createAccountLink), findsNothing);
-    expect(pinField(), findsOneWidget);
-  });
+      expect(find.text(Strings.loginOffline), findsOneWidget);
+      expect(find.text(Strings.nationalIdNotFound), findsNothing);
+      // Nothing to register for: the connection is the problem, and the PIN
+      // field is still there to try again.
+      expect(find.text(Strings.createAccountLink), findsNothing);
+      expect(pinField(), findsOneWidget);
+    },
+  );
 
   testWidgets('creating an account is one tap from the first screen', (
     tester,

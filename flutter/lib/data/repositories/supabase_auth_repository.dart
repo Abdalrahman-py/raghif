@@ -71,6 +71,9 @@ class SupabaseAuthRepository implements AuthRepository {
       return await call();
     } on FunctionException catch (e) {
       if (e.status == 401 || e.status == 404) return null;
+      if (e.status == 429) {
+        throw const AccountBlockedException('login_locked');
+      }
       if (e.status == 403) {
         final details = e.details;
         final reason = details is Map ? details['error'] : null;
@@ -123,33 +126,6 @@ class SupabaseAuthRepository implements AuthRepository {
         'pin': pin.trim(),
       });
       return _applySession(result);
-    });
-  }
-
-  @override
-  Future<UserModel?> loginWithOtp({
-    required String nationalId,
-    required String code,
-  }) async {
-    return _answered(() async {
-      final result = await _invoke('otp-confirm', {
-        'nationalId': nationalId.trim(),
-        'otpCode': code.trim(),
-      });
-      return _applySession(result);
-    });
-  }
-
-  @override
-  Future<({String code, String phone})?> requestOtp(String nationalId) async {
-    return _answered(() async {
-      final result = await _invoke('otp-request', {
-        'nationalId': nationalId.trim(),
-      });
-      return (
-        code: result['otpCode'] as String,
-        phone: (result['phone'] as String?) ?? '',
-      );
     });
   }
 

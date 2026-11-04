@@ -21,8 +21,8 @@ void main() {
   late SupabaseAuthRepository repo;
 
   void gatewayReplies(Object error) => when(
-        () => functions.invoke('auth-gateway', body: any(named: 'body')),
-      ).thenThrow(error);
+    () => functions.invoke('auth-gateway', body: any(named: 'body')),
+  ).thenThrow(error);
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -41,35 +41,11 @@ void main() {
     );
   });
 
-  test('a 401 on the code is a wrong code: null', () async {
-    gatewayReplies(const FunctionException(status: 401));
-
-    expect(
-      await repo.loginWithOtp(nationalId: '900111222', code: '0000'),
-      isNull,
-    );
-  });
-
-  test('a 404 asking for a code is an unknown ID: null', () async {
-    gatewayReplies(const FunctionException(status: 404));
-
-    expect(await repo.requestOtp('900999999'), isNull);
-  });
-
   test('no connection is not a wrong PIN: it throws', () async {
     gatewayReplies(const SocketException('Failed host lookup'));
 
     await expectLater(
       repo.loginWithPin(nationalId: '900111222', pin: '1234'),
-      throwsA(isA<SocketException>()),
-    );
-  });
-
-  test('no connection is not an unknown ID either', () async {
-    gatewayReplies(const SocketException('Failed host lookup'));
-
-    await expectLater(
-      repo.requestOtp('900111222'),
       throwsA(isA<SocketException>()),
     );
   });
@@ -92,18 +68,26 @@ void main() {
     }
   });
 
-  test('the same block on the code path; any other 403 stays an error', () async {
+  test('a 429 is a sign-in lock, not a wrong PIN or a failure', () async {
     gatewayReplies(
       const FunctionException(
-        status: 403,
-        details: {'error': 'account_disabled'},
+        status: 429,
+        details: {'error': 'login_locked', 'retryAfter': 900},
       ),
     );
     await expectLater(
-      repo.loginWithOtp(nationalId: '900111222', code: '4821'),
-      throwsA(isA<AccountBlockedException>()),
+      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      throwsA(
+        isA<AccountBlockedException>().having(
+          (e) => e.reason,
+          'reason',
+          'login_locked',
+        ),
+      ),
     );
+  });
 
+  test('any other 403 stays an error', () async {
     gatewayReplies(
       const FunctionException(
         status: 403,

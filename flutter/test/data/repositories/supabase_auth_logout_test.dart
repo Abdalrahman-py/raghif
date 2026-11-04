@@ -32,10 +32,7 @@ void main() {
     fcm = MockFcmService();
     when(() => client.auth).thenReturn(auth);
     when(() => auth.signOut()).thenAnswer((_) async {});
-    repo = SupabaseAuthRepository(
-      client: client,
-      fcmService: fcm,
-    );
+    repo = SupabaseAuthRepository(client: client, fcmService: fcm);
   });
 
   test('logout detaches the FCM token before the session goes away', () async {
@@ -53,8 +50,9 @@ void main() {
   });
 
   test('logout still completes when token cleanup fails (offline)', () async {
-    when(() => fcm.unregisterCurrentDeviceToken())
-        .thenThrow(Exception('no connection'));
+    when(
+      () => fcm.unregisterCurrentDeviceToken(),
+    ).thenThrow(Exception('no connection'));
 
     await expectLater(repo.logout(), completes);
 
@@ -115,8 +113,9 @@ void main() {
           createdAt: '2026-10-03T00:00:00Z',
         ),
       );
-      when(() => client.from('profiles'))
-          .thenThrow(const SocketException('no connection'));
+      when(
+        () => client.from('profiles'),
+      ).thenThrow(const SocketException('no connection'));
     });
 
     test('a buyer with a saved receipt still gets in, to show it', () async {

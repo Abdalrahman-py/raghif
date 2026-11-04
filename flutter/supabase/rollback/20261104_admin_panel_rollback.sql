@@ -21,6 +21,34 @@
 -- Run it in one transaction; it fails closed if anything is missing.
 begin;
 
+-- 7. sign-in lockout (20261104110000): the counters are dropped with their
+-- values, so a locked account can sign in again.
+drop function if exists public.login_attempt(text, text, text);
+alter table public.profiles
+  drop column if exists login_failed_attempts,
+  drop column if exists login_locked_until;
+create or replace function public.admin_set_pin(p_user uuid, p_pin text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_pin is null or p_pin !~ '^[0-9]{4}$' then
+    raise exception 'invalid pin';
+  end if;
+  if exists (select 1 from public.admins where user_id = p_user) then
+    raise exception 'cannot reset an administrator PIN';
+  end if;
+  update public.profiles
+     set pin_hash = extensions.crypt(p_pin, extensions.gen_salt('bf')),
+         pin_failed_attempts = 0,
+         pin_locked_until = null
+   where id = p_user;
+  if not found then raise exception 'user not found'; end if;
+end;
+$$;
+
 -- 6. inbox push trigger
 drop trigger if exists notification_inbox_push on public.notification_inbox;
 drop function if exists public.trigger_push_inbox();

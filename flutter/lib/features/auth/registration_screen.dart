@@ -108,7 +108,28 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   String? _validatePin(String? value) {
     final text = (value ?? '').trim();
     if (text.isEmpty) return Strings.pinRequired;
-    return text.length == 4 ? null : Strings.pinLengthError;
+    if (text.length != 4) return Strings.pinLengthError;
+    // Same rule the server enforces: repeated or sequential PINs are guessed first.
+    if (RegExp(r'^(\d){3}$').hasMatch(text) ||
+        const {
+          '0123',
+          '1234',
+          '2345',
+          '3456',
+          '4567',
+          '5678',
+          '6789',
+          '3210',
+          '4321',
+          '5432',
+          '6543',
+          '7654',
+          '8765',
+          '9876',
+        }.contains(text)) {
+      return Strings.pinTooWeak;
+    }
+    return null;
   }
 
   String? _validateConfirmPin(String? value) {

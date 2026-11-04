@@ -23,10 +23,23 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 // and send it as `x-seed-secret`.
 const SEED_DEMO_SECRET = Deno.env.get("SEED_DEMO_SECRET");
 
-// Mock OTP — no real SMS gateway yet (spec.md open question); the app shows
-// this code on screen. Enforced here, not just in the client, so
-// `otp-confirm` cannot mint a session from a national ID alone.
-const MOCK_OTP = "4821";
+// There is deliberately no code-based sign-in ("forgot PIN" by SMS/OTP): with no
+// SMS gateway a code can only be shown to the person asking, which lets anyone
+// who knows a national ID in. A forgotten PIN is reset by support through the
+// admin panel until a real gateway exists. `otp-request` / `otp-confirm` answer
+// 410 so an old app build fails closed.
+
+// PINs that are trivial to guess are refused at registration, the same list
+// `change_my_pin` uses in the database.
+const WEAK_PINS = new Set([
+  "0123", "1234", "2345", "3456", "4567", "5678", "6789",
+  "3210", "4321", "5432", "6543", "7654", "8765", "9876",
+]);
+function pinProblem(pin: unknown): "invalid_pin" | "weak_pin" | null {
+  if (typeof pin !== "string" || !/^[0-9]{4}$/.test(pin)) return "invalid_pin";
+  if (/^(\d)\1{3}$/.test(pin) || WEAK_PINS.has(pin)) return "weak_pin";
+  return null;
+}
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -272,6 +285,8 @@ Deno.serve(async (req: Request) => {
         if (!phone || !pin || !nationalId || !name) {
           return json({ error: "missing required fields" }, 400);
         }
+        const problem = pinProblem(pin);
+        if (problem) return json({ error: problem }, 400);
         const email = syntheticEmail(nationalId);
         const { data: created, error: createError } = await admin.auth.admin
           .createUser({
@@ -323,15 +338,20 @@ Deno.serve(async (req: Request) => {
         if (!identifier || !pin) {
           return json({ error: "missing required fields" }, 400);
         }
-        const { data: profile, error } = await admin.rpc(
-          "verify_pin_and_get_profile",
-          {
-            p_identifier: identifier,
-            p_by: by === "phone" ? "phone" : "national_id",
-            p_pin: pin,
-          },
-        );
-        if (error || !hasId(profile)) {
+        const { data: attempt, error } = await admin.rpc("login_attempt", {
+          p_identifier: identifier,
+          p_by: by === "phone" ? "phone" : "national_id",
+          p_pin: pin,
+        });
+        if (error) throw new Error(error.message);
+        if (attempt?.result === "locked") {
+          return json(
+            { error: "login_locked", retryAfter: attempt.retry_after ?? 900 },
+            429,
+          );
+        }
+        const profile = attempt?.profile;
+        if (attempt?.result !== "ok" || !hasId(profile)) {
           return json({ error: "invalid credentials" }, 401);
         }
         const blocked = await loginBlock(profile.id);
@@ -345,40 +365,9 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      case "otp-request": {
-        const { nationalId } = body;
-        const { data: profile, error } = await admin.rpc(
-          "find_profile_by_national_id",
-          { p_national_id: nationalId },
-        );
-        if (error || !hasId(profile)) {
-          return json({ error: "not found" }, 404);
-        }
-        return json({ otpCode: MOCK_OTP, phone: profile.phone });
-      }
-
-      case "otp-confirm": {
-        const { nationalId, otpCode } = body;
-        if (otpCode !== MOCK_OTP) {
-          return json({ error: "invalid code" }, 401);
-        }
-        const { data: profile, error } = await admin.rpc(
-          "find_profile_by_national_id",
-          { p_national_id: nationalId },
-        );
-        if (error || !hasId(profile)) {
-          return json({ error: "not found" }, 404);
-        }
-        const blocked = await loginBlock(profile.id);
-        if (blocked) return json({ error: blocked }, 403);
-        const email = syntheticEmail(profile.national_id);
-        const session = await mintSession(email);
-        return json({
-          accessToken: session.access_token,
-          refreshToken: session.refresh_token,
-          profile: profileResponse(profile),
-        });
-      }
+      case "otp-request":
+      case "otp-confirm":
+        return json({ error: "code sign-in is disabled" }, 410);
 
       default:
         return json({ error: `unknown action: ${action}` }, 400);

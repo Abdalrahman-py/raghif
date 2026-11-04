@@ -14,9 +14,7 @@ void main() {
   late AuthBloc bloc;
 
   setUp(() {
-    bloc = AuthBloc(
-      authRepository: MockAuthRepository(),
-    );
+    bloc = AuthBloc(authRepository: MockAuthRepository());
   });
 
   tearDown(() async {
@@ -32,23 +30,18 @@ void main() {
     );
   }
 
-  TextField phoneField(WidgetTester tester) => tester.widget<TextField>(
-    fieldByLabel(Strings.phoneLabel),
-  );
+  TextField phoneField(WidgetTester tester) =>
+      tester.widget<TextField>(fieldByLabel(Strings.phoneLabel));
 
-  TextField jawwalField(WidgetTester tester) => tester.widget<TextField>(
-    fieldByLabel(Strings.jawwalPayNumberLabel),
-  );
+  TextField jawwalField(WidgetTester tester) =>
+      tester.widget<TextField>(fieldByLabel(Strings.jawwalPayNumberLabel));
 
   testWidgets('Jawwal Pay number mirrors the phone number as it is typed', (
     tester,
   ) async {
     await pumpScreen(tester);
 
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599111111',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
     await tester.pump();
 
     expect(jawwalField(tester).controller!.text, '0599111111');
@@ -60,15 +53,9 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599111111',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
     await tester.pump();
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599222222',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599222222');
     await tester.pump();
 
     expect(jawwalField(tester).controller!.text, '0599222222');
@@ -79,10 +66,7 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599111111',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
     await tester.pump();
     // User's wallet number differs from their SIM number.
     await tester.enterText(
@@ -91,10 +75,7 @@ void main() {
     );
     await tester.pump();
     // Later phone edits must leave the manual wallet number alone.
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599333333',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599333333');
     await tester.pump();
 
     expect(jawwalField(tester).controller!.text, '0599888888');
@@ -105,20 +86,14 @@ void main() {
   ) async {
     await pumpScreen(tester);
 
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599111111',
-    );
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
     await tester.pump();
     await tester.enterText(
       fieldByLabel(Strings.jawwalPayNumberLabel),
       '0599888888',
     );
     await tester.pump();
-    await tester.enterText(
-      fieldByLabel(Strings.jawwalPayNumberLabel),
-      '',
-    );
+    await tester.enterText(fieldByLabel(Strings.jawwalPayNumberLabel), '');
     await tester.pump();
 
     expect(jawwalField(tester).controller!.text, '0599111111');
@@ -147,26 +122,11 @@ void main() {
   testWidgets('mismatched PINs are refused before submitting', (tester) async {
     await pumpScreen(tester);
 
-    await tester.enterText(
-      fieldByLabel(Strings.nameLabel),
-      'أحمد ناصر',
-    );
-    await tester.enterText(
-      fieldByLabel(Strings.phoneLabel),
-      '0599111111',
-    );
-    await tester.enterText(
-      fieldByLabel(Strings.personalIdLabel),
-      '900111222',
-    );
-    await tester.enterText(
-      fieldByLabel(Strings.pinLabel),
-      '1234',
-    );
-    await tester.enterText(
-      fieldByLabel(Strings.confirmPinLabel),
-      '4321',
-    );
+    await tester.enterText(fieldByLabel(Strings.nameLabel), 'أحمد ناصر');
+    await tester.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
+    await tester.enterText(fieldByLabel(Strings.personalIdLabel), '900111222');
+    await tester.enterText(fieldByLabel(Strings.pinLabel), '5921');
+    await tester.enterText(fieldByLabel(Strings.confirmPinLabel), '4321');
 
     await tester.ensureVisible(find.text(Strings.registerButton));
     await tester.pumpAndSettle();

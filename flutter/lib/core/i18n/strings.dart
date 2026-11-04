@@ -20,6 +20,14 @@ class Strings {
   static const loginOtpTitle = 'أدخل رمز التحقق';
   static const continueButton = 'متابعة';
   static const forgotPin = 'نسيت الرمز السري؟';
+  static const forgotPinTitle = 'استعادة الرمز السري';
+  static const forgotPinBody =
+      'لا يمكن استعادة الرمز تلقائيًا حاليًا. تواصل مع الدعم وسيعيدون تعيينه لك بعد التحقق من هويتك.';
+  static const ok = 'حسنًا';
+  static const loginLocked =
+      'تم إيقاف الدخول مؤقتًا بسبب محاولات خاطئة كثيرة. حاول بعد 15 دقيقة أو تواصل مع الدعم.';
+  static const pinTooWeak =
+      'الرمز سهل التخمين. تجنب الأرقام المتكررة أو المتسلسلة.';
   static String loginForId(String id) => 'لحساب رقم $id';
   static const otpLabel = 'رمز التحقق';
   static const verifyOtpButton = 'تأكيد الرمز والدخول';

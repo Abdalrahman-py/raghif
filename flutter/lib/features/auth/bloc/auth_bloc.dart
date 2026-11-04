@@ -13,8 +13,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     : _authRepository = authRepository,
       super(const AuthInitial()) {
     on<CheckAuthSessionEvent>(_onCheckAuthSession);
-    on<RequestOtpEvent>(_onRequestOtp);
-    on<VerifyOtpEvent>(_onVerifyOtp);
     on<PinLoginRequestedEvent>(_onPinLoginRequested);
     on<LoginRequestedEvent>(_onLoginRequested);
     on<RegisterRequestedEvent>(_onRegisterRequested);
@@ -25,8 +23,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   final AuthRepository _authRepository;
 
-  String? _pendingOtp;
-  String? _pendingNationalId;
   int _sessionEpoch = 0;
 
   Future<void> _onUpdateProfile(
@@ -75,84 +71,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       // Signed in on this phone, but the server could not be asked who that
       // is: the profile is not kept locally, so say so on the login screen.
-      emit(const AuthFailure(Strings.loginOffline));
-    }
-  }
-
-  Future<void> _onRequestOtp(
-    RequestOtpEvent event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-    try {
-      final nationalId = event.nationalId.trim();
-      // The server decides whether the ID exists. The local cache only knows
-      // people who have signed in on this phone, so consulting it sent
-      // everyone on a new device to "create an account".
-      final otp = await _authRepository.requestOtp(nationalId);
-      if (otp == null) {
-        emit(AuthSwitchToRegister(nationalId: nationalId));
-        return;
-      }
-
-      _pendingOtp = otp.code;
-      _pendingNationalId = nationalId;
-      // No SMS gateway yet: the login screen shows the mock code itself.
-      emit(
-        AuthOtpSent(
-          nationalId: nationalId,
-          phone: otp.phone,
-          otpCode: otp.code,
-        ),
-      );
-    } on AccountBlockedException catch (e) {
-      emit(AuthFailure(_blockedMessage(e)));
-    } catch (e) {
-      // The gateway answering "no" is handled in the repository; anything
-      // that gets here is a call that never got an answer.
-      emit(const AuthFailure(Strings.loginOffline));
-    }
-  }
-
-  Future<void> _onVerifyOtp(
-    VerifyOtpEvent event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-    try {
-      final nationalId = event.nationalId.trim();
-      final otp = event.otp.trim();
-
-      if (_pendingNationalId != null && _pendingNationalId != nationalId) {
-        emit(const AuthFailure(Strings.otpError));
-        return;
-      }
-
-      final expectedOtp =
-          _pendingOtp ??
-          (state is AuthOtpSent ? (state as AuthOtpSent).otpCode : '4821');
-
-      if (otp != expectedOtp) {
-        emit(const AuthFailure(Strings.otpError));
-        return;
-      }
-
-      final user = await _authRepository.loginWithOtp(
-        nationalId: nationalId,
-        code: otp,
-      );
-      if (user != null) {
-        _pendingOtp = null;
-        _pendingNationalId = null;
-        emit(Authenticated(user));
-      } else {
-        emit(const AuthFailure(Strings.loginError));
-      }
-    } on AccountBlockedException catch (e) {
-      emit(AuthFailure(_blockedMessage(e)));
-    } catch (e) {
-      // The gateway answering "no" is handled in the repository; anything
-      // that gets here is a call that never got an answer.
       emit(const AuthFailure(Strings.loginOffline));
     }
   }
@@ -284,7 +202,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   static String _blockedMessage(AccountBlockedException e) =>
-      e.reason == 'store_archived'
-      ? Strings.loginStoreArchived
-      : Strings.loginAccountDisabled;
+      switch (e.reason) {
+        'store_archived' => Strings.loginStoreArchived,
+        'login_locked' => Strings.loginLocked,
+        _ => Strings.loginAccountDisabled,
+      };
 }

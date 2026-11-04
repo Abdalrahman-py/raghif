@@ -55,19 +55,6 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel?> loginWithOtp({
-    required String nationalId,
-    required String code,
-  }) async => _byNationalId(nationalId);
-
-  @override
-  Future<({String code, String phone})?> requestOtp(String nationalId) async {
-    if (failWith != null) throw failWith!;
-    final user = _byNationalId(nationalId);
-    return user == null ? null : (code: '1234', phone: user.phone);
-  }
-
-  @override
   Future<UserModel?> restoreSession() async {
     if (sessionUserId == null) return null;
     if (failWith != null) throw failWith!;

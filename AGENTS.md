@@ -66,6 +66,11 @@ cover product intent.
 - `record_scan` accepts a closed list of outcomes. Adding an outcome means
   changing the function and the Dart enum together.
 
+## Sign-in (read before touching auth-gateway)
+
+- `login-pin` goes through `login_attempt()` (service role only): 5 wrong PINs lock the account for 15 minutes (429 `login_locked`). Do not call `verify_pin_and_get_profile` from the gateway; it has no limit.
+- There is **no code/OTP sign-in**. `otp-request`/`otp-confirm` return 410 on purpose: with no SMS gateway a code can only be shown to the requester, which is an account takeover. A forgotten PIN is reset by support in the admin panel (`admin_set_pin`, which also clears the lock). Reintroduce a code path only with a real gateway that delivers the code out of band.
+
 ## Known open issues — decide explicitly, do not drift into them
 
 - `update_my_profile` can change `phone`, which is the login identifier, with no
