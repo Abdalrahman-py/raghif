@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:raghif/data/repositories/supabase_auth_repository.dart';
+import 'package:raghif/domain/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
@@ -70,6 +71,48 @@ void main() {
     await expectLater(
       repo.requestOtp('900111222'),
       throwsA(isA<SocketException>()),
+    );
+  });
+
+  test('a 403 with a block reason is an AccountBlockedException', () async {
+    for (final reason in ['account_disabled', 'store_archived']) {
+      gatewayReplies(
+        FunctionException(status: 403, details: {'error': reason}),
+      );
+      await expectLater(
+        repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+        throwsA(
+          isA<AccountBlockedException>().having(
+            (e) => e.reason,
+            'reason',
+            reason,
+          ),
+        ),
+      );
+    }
+  });
+
+  test('the same block on the code path; any other 403 stays an error', () async {
+    gatewayReplies(
+      const FunctionException(
+        status: 403,
+        details: {'error': 'account_disabled'},
+      ),
+    );
+    await expectLater(
+      repo.loginWithOtp(nationalId: '900111222', code: '4821'),
+      throwsA(isA<AccountBlockedException>()),
+    );
+
+    gatewayReplies(
+      const FunctionException(
+        status: 403,
+        details: {'error': 'seeding is disabled'},
+      ),
+    );
+    await expectLater(
+      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      throwsA(isA<FunctionException>()),
     );
   });
 

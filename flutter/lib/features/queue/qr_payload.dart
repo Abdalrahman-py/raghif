@@ -71,14 +71,14 @@ class QrPayload {
   final String? storeId;
 
   Map<String, dynamic> toJson() => {
-        'v': qrPayloadVersion,
-        'purchase_id': purchaseId,
-        'user_name': userName,
-        'store_name': storeName,
-        'purchase_date': purchaseDate,
-        if (nationalId != null) 'national_id': nationalId,
-        if (storeId != null) 'store_id': storeId,
-      };
+    'v': qrPayloadVersion,
+    'purchase_id': purchaseId,
+    'user_name': userName,
+    'store_name': storeName,
+    'purchase_date': purchaseDate,
+    if (nationalId != null) 'national_id': nationalId,
+    if (storeId != null) 'store_id': storeId,
+  };
 
   String encode() => jsonEncode(toJson());
 
@@ -137,13 +137,13 @@ class QrPayload {
 
   @override
   int get hashCode => Object.hash(
-        purchaseId,
-        userName,
-        storeName,
-        purchaseDate,
-        nationalId,
-        storeId,
-      );
+    purchaseId,
+    userName,
+    storeName,
+    purchaseDate,
+    nationalId,
+    storeId,
+  );
 
   @override
   String toString() =>

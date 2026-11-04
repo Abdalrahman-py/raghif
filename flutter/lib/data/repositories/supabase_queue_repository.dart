@@ -582,6 +582,7 @@ class SupabaseQueueRepository implements QueueRepository {
     closeTime: _hhmm(row['close_time'] as String?),
     area: (row['area'] as String?) ?? '',
     governorate: row['governorate'] as String?,
+    status: (row['status'] as String?) ?? StoreStatus.active,
   );
 
   /// A `purchases` row, with the embedded `profiles` / `stores` names when

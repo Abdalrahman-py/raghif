@@ -175,6 +175,25 @@ function hasId(profile: any): boolean {
   return !!profile && profile.id != null;
 }
 
+// Why this identity may not sign in right now, or null when it may. The PIN
+// (or code) has already checked out by the time we ask, so telling the caller
+// the account is disabled reveals nothing to someone who does not hold it.
+// Fails closed on a real error; only a missing function (the migration that
+// adds it is not applied yet) is treated as "no block", so deploying this file
+// before the database cannot lock everybody out.
+async function loginBlock(profileId: string): Promise<string | null> {
+  const { data, error } = await admin.rpc("account_login_block", {
+    p_user: profileId,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || /could not find the function/i.test(error.message)) {
+      return null;
+    }
+    throw new Error(error.message);
+  }
+  return typeof data === "string" ? data : null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -315,6 +334,8 @@ Deno.serve(async (req: Request) => {
         if (error || !hasId(profile)) {
           return json({ error: "invalid credentials" }, 401);
         }
+        const blocked = await loginBlock(profile.id);
+        if (blocked) return json({ error: blocked }, 403);
         const email = syntheticEmail(profile.national_id);
         const session = await mintSession(email);
         return json({
@@ -348,6 +369,8 @@ Deno.serve(async (req: Request) => {
         if (error || !hasId(profile)) {
           return json({ error: "not found" }, 404);
         }
+        const blocked = await loginBlock(profile.id);
+        if (blocked) return json({ error: blocked }, 403);
         const email = syntheticEmail(profile.national_id);
         const session = await mintSession(email);
         return json({

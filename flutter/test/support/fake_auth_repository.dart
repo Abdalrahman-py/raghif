@@ -22,8 +22,22 @@ class FakeAuthRepository implements AuthRepository {
   /// (no connection), as opposed to a server that said no.
   final Object? failWith;
 
+  /// What [changePin] answers, and what it was last asked.
+  ChangePinResult changePinResult = ChangePinResult.ok;
+  ({String currentPin, String newPin})? lastPinChange;
+
   UserModel? _byNationalId(String nationalId) =>
       users.where((u) => u.nationalId == nationalId).firstOrNull;
+
+  @override
+  Future<ChangePinResult> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    if (failWith != null) throw failWith!;
+    lastPinChange = (currentPin: currentPin, newPin: newPin);
+    return changePinResult;
+  }
 
   @override
   Future<UserModel?> login({

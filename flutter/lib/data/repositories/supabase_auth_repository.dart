@@ -71,6 +71,13 @@ class SupabaseAuthRepository implements AuthRepository {
       return await call();
     } on FunctionException catch (e) {
       if (e.status == 401 || e.status == 404) return null;
+      if (e.status == 403) {
+        final details = e.details;
+        final reason = details is Map ? details['error'] : null;
+        if (reason == 'account_disabled' || reason == 'store_archived') {
+          throw AccountBlockedException(reason as String);
+        }
+      }
       rethrow;
     }
   }
@@ -279,6 +286,18 @@ class SupabaseAuthRepository implements AuthRepository {
         )
         .single();
     return _userFromRow(row);
+  }
+
+  @override
+  Future<ChangePinResult> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    final word = await _client.rpc(
+      'change_my_pin',
+      params: {'p_old': currentPin, 'p_new': newPin},
+    );
+    return ChangePinResult.fromServer(word as String?);
   }
 
   @override

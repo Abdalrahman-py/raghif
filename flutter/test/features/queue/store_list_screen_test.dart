@@ -205,6 +205,22 @@ void main() {
     expect(find.byTooltip(Strings.unpinStore), findsOneWidget);
   });
 
+  testWidgets('an administrator-paused store says so and cannot be booked', (
+    tester,
+  ) async {
+    final paused = store(
+      'store-9',
+      'مخبز متوقف',
+    ).copyWith(status: StoreStatus.paused);
+    stubEntries([StoreListEntry(store: paused)]);
+    await pumpScreen(tester);
+
+    expect(find.text('مخبز متوقف'), findsOneWidget);
+    expect(find.text(Strings.storePausedBadge), findsOneWidget);
+    expect(find.text(Strings.available), findsNothing);
+    expect(paused.canPurchase, isFalse);
+  });
+
   testWidgets('tapping a store card opens its details screen', (tester) async {
     stubEntries(threeStores());
     await pumpScreen(tester);

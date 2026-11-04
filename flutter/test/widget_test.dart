@@ -12,7 +12,7 @@ import 'support/fake_auth_repository.dart';
 import 'support/queue_test_harness.dart';
 
 void main() {
-  testWidgets('RaghifApp opens the Stitch identity before fresh onboarding', (
+  testWidgets('RaghifApp opens fresh onboarding directly, with no launch screen', (
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -26,11 +26,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('رغيف'), findsOneWidget);
-    expect(find.text('ابدأ التجربة'), findsOneWidget);
-    expect(find.text(Strings.onboardingTitle1), findsNothing);
-    await tester.tap(find.text('ابدأ التجربة'));
-    await tester.pumpAndSettle();
+    expect(find.text('ابدأ التجربة'), findsNothing);
     expect(find.text(Strings.onboardingTitle1), findsOneWidget);
     expect(
       find.text(Strings.onboardingGetStarted),
@@ -69,9 +65,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('ابدأ التجربة'), findsOneWidget);
-    await tester.tap(find.text('ابدأ التجربة'));
-    await tester.pumpAndSettle();
     expect(find.text(Strings.loginIdTitle), findsOneWidget);
     expect(find.text(Strings.personalIdLabel), findsOneWidget);
     expect(find.text(Strings.continueButton), findsOneWidget);
@@ -104,8 +97,6 @@ void main() {
         queueController: buildQueueHarness().controller,
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('ابدأ التجربة'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('حسابي'));
     await tester.pumpAndSettle();
@@ -156,9 +147,6 @@ void main() {
           queueController: buildQueueHarness().controller,
         ),
       );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('ابدأ التجربة'));
       await tester.pumpAndSettle();
 
       // The store list is a pushed route with its own sign-out button.

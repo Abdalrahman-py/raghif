@@ -339,6 +339,31 @@ void main() {
         ],
       );
 
+      for (final blocked in {
+        'account_disabled': Strings.loginAccountDisabled,
+        'store_archived': Strings.loginStoreArchived,
+      }.entries) {
+        blocTest<AuthBloc, AuthState>(
+          'a ${blocked.key} account is told so, not "wrong PIN" or "offline"',
+          build: () {
+            when(
+              () => mockAuthRepository.loginWithPin(
+                nationalId: '900111222',
+                pin: '1234',
+              ),
+            ).thenThrow(AccountBlockedException(blocked.key));
+            return AuthBloc(authRepository: mockAuthRepository);
+          },
+          act: (bloc) => bloc.add(
+            const PinLoginRequestedEvent(
+              nationalId: '900111222',
+              pin: '1234',
+            ),
+          ),
+          expect: () => [const AuthLoading(), AuthFailure(blocked.value)],
+        );
+      }
+
       blocTest<AuthBloc, AuthState>(
         'emits [AuthLoading, AuthFailure] when PIN is wrong for existing user',
         build: () {

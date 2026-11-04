@@ -1,0 +1,102 @@
+-- Undoes migrations 20261104100000 .. 20261104105000 (the admin panel schema).
+-- NOT a migration: it lives outside migrations/ on purpose and is run by hand,
+-- only if the panel's database changes have to be taken back out.
+--
+-- What it removes, in reverse order of how it was added:
+--   inbox push trigger, service helpers, change_my_pin, announcements,
+--   the admin_* functions, status/price/account columns, the admins table,
+--   the new stores policies, and it puts back the previous reserve_bag, the
+--   public stores policy and DELETE on stores/profiles.
+--
+-- DATA LOSS you should know about before running it:
+--   * every notification_inbox row of kind 'announcement' is deleted (they
+--     cannot exist once purchase_id is NOT NULL again);
+--   * stores.status, stores.bag_price, profiles.account_status and the PIN
+--     lockout counters are dropped with their values. A store that was
+--     archived or paused becomes visible and bookable again; a disabled
+--     account can sign in again.
+--   * the admins table (and so every administrator) is dropped.
+-- Bookings, stores, profiles and the transactional inbox rows are untouched.
+--
+-- Run it in one transaction; it fails closed if anything is missing.
+begin;
+
+-- 6. inbox push trigger
+drop trigger if exists notification_inbox_push on public.notification_inbox;
+drop function if exists public.trigger_push_inbox();
+
+-- 5. service helpers
+drop function if exists public.admin_revoke_sessions(uuid);
+drop function if exists public.admin_set_pin(uuid, text);
+
+-- 4. change_my_pin
+drop function if exists public.change_my_pin(text, text);
+
+-- 3. announcements
+drop function if exists public.admin_send_notification(text, text, text, uuid);
+delete from public.notification_inbox where kind = 'announcement' or purchase_id is null;
+alter table public.notification_inbox drop constraint if exists notification_inbox_kind_check;
+alter table public.notification_inbox
+  add constraint notification_inbox_kind_check
+  check (kind in ('confirmed', 'ready', 'postponed'));
+alter table public.notification_inbox alter column purchase_id set not null;
+
+-- 2. admin functions
+drop function if exists public.admin_overview();
+drop function if exists public.admin_daily_series(int);
+drop function if exists public.admin_scan_summary(int);
+drop function if exists public.admin_notification_stats(int);
+drop function if exists public.admin_list_stores(int);
+drop function if exists public.admin_list_buyers(text, int, int);
+drop function if exists public.admin_set_store_status(uuid, text);
+drop function if exists public.admin_update_store(uuid, text, text, text, int, numeric, int, time, time);
+drop function if exists public.admin_set_buyer_status(uuid, text);
+drop function if exists public.admin_set_verification(uuid, text);
+drop function if exists public.admin_create_store_for(uuid, text, text, text, int, numeric, int);
+
+-- 1. foundation, in the order that satisfies dependencies
+
+-- reserve_bag as it was before (today only, stores row locked first).
+create or replace function public.reserve_bag(p_store_id uuid,p_purchase_date date)
+returns public.purchases language plpgsql security definer set search_path=public as $$
+declare v_uid uuid:=auth.uid(); v_store public.stores; v_sold int; v_p public.purchases;
+ v_today date := (now() at time zone 'Asia/Hebron')::date;
+begin
+ if v_uid is null then raise exception 'not authenticated'; end if;
+ if p_purchase_date is distinct from v_today then raise exception 'reservations are for today only'; end if;
+ select * into v_store from public.stores where id=p_store_id for update;
+ select count(*) into v_sold from public.purchases where store_id=p_store_id and purchase_date=v_today;
+ if v_store.id is null or not v_store.is_open or v_store.bags_remaining<=0 or v_sold>=v_store.daily_bag_limit then
+  raise exception 'store closed or sold out'; end if;
+ insert into public.purchases(store_id,user_id,purchase_date,batch_number,status)
+ values(p_store_id,v_uid,v_today,v_sold/greatest(v_store.batch_size,1)+1,'waiting') returning * into v_p;
+ update public.stores set bags_remaining=greatest(least(bags_remaining-1,daily_bag_limit-v_sold-1),0) where id=p_store_id;
+ return v_p;
+exception when unique_violation then raise exception 'already reserved a bag today';
+end $$;
+
+drop function if exists public.account_login_block(uuid);
+
+-- stores visibility: back to "everyone reads every store".
+drop policy if exists stores_select_anon on public.stores;
+drop policy if exists stores_select_authenticated on public.stores;
+create policy stores_select_public on public.stores for select using (true);
+drop function if exists public.user_has_purchase_at(uuid);
+
+-- DELETE as it was (table-level, authenticated only).
+grant delete on public.stores, public.profiles to authenticated;
+
+drop trigger if exists stores_guard_admin_columns on public.stores;
+drop function if exists public.stores_guard_admin_columns();
+drop index if exists public.stores_status_idx;
+
+alter table public.stores drop column if exists status, drop column if exists bag_price;
+alter table public.profiles
+  drop column if exists account_status,
+  drop column if exists pin_failed_attempts,
+  drop column if exists pin_locked_until;
+
+drop function if exists public.is_admin();
+drop table if exists public.admins;
+
+commit;

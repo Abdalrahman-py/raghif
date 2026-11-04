@@ -1,18 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/di/injection.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../domain/models/user_model.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../auth/bloc/auth_bloc.dart';
 import '../queue/confirm_action.dart';
+import 'change_pin_sheet.dart';
 
 class AccountScreen extends StatelessWidget {
-  const AccountScreen({super.key, this.embedded = false});
+  const AccountScreen({super.key, this.embedded = false, this.authRepository});
   final bool embedded;
+
+  /// Test seam: the repository the PIN change talks to. Production resolves it
+  /// from [sl].
+  final AuthRepository? authRepository;
+
+  AuthRepository? get _repository =>
+      authRepository ??
+      (sl.isRegistered<AuthRepository>() ? sl<AuthRepository>() : null);
+
+  Future<void> _changePin(
+    BuildContext context,
+    AuthRepository repository,
+  ) async {
+    final changed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: false,
+      builder: (_) => ChangePinSheet(repository: repository),
+    );
+    if (changed == true && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم تغيير الرمز السري')));
+    }
+  }
 
   Future<void> _edit(BuildContext context, UserModel user) async {
     final bloc = context.read<AuthBloc>();
@@ -80,22 +108,6 @@ class AccountScreen extends StatelessWidget {
                               label: 'رقم الهوية',
                               value: user.nationalId,
                             ),
-                            TextButton.icon(
-                              onPressed: () async {
-                                await Clipboard.setData(
-                                  ClipboardData(text: user.nationalId),
-                                );
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('تم نسخ رقم الهوية'),
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.copy_outlined),
-                              label: const Text('نسخ رقم الهوية'),
-                            ),
                             const Divider(),
                             _Detail(label: 'رقم الجوال', value: user.phone),
                             const Divider(),
@@ -120,6 +132,20 @@ class AccountScreen extends StatelessWidget {
                             ? null
                             : () => _edit(context, user),
                       ),
+                      if (user.isOwner && _repository != null) ...[
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          key: const Key('change-pin'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                          ),
+                          onPressed: state.profileSaving
+                              ? null
+                              : () => _changePin(context, _repository!),
+                          icon: const Icon(Icons.lock_outline),
+                          label: const Text('تغيير الرمز السري'),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(

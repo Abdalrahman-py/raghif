@@ -114,7 +114,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 return _CurrentOrderView(
                   controller: widget.controller,
                   purchaseId: purchase.id,
-                  onBrowse: _openStoreList,
                   onShowReceipt: () => _openReceipt(purchase.id),
                   onPostpone: (booking) async {
                     final moved = await Navigator.of(context)
@@ -194,14 +193,12 @@ class _CurrentOrderView extends StatelessWidget {
   const _CurrentOrderView({
     required this.controller,
     required this.purchaseId,
-    required this.onBrowse,
     required this.onShowReceipt,
     required this.onPostpone,
   });
 
   final QueueController controller;
   final String purchaseId;
-  final VoidCallback onBrowse;
   final VoidCallback onShowReceipt;
   final ValueChanged<PurchaseModel> onPostpone;
 
@@ -352,8 +349,6 @@ class _CurrentOrderView extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _OrderProgress(status: purchase.status),
                 ],
               ),
             ),
@@ -371,73 +366,9 @@ class _CurrentOrderView extends StatelessWidget {
                 onPressed: () => onPostpone(purchase),
               ),
             ],
-            const SizedBox(height: 12),
-            SecondaryButton(
-              text: Strings.browseStoresButton,
-              onPressed: onBrowse,
-            ),
           ],
         );
       },
-    );
-  }
-}
-
-class _OrderProgress extends StatelessWidget {
-  const _OrderProgress({required this.status});
-
-  final PurchaseStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final current = switch (status) {
-      PurchaseStatus.waiting => 0,
-      PurchaseStatus.notified => 1,
-      PurchaseStatus.collected => 2,
-    };
-    const stages = ['تم الحجز', 'جاهز للاستلام', 'اكتمل الاستلام'];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var index = 0; index < stages.length; index++)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  index <= current
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  size: 22,
-                  color: index <= current
-                      ? AppColors.success
-                      : AppColors.textSecondary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    stages[index],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: index <= current
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
-                      fontWeight: index == current
-                          ? FontWeight.w700
-                          : FontWeight.w400,
-                    ),
-                  ),
-                ),
-                if (index == current)
-                  const Icon(
-                    Icons.arrow_back_rounded,
-                    size: 20,
-                    color: AppColors.accent,
-                  ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

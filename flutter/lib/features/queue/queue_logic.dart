@@ -116,8 +116,5 @@ List<BatchProgress> batchProgressForQueue(List<PurchaseModel> queue) {
 /// Buyers in *earlier* batches who were called but never picked up. Releasing
 /// a new batch on top of them is what the owner gets warned about.
 int outstandingBefore(int batch, List<PurchaseModel> queue) => queue
-    .where(
-      (p) =>
-          p.batchNumber < batch && p.status == PurchaseStatus.notified,
-    )
+    .where((p) => p.batchNumber < batch && p.status == PurchaseStatus.notified)
     .length;

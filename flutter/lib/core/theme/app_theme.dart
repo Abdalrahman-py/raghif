@@ -38,6 +38,35 @@ class AppTheme {
         toolbarHeight: 64,
         titleTextStyle: AppTypography.titleMedium.copyWith(fontSize: 20),
       ),
+      // Bottom bar: flat white strip with a hairline on top, like the owner
+      // dashboard's pinned action bar. The selected tab is the accent color
+      // with a soft accent pill; the others stay quiet.
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        height: 68,
+        indicatorColor: AppColors.accentContainer,
+        indicatorShape: const StadiumBorder(),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 24,
+            color: states.contains(WidgetState.selected)
+                ? AppColors.accent
+                : AppColors.textSecondary,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => AppTypography.labelMedium.copyWith(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.accent
+                : AppColors.textSecondary,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+          ),
+        ),
+      ),
       dividerTheme: const DividerThemeData(color: AppColors.border, space: 24),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(

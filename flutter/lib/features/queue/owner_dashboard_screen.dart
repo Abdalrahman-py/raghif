@@ -53,6 +53,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   String? _savedCloseTime;
   bool _settingsLoaded = false;
 
+  /// True while the allocation write is in flight; blocks repeat taps.
+  bool _saving = false;
+
+  /// True while an open/close write is in flight.
+  bool _togglingOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -109,6 +115,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   /// Opening is immediate; closing asks first, since it stops every buyer
   /// and the switch is a whole-card tap target.
   Future<void> _setStoreOpen(bool open) async {
+    if (_togglingOpen) return;
     if (!open) {
       final confirmed = await confirmAction(
         context,
@@ -117,25 +124,40 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         confirmLabel: Strings.closeStoreConfirmAction,
       );
       if (!confirmed || !mounted) return;
+      // The dialog is modal, so a second tap can't arrive while it is up; the
+      // guard only has to cover the write itself.
+      if (_togglingOpen) return;
     }
-    await guardWrite(
-      context,
-      () => widget.controller.setStoreOpen(widget.storeId, open),
-    );
+    setState(() => _togglingOpen = true);
+    try {
+      await guardWrite(
+        context,
+        () => widget.controller.setStoreOpen(widget.storeId, open),
+      );
+    } finally {
+      if (mounted) setState(() => _togglingOpen = false);
+    }
   }
 
   Future<void> _save(StoreModel store) async {
-    final saved = await guardWrite(
-      context,
-      () => widget.controller.saveAllocation(
-        widget.storeId,
-        dailyBagLimit: _allocation,
-        batchSize: store.batchSize,
-        today: todayDateString(),
-        openTime: _openTime,
-        closeTime: _closeTime,
-      ),
-    );
+    if (_saving) return;
+    setState(() => _saving = true);
+    final bool saved;
+    try {
+      saved = await guardWrite(
+        context,
+        () => widget.controller.saveAllocation(
+          widget.storeId,
+          dailyBagLimit: _allocation,
+          batchSize: store.batchSize,
+          today: todayDateString(),
+          openTime: _openTime,
+          closeTime: _closeTime,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
     // Unsaved stays dirty, so the save button is still there to retry.
     if (!saved || !mounted) return;
     setState(() {
@@ -161,10 +183,33 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           listenable: widget.controller,
           builder: (context, _) => Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                child: Icon(Icons.storefront_outlined),
+              // The profile button sits where the bakery logo used to: the
+              // owner knows which bakery this is, but needs a way to the
+              // account (which also holds sign-out).
+              Semantics(
+                button: true,
+                label: 'حسابي',
+                child: Tooltip(
+                  message: 'حسابي',
+                  child: InkResponse(
+                    radius: 28,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AccountScreen()),
+                    ),
+                    // 48dp tap target around the 40dp avatar.
+                    child: const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: CircleAvatar(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.white,
+                          child: Icon(Icons.person_outline),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -180,13 +225,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'حسابي',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
-          ),
           IconButton(
             tooltip: 'الإشعارات',
             icon: const Icon(Icons.notifications_outlined),
@@ -210,11 +248,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                     : null,
               );
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: Strings.logout,
-            onPressed: () => confirmLogout(context),
           ),
         ],
       ),
@@ -252,8 +285,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                               style: Theme.of(context).textTheme.headlineSmall,
                             ),
                             const SizedBox(height: AppSpacing.md),
-                            _HeroCard(store: store),
-                            const SizedBox(height: AppSpacing.md),
                             _DailyStats(
                               remaining: store?.bagsRemaining ?? 0,
                               allocation: store?.dailyBagLimit ?? 0,
@@ -261,9 +292,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 widget.controller.todayQueue,
                               ),
                             ),
+                            _StockStatus(store: store),
                             const SizedBox(height: AppSpacing.md),
                             _StoreOpenCard(
                               isOpen: store?.isOpen ?? false,
+                              busy: _togglingOpen,
                               onChanged: (value) {
                                 // A gate change deserves tactile confirmation:
                                 // the owner's eyes are on the queue, not the
@@ -275,6 +308,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                             const SizedBox(height: AppSpacing.md),
                             _SettingsCard(
                               isDirty: _isDirty,
+                              saving: _saving,
                               windowInverted: _windowInverted,
                               allocation: _allocation,
                               openTime: _openTime,
@@ -474,132 +508,36 @@ class _SmallStat extends StatelessWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.store});
+/// Out-of-stock / low-stock notice. The numbers themselves live in
+/// [_DailyStats]; this only adds the sentence that says what to do about them
+/// (icon + text, never color alone — UI_SPEC.md). Sold out supersedes low
+/// stock: the two need different actions.
+class _StockStatus extends StatelessWidget {
+  const _StockStatus({required this.store});
 
   final StoreModel? store;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final remaining = store?.bagsRemaining ?? 0;
-    final limit = store?.dailyBagLimit ?? 0;
-
-    // Sold out supersedes low stock: the two need different actions, and two
-    // stacked warnings read as noise. Both stay icon + sentence, never color
-    // alone (UI_SPEC.md).
-    final Widget? statusLine;
+    final Widget chip;
     if (remaining <= 0) {
-      statusLine = const StatusChip(
+      chip = const StatusChip(
         text: Strings.outOfStockNotice,
         tone: StatusTone.danger,
       );
     } else if (store != null && isLowStock(store!)) {
-      statusLine = StatusChip(
+      chip = StatusChip(
         text: Strings.lowStockWarning(remaining),
         tone: StatusTone.warning,
         icon: Icons.warning_amber_rounded,
       );
     } else {
-      statusLine = null;
+      return const SizedBox.shrink();
     }
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                backgroundColor: AppColors.background,
-                foregroundColor: AppColors.accent,
-                child: Icon(Icons.bakery_dining_outlined),
-              ),
-              const Spacer(),
-              const SizedBox(width: AppSpacing.sm),
-              const StatusChip(
-                text: Strings.todayLabel,
-                tone: StatusTone.neutral,
-                icon: Icons.today,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(Strings.remainingLabel, style: textTheme.bodyLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Semantics(
-            label: Strings.bagsRemaining(remaining, limit),
-            child: Text(
-              Strings.remainingValue(remaining, limit),
-              style: textTheme.displaySmall?.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _StockBar(remaining: remaining, limit: limit),
-          if (statusLine != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: statusLine,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Depletion of today's allocation. The counter above carries the same
-/// information as text, so the bar is faster-to-read redundancy — and it
-/// carries a semantics label so the number is still announced as words.
-class _StockBar extends StatelessWidget {
-  const _StockBar({required this.remaining, required this.limit});
-
-  final int remaining;
-  final int limit;
-
-  @override
-  Widget build(BuildContext context) {
-    final fraction = limit <= 0 ? 0.0 : (remaining / limit).clamp(0.0, 1.0);
-    final soldOut = remaining <= 0;
-    final low = !soldOut && remaining <= lowStockThreshold;
-    final fill = soldOut
-        ? AppColors.danger
-        : low
-        ? AppColors.warning
-        : AppColors.accent;
-    // An empty track is all a sold-out bar would show, so the track itself
-    // carries the state tint instead of staying neutral while nothing is left.
-    final track = soldOut
-        ? AppColors.dangerContainer
-        : low
-        ? AppColors.warningContainer
-        : AppColors.border;
-    return Semantics(
-      label: Strings.bagsRemaining(remaining, limit),
-      child: Container(
-        height: 10,
-        decoration: BoxDecoration(color: track, borderRadius: AppShapes.small),
-        // Directional: the bar fills from the start edge, which is the right
-        // edge in this RTL-only app.
-        child: Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: FractionallySizedBox(
-            widthFactor: fraction,
-            heightFactor: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: fill,
-                borderRadius: AppShapes.small,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Align(alignment: AlignmentDirectional.centerStart, child: chip),
     );
   }
 }
@@ -608,16 +546,23 @@ class _StockBar extends StatelessWidget {
 /// is the tap target; the switch writes immediately (a gate, not a setting to
 /// remember to save) and buyer-side `canPurchase` reads the same flag.
 class _StoreOpenCard extends StatelessWidget {
-  const _StoreOpenCard({required this.isOpen, required this.onChanged});
+  const _StoreOpenCard({
+    required this.isOpen,
+    required this.busy,
+    required this.onChanged,
+  });
 
   final bool isOpen;
+
+  /// A write is in flight: the card ignores taps and shows a spinner.
+  final bool busy;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return AppCard(
-      onTap: () => onChanged(!isOpen),
+      onTap: busy ? null : () => onChanged(!isOpen),
       child: Semantics(
         label: Strings.storeOpenSwitchLabel,
         toggled: isOpen,
@@ -654,7 +599,13 @@ class _StoreOpenCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Switch(value: isOpen, onChanged: onChanged),
+            busy
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : Switch(value: isOpen, onChanged: onChanged),
           ],
         ),
       ),
@@ -666,6 +617,7 @@ class _StoreOpenCard extends StatelessWidget {
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
     required this.isDirty,
+    required this.saving,
     required this.windowInverted,
     required this.allocation,
     required this.openTime,
@@ -677,6 +629,7 @@ class _SettingsCard extends StatelessWidget {
   });
 
   final bool isDirty;
+  final bool saving;
   final bool windowInverted;
   final int allocation;
   final String? openTime;
@@ -773,6 +726,7 @@ class _SettingsCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             SecondaryButton(
               text: Strings.saveTodaySettings,
+              loading: saving,
               onPressed: windowInverted ? null : onSave,
             ),
           ] else

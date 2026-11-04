@@ -393,12 +393,18 @@ class _StoreCard extends StatelessWidget {
             child: StatusChip(
               text: available
                   ? Strings.available
+                  : store.isArchived
+                  ? Strings.storeArchivedBadge
+                  : store.isPaused
+                  ? Strings.storePausedBadge
                   : store.isOpen
                   ? Strings.soldOut
                   : Strings.storeClosedBadge,
               tone: available
                   ? StatusTone.success
-                  : store.isOpen
+                  : store.isPaused
+                  ? StatusTone.warning
+                  : store.isOpen && !store.isArchived
                   ? StatusTone.danger
                   : StatusTone.neutral,
               icon: available ? Icons.check_circle_outline : Icons.info_outline,

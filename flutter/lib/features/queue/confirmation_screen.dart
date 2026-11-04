@@ -94,19 +94,16 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                 storeId: purchase.storeId,
               );
 
-              final (statusLabel, tone) = switch (purchase.status) {
+              final (statusChipText, tone) = switch (purchase.status) {
                 PurchaseStatus.waiting => (
                   Strings.statusWaiting,
                   StatusTone.warning,
                 ),
                 PurchaseStatus.notified => (
-                  Strings.statusNotified,
+                  Strings.statusNotifiedShort,
                   StatusTone.success,
                 ),
-                PurchaseStatus.collected => (
-                  Strings.statusCollectedShort,
-                  StatusTone.neutral,
-                ),
+                PurchaseStatus.collected => ('اكتمل طلبك', StatusTone.neutral),
               };
               final headline = switch (purchase.status) {
                 PurchaseStatus.waiting => 'تم حجز ربطتك',
@@ -114,117 +111,168 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                 PurchaseStatus.collected => Strings.statusCollectedShort,
               };
               return SafeArea(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.successContainer,
-                              ),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.success,
+                child: Column(
+                  children: [
+                    // Everything the buyer needs is on one screen. The block is
+                    // scaled down to fit rather than scrolled, so the QR and
+                    // details are never half off-screen behind the buttons.
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 480),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: SizedBox(
+                                width: 440,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: AppColors.success,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check_rounded,
+                                            size: 28,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                            headline,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (purchase.status !=
+                                        PurchaseStatus.collected) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        purchase.status ==
+                                                PurchaseStatus.waiting
+                                            ? Strings.waitingReassurance
+                                            : Strings
+                                                  .batchReadyNotificationBody,
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 12),
+                                    RepaintBoundary(
+                                      key: _receiptKey,
+                                      child: ReceiptCard(
+                                        storeName: qrPayload.storeName,
+                                        purchaseId: qrPayload.purchaseId,
+                                        purchaseDate: qrPayload.purchaseDate,
+                                        batchNumber: purchase.batchNumber,
+                                        userName: qrPayload.userName,
+                                        status: purchase.status,
+                                        qrData: qrPayload.encode(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: AppSpacing.sm,
+                                      runSpacing: AppSpacing.xs,
+                                      children: [
+                                        StatusChip(
+                                          text: statusChipText,
+                                          tone: tone,
+                                        ),
+                                        if (position > 0)
+                                          StatusChip(
+                                            text:
+                                                '${Strings.queuePosition} $position',
+                                            tone: StatusTone.neutral,
+                                          ),
+                                        StatusChip(
+                                          text: Strings.batchLabel(
+                                            purchase.batchNumber,
+                                          ),
+                                          tone: StatusTone.neutral,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                                child: const Icon(
-                                  Icons.check_rounded,
-                                  size: 36,
-                                  color: Colors.white,
-                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            headline,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          if (purchase.status != PurchaseStatus.collected) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              purchase.status == PurchaseStatus.waiting
-                                  ? Strings.waitingReassurance
-                                  : Strings.batchReadyNotificationBody,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                          const SizedBox(height: 14),
-                          Center(
-                            child: StatusChip(
-                              text: purchase.status == PurchaseStatus.waiting
-                                  ? statusLabel
-                                  : purchase.status == PurchaseStatus.notified
-                                  ? Strings.statusNotifiedShort
-                                  : 'اكتمل طلبك',
-                              tone: tone,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          RepaintBoundary(
-                            key: _receiptKey,
-                            child: ReceiptCard(
-                              storeName: qrPayload.storeName,
-                              purchaseId: qrPayload.purchaseId,
-                              purchaseDate: qrPayload.purchaseDate,
-                              batchNumber: purchase.batchNumber,
-                              userName: qrPayload.userName,
-                              status: purchase.status,
-                              qrData: qrPayload.encode(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: AppSpacing.sm,
-                            runSpacing: AppSpacing.sm,
-                            children: [
-                              if (position > 0)
-                                StatusChip(
-                                  text: '${Strings.queuePosition} $position',
-                                  tone: StatusTone.neutral,
-                                ),
-                              StatusChip(
-                                text: Strings.batchLabel(purchase.batchNumber),
-                                tone: StatusTone.neutral,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          SecondaryButton(
-                            text: Strings.saveQrButton,
-                            onPressed: () =>
-                                _saveQrToGallery(context, qrPayload),
-                          ),
-                          const SizedBox(height: 12),
-                          SecondaryButton(
-                            text: Strings.shareQrButton,
-                            onPressed: () => _shareQr(context, qrPayload),
-                          ),
-                          const SizedBox(height: 16),
-                          PrimaryButton(
-                            text: Strings.returnToStores,
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).popUntil((route) => route.isFirst),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                    // Pinned actions, side by side: always reachable, no
+                    // scrolling to find them.
+                    DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        border: Border(
+                          top: BorderSide(color: AppColors.border),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: Center(
+                          heightFactor: 1,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 480),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: SecondaryButton(
+                                    text: Strings.saveQrButton,
+                                    onPressed: () =>
+                                        _saveQrToGallery(context, qrPayload),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: SecondaryButton(
+                                    text: Strings.shareQrButton,
+                                    onPressed: () =>
+                                        _shareQr(context, qrPayload),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: PrimaryButton(
+                                    text: Strings.returnToStores,
+                                    onPressed: () => Navigator.of(
+                                      context,
+                                    ).popUntil((route) => route.isFirst),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

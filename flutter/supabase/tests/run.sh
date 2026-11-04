@@ -22,4 +22,5 @@ psql < notify_purchase.sql
 psql < notification_inbox.sql
 psql < update_my_profile.sql
 psql < postpone_purchase.sql
+psql < admin_panel.sql
 echo "SQL tests passed"

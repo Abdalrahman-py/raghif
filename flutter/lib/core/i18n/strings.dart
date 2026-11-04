@@ -9,6 +9,10 @@ class Strings {
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
   static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginAccountDisabled =
+      'تم تعطيل هذا الحساب. تواصل مع الدعم لمعرفة السبب.';
+  static const loginStoreArchived =
+      'هذا المخبز غير متاح حاليًا. تواصل مع الدعم.';
   static const loginOffline =
       'تعذّر الاتصال بالخادم. تحقق من الاتصال وحاول مرة أخرى.';
   static const loginIdTitle = 'تسجيل الدخول';
@@ -44,14 +48,11 @@ class Strings {
   static const onboardingGetStarted = 'إنشاء حساب';
   static const onboardingHaveAccount = 'لدي حساب بالفعل';
   static const onboardingTitle1 = 'خبزك أقرب إلك';
-  static const onboardingBody1 =
-      'اعرف نقاط توزيع الخبز القريبة منك.';
+  static const onboardingBody1 = 'اعرف نقاط توزيع الخبز القريبة منك.';
   static const onboardingTitle2 = 'احجز ربطتك';
-  static const onboardingBody2 =
-      'اختار نقطة التوزيع واحجز بسهولة.';
+  static const onboardingBody2 = 'اختار نقطة التوزيع واحجز بسهولة.';
   static const onboardingTitle3 = 'استلم بوقتك';
-  static const onboardingBody3 =
-      'بنبلغك أول ما ييجي دورك.';
+  static const onboardingBody3 = 'بنبلغك أول ما ييجي دورك.';
 
   /// "الصفحة 2 من 3" — the counter above the intro, so how many steps are left
   /// is readable without counting dots. Western digits, like the rest of the
@@ -142,6 +143,11 @@ class Strings {
 
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
+
+  /// Set by the administrator (not the owner's own open/closed switch).
+  static const storePausedBadge = 'متوقف مؤقتًا';
+  static const storePausedLabel = 'المخبز متوقف مؤقتًا، حاول لاحقًا';
+  static const storeArchivedBadge = 'غير متاح';
   static String bagsRemaining(int remaining, int total) =>
       'المتبقي: $remaining من $total';
   static String purchaseWindowRange(String openTime, String closeTime) =>
@@ -194,12 +200,12 @@ class Strings {
   static const statusNotified = 'خبزك جاهز!';
   static const batchReadyNotificationBody =
       'حان دورك، توجه إلى المخبز لاستلام طلبك';
-  static const returnToStores = 'العودة إلى المخابز';
+  static const returnToStores = 'الرئيسية';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
       'أظهر هذا الرمز لصاحب المخبز لتأكيد الاستلام';
-  static const shareQrButton = 'مشاركة رمز الاستلام';
-  static const saveQrButton = 'حفظ في المعرض';
+  static const shareQrButton = 'مشاركة';
+  static const saveQrButton = 'حفظ';
   static const shareQrText = 'رمز استلام الخبز';
   static const qrSavedSuccess = 'تم حفظ رمز الاستلام في المعرض';
   static const qrSaveFailed = 'تعذر حفظ رمز الاستلام في المعرض';
@@ -212,6 +218,15 @@ class Strings {
   static const historyTitle = 'سجل المبيعات';
   static const historyButton = 'سجل المبيعات';
   static const historyEmpty = 'لا يوجد سجل بعد';
+  static const historyNoMatch = 'لا توجد مبيعات في هذه الفترة';
+  static const historyFilterMonth = 'الشهر';
+  static const historyAllMonths = 'كل الأشهر';
+  static const historyFilterDay = 'اختيار يوم';
+  static const historyClearFilter = 'إزالة الفلتر';
+  static const historyColDate = 'اليوم';
+  static const historyColSold = 'المبيعات';
+  static const historyColCollected = 'مستلم';
+  static const historyColLeft = 'لم يستلم';
   static String historyDayTitle(String date) => 'مبيعات $date';
   static String historySold(int count) => 'المبيعات: $count';
   static String historyCollected(int count) => 'مستلم: $count';

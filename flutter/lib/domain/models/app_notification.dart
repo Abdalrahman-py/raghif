@@ -10,7 +10,9 @@ class AppNotification {
   });
 
   final String id;
-  final String purchaseId;
+
+  /// Null for announcements, which have no booking behind them.
+  final String? purchaseId;
   final String kind;
   final String title;
   final String body;

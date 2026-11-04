@@ -17,7 +17,41 @@ Workflow rules this changelog lives by:
 - History predating this file (2026-09-05) is preserved in `git log` and
   `TASKS.md` — this log starts at the current collaboration.
 
-## [Unreleased]
+## [Unreleased]
+### Added — 2026-11-04 — admin panel rollout (live)
+
+- The six admin-panel migrations are applied to the live project; `admin-api`, `send-push` and `auth-gateway` (v16) are deployed. The first administrator is in `public.admins`; admin RPCs verified as that user inside a rolled-back transaction.
+- Panel published from the public repo ObaidaAlaff/raghif-admin (GitHub Pages: https://obaidaalaff.github.io/raghif-admin/). `admin/` README section added to the project README.
+- Still open: `FCM_SERVICE_ACCOUNT` push secret (Firebase project mismatch: app `raghif` vs key `ragheef-b8c20`), `announcementsReady` stays false until the app ships, `verification_status` self-service decision.
+
+### Added — 2026-11-04 — admin panel, phase 1 (database; not applied)
+
+- Plan: `docs/superpowers/plans/2026-11-04-admin-panel.md` — seven phases for a programmer-only admin panel (Vue via CDN on GitHub Pages) that manages bakeries, buyers, stats and announcements.
+- Four new migrations, **written and reviewed-ready but not applied to the live project**: `admin_foundation` (admins + `is_admin()`, `stores.bag_price` default 3, `stores.status` active/paused/archived, `profiles.account_status`, archived stores hidden from buyers, `reserve_bag` refuses paused/archived stores and disabled accounts, `DELETE` revoked on stores/profiles, `account_login_block`), `admin_rpcs` (overview, daily series, scans, notification stats, bakery and buyer lists, status/verification/price edits), `notifications_announcements` (announcement kind, nullable `purchase_id`, `admin_send_notification`) and `change_my_pin` (owners only, 5 misses lock 15 min, weak PINs refused).
+- New SQL suite `tests/admin_panel.sql`, added to `tests/run.sh`. Verified on a local real Postgres (PGlite — no docker here): every migration plus all six SQL suites pass. The four new migrations were also dry-run on the live schema inside one transaction that ends in a deliberate error, so nothing was applied.
+- Phase 2 (not deployed): migration `admin_service_helpers` (`admin_revoke_sessions`, `admin_set_pin`), new edge function `admin-api` (create a bakery with a one-time random PIN, reset a PIN, set store/account status and sign the user out; admin JWT required, service key only after `is_admin()`), 18 Node tests for its logic, and `auth-gateway` now answers 403 `account_disabled` / `store_archived` instead of "invalid credentials" (a missing database function is treated as no block so an early deploy cannot lock everyone out).
+- Phase 3 (not deployed): edge function `send-push` (pushes one inbox row to its owner's devices through FCM, drops dead device tokens, fails closed without the shared secret; 9 Node tests) and migration `inbox_push_trigger`, which pushes `postponed` and `announcement` rows — closing the "postponement sends no push" gap — while `confirmed`/`ready` stay with the existing triggers so nobody is buzzed twice. New SQL suite `tests/inbox_push.sql`.
+- Phase 4 (not deployed): the admin panel itself in `admin/` — Vue 3 from a pinned, SRI-checked CDN with no build step, Arabic RTL in the app's palette. Sign in (admin only), overview with a 30-day chart, bakeries (create, edit, pause/archive with confirmation, one-time PIN), buyers (search, verify, disable), statistics and an announcement form that stays disabled until the app can show announcements. Exercised only against built-in sample data (`?mock=1`, localhost only); never run against the real backend.
+- Phase 5 (not published): `admin-pages.yml` deploys `admin/` to GitHub Pages on changes to it (an explicit five-file list, and it fails if a secret key or any JWT ends up in the site); `ci.yml` gains an `edge-functions` job running the 27 Node tests; `admin/README.md` documents creating the administrator account and the Pages setup.
+- Phase 6 (app, not shipped): owners can change their PIN from the account screen (current PIN + new PIN twice, errors from the server shown in Arabic); a disabled account or archived bakery is told so at sign-in instead of "wrong PIN"; stores carry the administrator's `status`, so a paused bakery shows "متوقف مؤقتًا" and cannot be booked; announcements (no booking behind them) display and can be marked read instead of crashing the inbox. Verification is still self-service pending a product decision (see the plan).
+- Phase 7 preparation (nothing applied): `supabase/rollback/20261104_admin_panel_rollback.sql` undoes the six admin-panel migrations. Verified locally: after applying everything and writing data into the new columns, running it restores the schema exactly (columns, functions and their grants, policies, constraints, triggers, indexes, privileges) and keeps stores and profiles. A runbook for applying to the live project is in the plan.
+- Known follow-up (resolved by phase 6 once the app ships): the app reads `notification_inbox.purchase_id` as non-null, so no announcement may be sent before the app change in phase 6.
+
+### Fixed — 2026-11-04 — launch screen on every app open
+
+- Removed the "ابدأ التجربة" launch screen. Its "started" flag was never persisted, so every user (owner or buyer, signed in or not) had to tap through it on every cold start. The app now goes straight to the session check, then onboarding (once per install), login or home.
+- Owner dashboard: removed the large "المتبقي اليوم" hero card. The stat cards right below it already show remaining, pending pickup and daily allocation, so the same numbers appeared twice. The sold-out / low-stock notice stays, now directly under the stat cards.
+- Owner dashboard: the save-today's-settings button now shows a spinner and ignores taps while the save is in flight, so it can't be submitted twice.
+- Owner customers log (سجل الزبائن): removed the bakery-name card at the top (the owner already knows which bakery it is) and numbered each customer card 1, 2, 3… in the avatar circle.
+- Owner dashboard: the open/close-bakery switch shows a spinner and ignores taps while its write is in flight.
+- Owner sales history (سجل المبيعات): removed the bakery-name card; days are now a table (day | sales | collected | not collected) with the Arabic weekday name above each date, and the day screen title includes the weekday. Added filters by month and by a single day. The list now loads up to 366 days (was 30) so the filters reach back past last month.
+- Owner dashboard: removed the sign-out button (it lives on the account screen) and put the profile button where the bakery logo was, next to the bakery name. Account screen: no more "copy ID number" button for owners.
+- Booking-confirmed screen (تم حجز ربطتك): all details fit on one screen (scaled to fit, not scrolled) and the three actions — save, share, home — are pinned at the bottom in one row.
+- My booking (حجزي): removed the "browse bakeries" button from an existing booking and the three-step progress list (booked / ready / collected), which repeated the status chip and banner above it. The empty state keeps its browse button.
+- Account screen: removed the "copy ID number" button for everyone, not just owners.
+- Bottom navigation bar restyled to match the app: white strip with a hairline, accent-colored selected tab with a soft pill.
+- Replaced the beige ground (and its tinted borders/containers) with a light blue-grey across the app, the native splash screen and the loaf artwork.
+
 ### Fixed — 2026-10-29 — migration audit and team APK builds
 
 - Classified the two live Gaza City areas the governorate backfill missed (Sheikh Radwan, Tal al-Hawa), so every current store is reachable from the governorate screen instead of only browse-all.

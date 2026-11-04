@@ -185,10 +185,18 @@ class _IdentityCard extends StatelessWidget {
               StatusChip(
                 text: available
                     ? Strings.available
+                    : store.isArchived
+                    ? Strings.storeArchivedBadge
+                    : store.isPaused
+                    ? Strings.storePausedBadge
                     : store.isOpen
                     ? Strings.soldOut
                     : Strings.storeClosedBadge,
-                tone: available ? StatusTone.success : StatusTone.danger,
+                tone: available
+                    ? StatusTone.success
+                    : store.isPaused
+                    ? StatusTone.warning
+                    : StatusTone.danger,
               ),
             ],
           ),
@@ -280,7 +288,13 @@ class _AvailabilityCard extends StatelessWidget {
             ),
           ] else
             Text(
-              store.isOpen ? Strings.soldOut : Strings.storeClosedLabel,
+              store.isArchived
+                  ? Strings.storeArchivedBadge
+                  : store.isPaused
+                  ? Strings.storePausedLabel
+                  : store.isOpen
+                  ? Strings.soldOut
+                  : Strings.storeClosedLabel,
               style: textTheme.bodyLarge,
             ),
         ],

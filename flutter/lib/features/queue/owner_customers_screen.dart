@@ -21,7 +21,6 @@ class OwnerCustomersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = controller.storeById(storeId);
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: MediaQuery.textScalerOf(context).scale(20) > 26
@@ -44,48 +43,28 @@ class OwnerCustomersScreen extends StatelessWidget {
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, index) {
                     if (index > 0) {
-                      return _CustomerCard(customer: customers[index - 1]);
+                      return _CustomerCard(
+                        rank: index,
+                        customer: customers[index - 1],
+                      );
                     }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AppCard(
-                          child: Row(
-                            children: [
-                              const CircleAvatar(
-                                backgroundColor: AppColors.background,
-                                foregroundColor: AppColors.accent,
-                                child: Icon(Icons.people_outline),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  store?.name ?? '',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                              ),
-                            ],
-                          ),
+                    // Header slot: only state notices. The owner knows which
+                    // bakery this is, so no name card.
+                    if (snapshot.hasError) return const OfflineNotice();
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (customers.isEmpty) {
+                      return AppCard(
+                        child: Text(
+                          Strings.customersEmpty,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        if (snapshot.hasError)
-                          const OfflineNotice()
-                        else if (snapshot.connectionState ==
-                                ConnectionState.waiting &&
-                            !snapshot.hasData)
-                          const Center(child: CircularProgressIndicator())
-                        else if (customers.isEmpty)
-                          AppCard(
-                            child: Text(
-                              Strings.customersEmpty,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ),
-                      ],
-                    );
+                      );
+                    }
+                    return const SizedBox.shrink();
                   },
                 ),
               ),
@@ -98,7 +77,11 @@ class OwnerCustomersScreen extends StatelessWidget {
 }
 
 class _CustomerCard extends StatelessWidget {
-  const _CustomerCard({required this.customer});
+  const _CustomerCard({required this.rank, required this.customer});
+
+  /// 1-based position in the list, shown so the owner can refer to "customer
+  /// #7" and see at a glance how many there are.
+  final int rank;
   final CustomerSummaryModel customer;
   @override
   Widget build(BuildContext context) {
@@ -109,10 +92,13 @@ class _CustomerCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 backgroundColor: AppColors.background,
                 foregroundColor: AppColors.accent,
-                child: Icon(Icons.person_outline),
+                child: Text(
+                  '$rank',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(

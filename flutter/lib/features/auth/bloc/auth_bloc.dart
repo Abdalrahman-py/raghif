@@ -105,6 +105,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           otpCode: otp.code,
         ),
       );
+    } on AccountBlockedException catch (e) {
+      emit(AuthFailure(_blockedMessage(e)));
     } catch (e) {
       // The gateway answering "no" is handled in the repository; anything
       // that gets here is a call that never got an answer.
@@ -146,6 +148,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(const AuthFailure(Strings.loginError));
       }
+    } on AccountBlockedException catch (e) {
+      emit(AuthFailure(_blockedMessage(e)));
     } catch (e) {
       // The gateway answering "no" is handled in the repository; anything
       // that gets here is a call that never got an answer.
@@ -177,6 +181,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(AuthSwitchToRegister(nationalId: nationalId));
       }
+    } on AccountBlockedException catch (e) {
+      emit(AuthFailure(_blockedMessage(e)));
     } catch (e) {
       // The gateway answering "no" is handled in the repository; anything
       // that gets here is a call that never got an answer.
@@ -205,6 +211,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } else {
         emit(AuthSwitchToRegister(nationalId: phone));
       }
+    } on AccountBlockedException catch (e) {
+      emit(AuthFailure(_blockedMessage(e)));
     } catch (e) {
       // The gateway answering "no" is handled in the repository; anything
       // that gets here is a call that never got an answer.
@@ -274,4 +282,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final updated = await _authRepository.findById(current.user.id);
     if (updated != null) emit(Authenticated(updated));
   }
+
+  static String _blockedMessage(AccountBlockedException e) =>
+      e.reason == 'store_archived'
+      ? Strings.loginStoreArchived
+      : Strings.loginAccountDisabled;
 }

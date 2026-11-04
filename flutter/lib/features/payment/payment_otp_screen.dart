@@ -98,8 +98,11 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
                         ),
                         child: Padding(
                           padding: EdgeInsets.all(16),
-                          child: Icon(Icons.password_rounded,
-                              color: AppColors.accent, size: 32),
+                          child: Icon(
+                            Icons.password_rounded,
+                            color: AppColors.accent,
+                            size: 32,
+                          ),
                         ),
                       ),
                     ),
@@ -111,7 +114,10 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(24),
@@ -128,7 +134,10 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const ExcludeSemantics(
-                          child: Icon(Icons.info_outline, color: AppColors.accent),
+                          child: Icon(
+                            Icons.info_outline,
+                            color: AppColors.accent,
+                          ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
