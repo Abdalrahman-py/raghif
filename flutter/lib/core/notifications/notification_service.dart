@@ -46,8 +46,10 @@ class NotificationService {
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
 
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.requestNotificationsPermission();
     // Created up front, not lazily on first show: a push that arrives while
     // the app is backgrounded is rendered by the OS, which needs the channel

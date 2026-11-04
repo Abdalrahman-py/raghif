@@ -58,7 +58,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(QrImageView), findsOneWidget);
-      expect(find.text('#ad50b96f-6904-42d7-903f-a19eb8ff420b'), findsOneWidget);
+      expect(
+        find.text('#ad50b96f-6904-42d7-903f-a19eb8ff420b'),
+        findsOneWidget,
+      );
       expect(find.text(Strings.statusCollectedShort), findsOneWidget);
       expect(find.text(Strings.paidBadge), findsNothing);
     });

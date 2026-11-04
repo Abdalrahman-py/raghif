@@ -222,7 +222,10 @@ void main() {
     await tester.tap(find.text('2026-08-02'));
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.historyDayTitle('الأحد 2026-08-02')), findsOneWidget);
+    expect(
+      find.text(Strings.historyDayTitle('الأحد 2026-08-02')),
+      findsOneWidget,
+    );
     expect(find.text('أحمد ناصر'), findsOneWidget);
     expect(find.text('محمود سعيد'), findsOneWidget);
     expect(find.text(Strings.statusCollectedShort), findsWidgets);

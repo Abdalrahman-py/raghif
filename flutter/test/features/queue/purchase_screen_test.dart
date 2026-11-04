@@ -25,24 +25,27 @@ void main() {
   );
 
   group('Strings unit tests', () {
-    test('dailyLimitReachedOtherStore handles names with and without bakery prefix', () {
-      expect(
-        Strings.dailyLimitReachedOtherStore('مخبز الرمال'),
-        'لقد قمت بالحجز من مخبز الرمال اليوم بالفعل',
-      );
-      expect(
-        Strings.dailyLimitReachedOtherStore('الشاطئ'),
-        'لقد قمت بالحجز من مخبز الشاطئ اليوم بالفعل',
-      );
-      expect(
-        Strings.dailyLimitReachedOtherStore(''),
-        'لقد قمت بالحجز من مخبز آخر اليوم بالفعل',
-      );
-      expect(
-        Strings.dailyLimitReachedOtherStore('   '),
-        'لقد قمت بالحجز من مخبز آخر اليوم بالفعل',
-      );
-    });
+    test(
+      'dailyLimitReachedOtherStore handles names with and without bakery prefix',
+      () {
+        expect(
+          Strings.dailyLimitReachedOtherStore('مخبز الرمال'),
+          'لقد قمت بالحجز من مخبز الرمال اليوم بالفعل',
+        );
+        expect(
+          Strings.dailyLimitReachedOtherStore('الشاطئ'),
+          'لقد قمت بالحجز من مخبز الشاطئ اليوم بالفعل',
+        );
+        expect(
+          Strings.dailyLimitReachedOtherStore(''),
+          'لقد قمت بالحجز من مخبز آخر اليوم بالفعل',
+        );
+        expect(
+          Strings.dailyLimitReachedOtherStore('   '),
+          'لقد قمت بالحجز من مخبز آخر اليوم بالفعل',
+        );
+      },
+    );
 
     test('waitingReassurance is non-empty reassurance text', () {
       expect(Strings.waitingReassurance, isNotEmpty);
@@ -75,7 +78,9 @@ void main() {
       expect(find.byType(StatusChip), findsOneWidget);
       expect(find.text(Strings.available), findsOneWidget);
       expect(
-        find.text(Strings.bagsRemaining(store.bagsRemaining, store.dailyBagLimit)),
+        find.text(
+          Strings.bagsRemaining(store.bagsRemaining, store.dailyBagLimit),
+        ),
         findsOneWidget,
       );
 
@@ -88,47 +93,45 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('renders soldOut status chip when store has no bags remaining', (
-      tester,
-    ) async {
-      final harness = buildQueueHarness();
-      final repo = harness.repo;
-      final controller = harness.controller;
-      final store = (await repo.getStoreById(seededStoreId))!;
+    testWidgets(
+      'renders soldOut status chip when store has no bags remaining',
+      (tester) async {
+        final harness = buildQueueHarness();
+        final repo = harness.repo;
+        final controller = harness.controller;
+        final store = (await repo.getStoreById(seededStoreId))!;
 
-      // Allocation is owner-only server-side, so become the owner to drain
-      // the store, then go back to the buyer the screen renders for.
-      repo.currentUserId = seededOwnerId;
-      await controller.saveAllocation(
-        store.id,
-        dailyBagLimit: 0,
-        batchSize: 20,
-        today: todayDateString(),
-      );
-      repo.currentUserId = seededBuyerId;
+        // Allocation is owner-only server-side, so become the owner to drain
+        // the store, then go back to the buyer the screen renders for.
+        repo.currentUserId = seededOwnerId;
+        await controller.saveAllocation(
+          store.id,
+          dailyBagLimit: 0,
+          batchSize: 20,
+          today: todayDateString(),
+        );
+        repo.currentUserId = seededBuyerId;
 
-      await tester.pumpWidget(
-        wrapWithMaterial(
-          PurchaseScreen(
-            controller: controller,
-            storeId: store.id,
-            currentUser: testUser,
+        await tester.pumpWidget(
+          wrapWithMaterial(
+            PurchaseScreen(
+              controller: controller,
+              storeId: store.id,
+              currentUser: testUser,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text(store.name), findsOneWidget);
-      expect(find.text(Strings.soldOut), findsOneWidget);
-      expect(find.text(Strings.available), findsNothing);
-      expect(
-        find.text(Strings.bagsRemaining(0, 0)),
-        findsOneWidget,
-      );
+        expect(find.text(store.name), findsOneWidget);
+        expect(find.text(Strings.soldOut), findsOneWidget);
+        expect(find.text(Strings.available), findsNothing);
+        expect(find.text(Strings.bagsRemaining(0, 0)), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-    });
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
   });
 
   group('PurchaseScreen blocker handling', () {
@@ -141,10 +144,7 @@ void main() {
       final store = (await repo.getStoreById(seededStoreId))!;
 
       // Reserve at this store
-      await controller.buy(
-        storeId: store.id,
-        date: todayDateString(),
-      );
+      await controller.buy(storeId: store.id, date: todayDateString());
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -169,47 +169,47 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('shows dailyLimitReachedOtherStore when blocker is from different store', (
-      tester,
-    ) async {
-      final harness = buildQueueHarness();
-      final repo = harness.repo;
-      final controller = harness.controller;
-      final store1 = (await repo.getStoreById(seededStoreId))!;
-      final store2 = (await repo.getStoreById('store-shati'))!;
+    testWidgets(
+      'shows dailyLimitReachedOtherStore when blocker is from different store',
+      (tester) async {
+        final harness = buildQueueHarness();
+        final repo = harness.repo;
+        final controller = harness.controller;
+        final store1 = (await repo.getStoreById(seededStoreId))!;
+        final store2 = (await repo.getStoreById('store-shati'))!;
 
-      // Reserve at store 1
-      await controller.buy(
-        storeId: store1.id,
-        date: todayDateString(),
-      );
+        // Reserve at store 1
+        await controller.buy(storeId: store1.id, date: todayDateString());
 
-      // Now view purchase screen for store 2
-      await tester.pumpWidget(
-        wrapWithMaterial(
-          PurchaseScreen(
-            controller: controller,
-            storeId: store2.id,
-            currentUser: testUser,
+        // Now view purchase screen for store 2
+        await tester.pumpWidget(
+          wrapWithMaterial(
+            PurchaseScreen(
+              controller: controller,
+              storeId: store2.id,
+              currentUser: testUser,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Store detail block renders store 2's info
-      expect(find.text(store2.name), findsOneWidget);
+        // Store detail block renders store 2's info
+        expect(find.text(store2.name), findsOneWidget);
 
-      // Blocker message refers to store 1 (where the user actually reserved)
-      final expectedMessage = Strings.dailyLimitReachedOtherStore(store1.name);
-      expect(find.text(expectedMessage), findsOneWidget);
-      expect(find.text(Strings.dailyLimitReached), findsNothing);
+        // Blocker message refers to store 1 (where the user actually reserved)
+        final expectedMessage = Strings.dailyLimitReachedOtherStore(
+          store1.name,
+        );
+        expect(find.text(expectedMessage), findsOneWidget);
+        expect(find.text(Strings.dailyLimitReached), findsNothing);
 
-      // Action button is viewOrder, not payButton
-      expect(find.text(Strings.viewOrder), findsOneWidget);
-      expect(find.text(Strings.payButton), findsNothing);
+        // Action button is viewOrder, not payButton
+        expect(find.text(Strings.viewOrder), findsOneWidget);
+        expect(find.text(Strings.payButton), findsNothing);
 
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-    });
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
   });
 }

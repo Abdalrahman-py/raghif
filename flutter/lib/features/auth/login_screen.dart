@@ -243,16 +243,24 @@ class _LoginScreenState extends State<LoginScreen> {
             },
             child: Scaffold(
               appBar: AppBar(
-                toolbarHeight: _step == _Step.id ? 16 : kToolbarHeight,
+                // Pushed from the guest screen there is somewhere to go back
+                // to; as the root route the first step needs no bar at all.
+                toolbarHeight: _step == _Step.id && !Navigator.canPop(context)
+                    ? 16
+                    : kToolbarHeight,
                 backgroundColor: Colors.transparent,
                 scrolledUnderElevation: 0,
                 automaticallyImplyLeading: false,
-                leading: _step == _Step.id
+                leading: _step == _Step.id && !Navigator.canPop(context)
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.arrow_back),
                         tooltip: Strings.back,
-                        onPressed: isLoading ? null : _back,
+                        onPressed: isLoading
+                            ? null
+                            : (_step == _Step.id
+                                  ? () => Navigator.of(context).maybePop()
+                                  : _back),
                       ),
               ),
               body: SafeArea(

@@ -274,6 +274,7 @@ void main() {
     await tester.tap(find.text(Strings.createAccountLink));
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.registerButton), findsWidgets);
+    // The account is created one question at a time.
+    expect(find.text(Strings.stepOf(1, 5)), findsOneWidget);
   });
 }

@@ -56,14 +56,11 @@ class FcmService {
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null) return;
 
-    await _client.from('device_tokens').upsert(
-      {
-        'user_id': userId,
-        'fcm_token': token,
-        'platform': defaultTargetPlatform.name,
-      },
-      onConflict: 'user_id,fcm_token',
-    );
+    await _client.from('device_tokens').upsert({
+      'user_id': userId,
+      'fcm_token': token,
+      'platform': defaultTargetPlatform.name,
+    }, onConflict: 'user_id,fcm_token');
   }
 
   /// Detaches this device's token from the signed-in user. Must run *before*

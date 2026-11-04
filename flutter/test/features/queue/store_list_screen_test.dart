@@ -14,7 +14,6 @@ import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 
-
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -108,7 +107,13 @@ void main() {
       lastPurchaseDate: '2026-01-01',
     ),
     StoreListEntry(
-      store: store('store-3', 'مخبز النصيرات', area: 'النصيرات', isOpen: false, bagsRemaining: 0),
+      store: store(
+        'store-3',
+        'مخبز النصيرات',
+        area: 'النصيرات',
+        isOpen: false,
+        bagsRemaining: 0,
+      ),
     ),
   ];
 
@@ -124,19 +129,18 @@ void main() {
     expect(find.text('مخبز النصيرات'), findsOneWidget);
   });
 
-  testWidgets('the familiar store card carries order, paid and last-visit detail',
-      (tester) async {
-    stubEntries(threeStores());
-    await pumpScreen(tester);
+  testWidgets(
+    'the familiar store card carries order, paid and last-visit detail',
+    (tester) async {
+      stubEntries(threeStores());
+      await pumpScreen(tester);
 
-    expect(find.text(Strings.myStoreBadge), findsOneWidget);
-    expect(find.text(Strings.orderWaiting), findsOneWidget);
-    expect(find.text(Strings.paidBadge), findsOneWidget);
-    expect(
-      find.text(Strings.lastPurchaseFrom('2026-01-01')),
-      findsOneWidget,
-    );
-  });
+      expect(find.text(Strings.myStoreBadge), findsOneWidget);
+      expect(find.text(Strings.orderWaiting), findsOneWidget);
+      expect(find.text(Strings.paidBadge), findsOneWidget);
+      expect(find.text(Strings.lastPurchaseFrom('2026-01-01')), findsOneWidget);
+    },
+  );
 
   testWidgets('search narrows the list by store name', (tester) async {
     stubEntries(threeStores());

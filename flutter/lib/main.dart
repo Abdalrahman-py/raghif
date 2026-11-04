@@ -8,10 +8,11 @@ import 'core/theme/app_theme.dart';
 import 'core/widgets/offline_notice.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/demo_accounts.dart';
-import 'features/auth/login_screen.dart';
+import 'features/guest/guest_home_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/navigation/buyer_shell.dart';
 import 'domain/repositories/notification_repository.dart';
+import 'domain/repositories/queue_repository.dart';
 import 'features/queue/owner_dashboard_screen.dart';
 import 'domain/models/store_model.dart';
 import 'features/queue/queue_controller.dart';
@@ -25,11 +26,19 @@ void main() async {
 }
 
 class RaghifApp extends StatefulWidget {
-  const RaghifApp({super.key, this.authBloc, this.queueController});
+  const RaghifApp({
+    super.key,
+    this.authBloc,
+    this.queueController,
+    this.guestRepository,
+  });
 
   /// Test seam: inject a pre-built bloc instead of resolving one from [sl].
   final AuthBloc? authBloc;
   final QueueController? queueController;
+
+  /// Read-only bakery source for the signed-out screen; [sl] when null.
+  final QueueRepository? guestRepository;
 
   @override
   State<RaghifApp> createState() => _RaghifAppState();
@@ -147,9 +156,9 @@ class _RaghifAppState extends State<RaghifApp> {
 
               // Unauthenticated, AuthLoading (session check or a login/register
               // submit in flight), AuthFailure, AuthSwitchToRegister — all show
-              // the login form (after the once-per-install intro carousel);
-              // LoginScreen reads AuthBloc state itself for its own
-              // loading/error UI.
+              // the guest screen (after the once-per-install intro carousel);
+              // the login and registration screens it opens read AuthBloc
+              // state themselves for their own loading/error UI.
               if (_hasSeenOnboarding == null) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
@@ -160,7 +169,11 @@ class _RaghifAppState extends State<RaghifApp> {
                   onDone: () => setState(() => _hasSeenOnboarding = true),
                 );
               }
-              return const LoginScreen();
+              // Not signed in: show what the app does first; an account is
+              // only asked for when the visitor chooses to book or sign up.
+              return GuestHomeScreen(
+                repository: widget.guestRepository ?? sl<QueueRepository>(),
+              );
             },
           ),
         ),

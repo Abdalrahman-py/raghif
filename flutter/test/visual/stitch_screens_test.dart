@@ -189,18 +189,12 @@ void main() {
         await inspect('login');
 
         await show(const RegistrationScreen());
-        for (final label in [
-          Strings.nameLabel,
-          Strings.phoneLabel,
-          Strings.personalIdLabel,
-          Strings.pinLabel,
-          Strings.confirmPinLabel,
-          Strings.jawwalPayNumberLabel,
-        ]) {
-          expect(find.text(label), findsOneWidget);
-        }
-        expect(find.byType(TextFormField), findsNWidgets(6));
-        expect(find.text(Strings.registerButton), findsOneWidget);
+        // Account creation asks one question at a time: only the first step
+        // (the name) is on screen, with the progress label.
+        expect(find.text(Strings.stepOf(1, 5)), findsOneWidget);
+        expect(find.text(Strings.nameLabel), findsOneWidget);
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.text(Strings.stepsNext), findsOneWidget);
         await inspect('registration');
 
         await show(

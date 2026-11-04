@@ -106,6 +106,35 @@ class Strings {
       'المعلومات التالية مطلوبة للتحقق من هويتك وحجز الخبز';
   static const jawwalPayNumberLabel = 'رقم جوال باي';
   static const jawwalPayNumberHint = 'سيُستخدم للدفع عند الشراء';
+  static const stepsNext = 'التالي';
+  static String stepOf(int step, int total) => 'الخطوة $step من $total';
+  static const stepNameTitle = 'ما اسمك؟';
+  static const stepNameHint = 'الاسم كما في بطاقة الهوية';
+  static const stepIdTitle = 'ما رقم هويتك؟';
+  static const stepIdHint = 'نتحقق منه مرة واحدة ولن يُعرض للمخابز';
+  static const stepPhoneTitle = 'ما رقم جوالك؟';
+  static const stepPhoneHint = 'نستخدمه للتواصل معك بشأن حجزك';
+  static const stepPinTitle = 'اختر رمزًا سريًا';
+  static const stepWalletTitle = 'رقم جوال باي للدفع';
+  static const stepWalletHint =
+      'اتركه كما هو إن كان نفس رقم جوالك، أو أفرغه وأضفه لاحقًا من حسابي';
+  static String registrationFor(String store) => 'لحجز رغيف من $store';
+  static const guestTagline = 'احجز رغيفك من البيت بدل الازدحام';
+  static const guestCreateAccount = 'ابدأ بإنشاء حساب';
+  static const guestHaveAccount = 'لدي حساب؟ تسجيل الدخول';
+  static const guestBook = 'احجز رغيفك';
+  static const guestStoresTitle = 'المخابز اليوم';
+  static const guestLoadError =
+      'تعذّر تحميل المخابز. تحقق من الاتصال وحاول مرة أخرى.';
+  static const guestRetry = 'إعادة المحاولة';
+  static const guestNoStores = 'لا توجد مخابز معروضة الآن';
+  static String guestSummary(int stores, int bags) =>
+      '$stores مخبز متاح اليوم · $bags رغيف متبقٍ';
+  static const guestSummaryNone = 'لا توجد أرغفة متاحة الآن';
+  static const guestHowTitle = 'كيف يعمل رغيف؟';
+  static const guestHow1 = 'اختر المخبز الأقرب لك';
+  static const guestHow2 = 'احجز دورك من البيت';
+  static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
   // Identity verification
   static const idPhotoTitle = 'صورة بطاقة الهوية';
