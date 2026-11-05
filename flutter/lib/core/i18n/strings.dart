@@ -21,11 +21,14 @@ class Strings {
   static const continueButton = 'متابعة';
   static const forgotPin = 'نسيت الرمز السري؟';
   static const forgotPinTitle = 'استعادة الرمز السري';
+
+  /// Support's WhatsApp number (the only support channel for now).
+  static const supportWhatsapp = '+972597816403';
   static const forgotPinBody =
-      'لا يمكن استعادة الرمز تلقائيًا حاليًا. تواصل مع الدعم وسيعيدون تعيينه لك بعد التحقق من هويتك.';
+      'لا يمكن استعادة الرمز تلقائيًا حاليًا. راسل الدعم على واتساب: +972597816403 وسيعيدون تعيينه لك بعد التحقق من هويتك.';
   static const ok = 'حسنًا';
   static const loginLocked =
-      'تم إيقاف الدخول مؤقتًا بسبب محاولات خاطئة كثيرة. حاول بعد 15 دقيقة أو تواصل مع الدعم.';
+      'تم إيقاف الدخول مؤقتًا بسبب محاولات خاطئة كثيرة. حاول بعد 15 دقيقة أو راسل الدعم على واتساب: +972597816403';
   static const pinTooWeak =
       'الرمز سهل التخمين. تجنب الأرقام المتكررة أو المتسلسلة.';
   static String loginForId(String id) => 'لحساب رقم $id';
