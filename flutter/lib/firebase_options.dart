@@ -17,7 +17,9 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -49,20 +51,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyC0PJkimqT4WjqvlLGXgXcm0HMswVh22N0',
-    appId: '1:1007670005801:web:724dd9810223d0ad5bcc38',
-    messagingSenderId: '1007670005801',
-    projectId: 'raghif',
-    authDomain: 'raghif.firebaseapp.com',
-    storageBucket: 'raghif.firebasestorage.app',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCc4Z-vStw7_GwNF9NLUi4YzVuckH64T_E',
-    appId: '1:1007670005801:android:19196a01865a4d4c5bcc38',
-    messagingSenderId: '1007670005801',
-    projectId: 'raghif',
-    storageBucket: 'raghif.firebasestorage.app',
+    apiKey: 'AIzaSyBcIuqDRUGFfY7BYY2_QrLipmMUX3qMXX4',
+    appId: '1:241804779917:android:8b47d7bfd306c84645ddc4',
+    messagingSenderId: '241804779917',
+    projectId: 'ragheef-b8c20',
+    storageBucket: 'ragheef-b8c20.firebasestorage.app',
   );
 }

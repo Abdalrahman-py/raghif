@@ -17,13 +17,23 @@ Workflow rules this changelog lives by:
 - History predating this file (2026-09-05) is preserved in `git log` and
   `TASKS.md` — this log starts at the current collaboration.
 
-## [Unreleased]
-### Added — 2026-11-04 — admin panel rollout (live)
-
+## [Unreleased]
+### Changed — 2026-11-05 — app moved to the new Firebase project
+
+- `android/app/google-services.json` and `lib/firebase_options.dart` now point at project `ragheef-b8c20` (Android app `com.raghif.raghif` registered there through the Firebase Management API with the service-account key). This matches the `FCM_SERVICE_ACCOUNT` secret already on the server, so push can be delivered once a new APK is installed. The old web options are removed (the app is Android-only).
+- `db-backup.yml`: nightly schedule switched off (manual run only) until the project moves to Supabase Pro; no secrets are needed meanwhile.
+
+
+### Added — 2026-11-04 — admin panel rollout (live)
+
+
+
 - The six admin-panel migrations are applied to the live project; `admin-api`, `send-push` and `auth-gateway` (v16) are deployed. The first administrator is in `public.admins`; admin RPCs verified as that user inside a rolled-back transaction.
 - Panel published from the public repo ObaidaAlaff/raghif-admin (GitHub Pages: https://obaidaalaff.github.io/raghif-admin/). `admin/` README section added to the project README.
-- Still open: `FCM_SERVICE_ACCOUNT` push secret (Firebase project mismatch: app `raghif` vs key `ragheef-b8c20`), `announcementsReady` stays false until the app ships, `verification_status` self-service decision.
-
+- Still open: `FCM_SERVICE_ACCOUNT` push secret (Firebase project mismatch: app `raghif` vs key `ragheef-b8c20`), `announcementsReady` stays false until the app ships, `verification_status` self-service decision.
+
+
+
 ### Added — 2026-11-04 — admin panel, phase 1 (database; not applied)
 
 - Plan: `docs/superpowers/plans/2026-11-04-admin-panel.md` — seven phases for a programmer-only admin panel (Vue via CDN on GitHub Pages) that manages bakeries, buyers, stats and announcements.

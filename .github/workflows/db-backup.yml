@@ -13,9 +13,11 @@ name: Database backup
 # The dump contains personal data, so it is encrypted with the passphrase before
 # it is stored, and the artifact is kept only 14 days. Restore with:
 #   openssl enc -d -aes-256-cbc -pbkdf2 -in raghif.sql.gz.enc -pass env:BACKUP_PASSPHRASE | gunzip | psql "$DB_URL"
+# The nightly schedule is switched off until the project moves to a plan with
+# backups (or the secrets above are set). Re-add under `on:`:
+#   schedule:
+#     - cron: "45 21 * * *"
 on:
-  schedule:
-    - cron: "45 21 * * *"
   workflow_dispatch:
 
 permissions:
