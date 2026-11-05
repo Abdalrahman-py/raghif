@@ -18,6 +18,7 @@ class PurchaseModel extends Equatable {
     this.storeName,
     this.postponementCount = 0,
     this.paymentMethod,
+    this.originalPurchaseDate,
   });
 
   final String id;
@@ -37,6 +38,9 @@ class PurchaseModel extends Equatable {
   /// null while nothing is recorded yet (cash is due at pickup).
   final String? paymentMethod;
 
+  /// The day this booking was first made for, when it was postponed.
+  final String? originalPurchaseDate;
+
   /// Paid through the wallet before pickup: the bakery takes no cash.
   bool get isPrepaid => paymentMethod == 'jawwal_pay';
 
@@ -54,6 +58,7 @@ class PurchaseModel extends Equatable {
     String? storeName,
     int? postponementCount,
     String? paymentMethod,
+    String? originalPurchaseDate,
   }) {
     return PurchaseModel(
       id: id ?? this.id,
@@ -69,6 +74,7 @@ class PurchaseModel extends Equatable {
       storeName: storeName ?? this.storeName,
       postponementCount: postponementCount ?? this.postponementCount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      originalPurchaseDate: originalPurchaseDate ?? this.originalPurchaseDate,
     );
   }
 
@@ -87,5 +93,6 @@ class PurchaseModel extends Equatable {
     storeName,
     postponementCount,
     paymentMethod,
+    originalPurchaseDate,
   ];
 }

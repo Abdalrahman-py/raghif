@@ -148,6 +148,8 @@ class Strings {
   static const guestHow2 = 'احجز دورك من البيت';
   static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
+  static String postponedFrom(String date) => 'تم تأجيله من يوم $date';
+
   // Wallet verification (the buyer's proof of account)
   static const walletVerifyTitle = 'تحقق من رقم جوال باي';
   static const walletVerifyBody =

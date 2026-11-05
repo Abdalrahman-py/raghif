@@ -615,6 +615,7 @@ class SupabaseQueueRepository implements QueueRepository {
       userNationalId: buyer?['national_id'] as String?,
       storeName: store?['name'] as String?,
       paymentMethod: _paymentMethod(row['payments']),
+      originalPurchaseDate: row['original_purchase_date'] as String?,
     );
   }
 

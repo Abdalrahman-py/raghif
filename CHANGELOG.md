@@ -18,6 +18,12 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Changed — 2026-11-05 — wallet verification live; postponed bookings show their original day
+
+- Migration `20261105140000_wallet_verification` applied to the live project (version aligned); client `UPDATE` on `verification_status` / `jawwal_pay_number` is now closed.
+- A postponed booking shows "تم تأجيله من يوم …" (`purchases.original_purchase_date` is finally read).
+- Demo-data cleanup (disable the 12 demo accounts, archive the 7 demo bakeries) is NOT done: the live SQL was blocked by the session's permission guard and is left for the owner.
+
 ### Changed — 2026-11-05 — buyer verification by Jawwal Pay number (replaces ID/selfie)
 
 - The ID photo, selfie and fake "reviewing" screens are gone (and the `image_picker` dependency). A new buyer confirms the Jawwal Pay number instead: the number is entered, a code is "sent" (simulated, always 1234, shown on screen) and typed back.

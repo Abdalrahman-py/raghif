@@ -346,6 +346,15 @@ class _CurrentOrderView extends StatelessWidget {
                           '${Strings.receiptDateLabel}: ${purchase.purchaseDate}',
                           style: textTheme.bodyMedium,
                         ),
+                        if (purchase.originalPurchaseDate != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            Strings.postponedFrom(
+                              purchase.originalPurchaseDate!,
+                            ),
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
                       ],
                     ),
                   ),
