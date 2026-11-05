@@ -35,6 +35,7 @@ void main() {
   Future<AuthBloc> pumpLogin(
     WidgetTester tester, {
     List<UserModel>? users,
+    bool showDemoAccounts = false,
   }) async {
     final bloc = AuthBloc(
       authRepository: FakeAuthRepository(users: users ?? const [buyer]),
@@ -47,7 +48,7 @@ void main() {
           theme: AppTheme.light,
           builder: (context, child) =>
               Directionality(textDirection: TextDirection.rtl, child: child!),
-          home: const LoginScreen(),
+          home: LoginScreen(showDemoAccounts: showDemoAccounts),
         ),
       ),
     );
@@ -208,10 +209,21 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('release builds do not offer the demo accounts', (tester) async {
+    await pumpLogin(tester);
+
+    expect(find.text(Strings.demoAccountsTitle), findsNothing);
+    expect(kShowDemoAccounts, isFalse);
+  });
+
   testWidgets('a demo account signs in with one tap, out of the way', (
     tester,
   ) async {
-    final bloc = await pumpLogin(tester, users: const [demoBuyer]);
+    final bloc = await pumpLogin(
+      tester,
+      users: const [demoBuyer],
+      showDemoAccounts: true,
+    );
 
     // Present but quiet: one small link, not a card on the first screen.
     expect(find.text(Strings.demoBuyerLabel), findsNothing);

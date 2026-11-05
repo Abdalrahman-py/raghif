@@ -15,13 +15,22 @@ import 'registration_screen.dart';
 
 enum _Step { id, pin }
 
+/// The demo-account shortcut (PIN 1234, in the repository) exists for local
+/// work and demos only. Release builds leave it out; opt in with
+/// `--dart-define=SHOW_DEMO_ACCOUNTS=true`.
+const bool kShowDemoAccounts = bool.fromEnvironment('SHOW_DEMO_ACCOUNTS');
+
 /// One question per screen: who are you (national ID), then your PIN. A
 /// forgotten PIN is reset by support (there is no SMS gateway, and a code shown
 /// on screen would let anyone in), so the screen only points to them.
 ///
 /// Errors sit on the field they belong to, with the recovery next to them.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.showDemoAccounts = kShowDemoAccounts});
+
+  /// Whether the demo-account shortcut is offered ([kShowDemoAccounts] by
+  /// default; tests pass it explicitly).
+  final bool showDemoAccounts;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -439,15 +448,16 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text(Strings.createAccountLink),
           ),
         ),
-        Center(
-          child: TextButton(
-            onPressed: _showDemoAccounts,
-            child: Text(
-              Strings.demoAccountsTitle,
-              style: TextStyle(color: AppColors.textSecondary),
+        if (widget.showDemoAccounts)
+          Center(
+            child: TextButton(
+              onPressed: _showDemoAccounts,
+              child: Text(
+                Strings.demoAccountsTitle,
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
