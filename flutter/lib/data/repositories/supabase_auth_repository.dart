@@ -220,29 +220,16 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> updateVerificationStatus(
-    String userId,
-    VerificationStatus status,
-  ) async {
-    await _client
-        .from('profiles')
-        .update({
-          'verification_status': status == VerificationStatus.verified
-              ? 'verified'
-              : 'pending',
-        })
-        .eq('id', userId);
-  }
-
-  @override
-  Future<void> updateJawwalPayNumber(
-    String userId,
-    String jawwalPayNumber,
-  ) async {
-    await _client
-        .from('profiles')
-        .update({'jawwal_pay_number': jawwalPayNumber.trim()})
-        .eq('id', userId);
+  Future<UserModel?> verifyWallet({
+    required String jawwalPayNumber,
+    required String code,
+  }) async {
+    final result = await _client.rpc(
+      'verify_my_wallet',
+      params: {'p_number': jawwalPayNumber.trim(), 'p_code': code.trim()},
+    );
+    if (result != 'ok') return null;
+    return findById(_client.auth.currentUser!.id);
   }
 
   @override

@@ -17,8 +17,7 @@ import 'domain/repositories/queue_repository.dart';
 import 'features/queue/owner_dashboard_screen.dart';
 import 'domain/models/store_model.dart';
 import 'features/queue/queue_controller.dart';
-import 'features/verification/photo_capture_screen.dart';
-import 'features/verification/waiting_for_verification_screen.dart';
+import 'features/verification/wallet_verification_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,23 +109,22 @@ class _RaghifAppState extends State<RaghifApp> {
               }
 
               if (state is Authenticated) {
-                // Owners are pre-verified (seeded accounts); buyers go through
-                // mock ID/selfie capture once before they can buy.
+                // Owners are seeded as verified; a buyer confirms the Jawwal
+                // Pay number once before they can book.
                 if (!state.user.isOwner && !state.user.isVerified) {
-                  return PhotoCaptureScreen(
-                    kind: PhotoCaptureKind.id,
-                    onContinue: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PhotoCaptureScreen(
-                          kind: PhotoCaptureKind.selfie,
-                          onContinue: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const WaitingForVerificationScreen(),
-                            ),
-                          ),
-                        ),
+                  return WalletVerificationScreen(
+                    key: ValueKey('verify-${state.user.id}'),
+                    initialNumber: state.user.jawwalPayNumber,
+                    busy: state.profileSaving,
+                    error: state.profileError,
+                    onVerify: (number, code) => context.read<AuthBloc>().add(
+                      WalletVerificationRequestedEvent(
+                        jawwalPayNumber: number,
+                        code: code,
                       ),
+                    ),
+                    onLogout: () => context.read<AuthBloc>().add(
+                      const LogoutRequestedEvent(),
                     ),
                   );
                 }

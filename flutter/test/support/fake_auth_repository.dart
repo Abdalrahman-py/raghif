@@ -99,16 +99,18 @@ class FakeAuthRepository implements AuthRepository {
   );
 
   @override
-  Future<void> updateVerificationStatus(
-    String userId,
-    VerificationStatus status,
-  ) async {}
-
-  @override
-  Future<void> updateJawwalPayNumber(
-    String userId,
-    String jawwalPayNumber,
-  ) async {}
+  Future<UserModel?> verifyWallet({
+    required String jawwalPayNumber,
+    required String code,
+  }) async {
+    if (code != '1234') return null;
+    final current = await restoreSession();
+    if (current == null) return null;
+    return current.copyWith(
+      jawwalPayNumber: jawwalPayNumber,
+      verificationStatus: VerificationStatus.verified,
+    );
+  }
 
   @override
   Future<UserModel> updateProfile({

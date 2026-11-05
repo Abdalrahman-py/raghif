@@ -27,4 +27,5 @@ psql < login_lockout.sql
 psql < cash_payments.sql
 psql < wallet_payment.sql
 psql < housekeeping.sql
+psql < wallet_verification.sql
 echo "SQL tests passed"

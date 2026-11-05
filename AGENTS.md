@@ -79,10 +79,7 @@ cover product intent.
   or make phone a support-only field.
 - The same RPC returns `phone already registered`, which lets any signed-in user
   probe whether a number has an account. Return a generic error or rate-limit.
-- `authenticated` still holds `UPDATE (verification_status)` on `profiles` so the
-  simulated Jawwal Pay step can flip it. That means the account screen's
-  "ID/role/status read-only" promise is not enforced by the API. Moving the flip
-  into an RPC and revoking the column grant is the fix.
+- Buyer verification is the Jawwal Pay number: `verify_my_wallet(number, code)` is the only client path to `verification_status = 'verified'` (the column grants are revoked), and changing the wallet number through `update_my_profile` sends a buyer back to `pending`. The code is the fixed stand-in `1234` until the gateway can text a real one; swap the comparison in that function (and count wrong attempts) when it can.
 - Postponement writes an inbox row but sends no push: push triggers fire on
   insert and on `status = 'notified'` only.
 - `purchases.original_purchase_date` is written and never read. Surface it in

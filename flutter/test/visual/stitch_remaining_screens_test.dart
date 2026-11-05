@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
-import 'package:raghif/core/widgets/primary_button.dart';
 import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
@@ -19,8 +18,7 @@ import 'package:raghif/features/queue/owner_queue_screen.dart';
 import 'package:raghif/features/queue/purchase_screen.dart';
 import 'package:raghif/features/queue/qr_scanner_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
-import 'package:raghif/features/verification/photo_capture_screen.dart';
-import 'package:raghif/features/verification/waiting_for_verification_screen.dart';
+import 'package:raghif/features/verification/wallet_verification_screen.dart';
 
 import '../goldens/test_fonts.dart';
 import '../support/fake_auth_repository.dart';
@@ -228,46 +226,21 @@ void main() {
       }
 
       try {
-        var photoCompletions = 0;
-        for (final kind in PhotoCaptureKind.values) {
-          await show(
-            PhotoCaptureScreen(
-              kind: kind,
-              onContinue: () => photoCompletions++,
-            ),
-          );
-          expect(
-            find.text(
-              kind == PhotoCaptureKind.id
-                  ? Strings.idPhotoTitle
-                  : Strings.selfiePhotoTitle,
-            ),
-            findsOneWidget,
-          );
-          await capture('photo_capture_${kind.name}');
-          await reach(find.text(Strings.capturePrompt), 'capture ${kind.name}');
-          await reach(
-            find.text(Strings.continueLabel),
-            'continue ${kind.name}',
-          );
-          expect(
-            tester.widget<PrimaryButton>(find.byType(PrimaryButton)).onPressed,
-            isNull,
-          );
-        }
-        expect(photoCompletions, 0);
-
-        await show(const WaitingForVerificationScreen());
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        expect(find.text(Strings.continueToApp), findsNothing);
-        await capture('verification_waiting');
-        // This advances only the production mock's local approval timer.
-        await tester.pump(const Duration(seconds: 3));
+        await show(
+          WalletVerificationScreen(
+            initialNumber: '0599123456',
+            onVerify: (_, _) {},
+            onLogout: () {},
+          ),
+        );
+        expect(find.text(Strings.walletVerifyTitle), findsOneWidget);
+        await capture('wallet_verification_number');
+        await tester.ensureVisible(find.text(Strings.walletVerifySend));
+        await tester.tap(find.text(Strings.walletVerifySend));
         await paint();
-        expect(find.byType(CircularProgressIndicator), findsNothing);
-        expect(find.text('حسابك جاهز للتجربة'), findsOneWidget);
-        await capture('verification_approved');
-        await reach(find.text(Strings.continueToApp), 'approved continue');
+        expect(find.text(Strings.walletVerifyConfirm), findsOneWidget);
+        await capture('wallet_verification_code');
+        await reach(find.text(Strings.walletVerifyConfirm), 'verify confirm');
 
         await show(
           PurchaseScreen(

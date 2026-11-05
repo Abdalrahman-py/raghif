@@ -69,8 +69,16 @@ class UpdateProfileRequestedEvent extends AuthEvent {
   List<Object?> get props => [name, phone, jawwalPayNumber];
 }
 
-/// Mock verification approval — see WaitingForVerificationScreen. Real
-/// ID/face-match is out of scope for this prototype.
-class VerificationApprovedEvent extends AuthEvent {
-  const VerificationApprovedEvent();
+/// The buyer typed the code "sent" to their Jawwal Pay number.
+class WalletVerificationRequestedEvent extends AuthEvent {
+  const WalletVerificationRequestedEvent({
+    required this.jawwalPayNumber,
+    required this.code,
+  });
+
+  final String jawwalPayNumber;
+  final String code;
+
+  @override
+  List<Object?> get props => [jawwalPayNumber, code];
 }

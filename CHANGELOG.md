@@ -18,6 +18,12 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Changed — 2026-11-05 — buyer verification by Jawwal Pay number (replaces ID/selfie)
+
+- The ID photo, selfie and fake "reviewing" screens are gone (and the `image_picker` dependency). A new buyer confirms the Jawwal Pay number instead: the number is entered, a code is "sent" (simulated, always 1234, shown on screen) and typed back.
+- Migration `20261105140000_wallet_verification` (written, not yet applied live): `verify_my_wallet(number, code)` checks the code on the server and sets `verified`; changing the wallet number via `update_my_profile` resets a buyer to `pending`; direct `UPDATE` on `verification_status` / `jawwal_pay_number` is revoked. Closes the old "client can flip its own verification" issue. SQL test `wallet_verification.sql` added.
+- Real SMS arrives with the Jawwal Pay gateway: replace the `'1234'` comparison and add an attempt limit then.
+
 ### Changed — 2026-11-05 — app moved to the new Firebase project
 
 - `android/app/google-services.json` and `lib/firebase_options.dart` now point at project `ragheef-b8c20` (Android app `com.raghif.raghif` registered there through the Firebase Management API with the service-account key). This matches the `FCM_SERVICE_ACCOUNT` secret already on the server, so push can be delivered once a new APK is installed. The old web options are removed (the app is Android-only).

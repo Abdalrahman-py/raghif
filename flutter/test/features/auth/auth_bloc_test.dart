@@ -143,39 +143,87 @@ void main() {
       ],
     );
 
+    const pendingUser = UserModel(
+      id: 'user-1',
+      phone: '0599111111',
+      nationalId: '900111222',
+      name: 'أحمد ناصر',
+      verificationStatus: VerificationStatus.pending,
+    );
+
     blocTest<AuthBloc, AuthState>(
-      'emits [Authenticated] with verified status on VerificationApprovedEvent',
+      'verifies the account when the server accepts the wallet code',
       build: () {
         when(
-          () => mockAuthRepository.updateVerificationStatus(
-            'user-1',
-            VerificationStatus.verified,
+          () => mockAuthRepository.verifyWallet(
+            jawwalPayNumber: '0599111111',
+            code: '1234',
           ),
-        ).thenAnswer((_) async {});
-        when(() => mockAuthRepository.findById('user-1')).thenAnswer(
-          (_) async => testUser, // testUser is already verified
-        );
+        ).thenAnswer((_) async => testUser); // testUser is verified
         return AuthBloc(authRepository: mockAuthRepository);
       },
-      seed: () => const Authenticated(
-        UserModel(
-          id: 'user-1',
-          phone: '0599111111',
-          nationalId: '900111222',
-          name: 'أحمد ناصر',
-          verificationStatus: VerificationStatus.pending,
+      seed: () => const Authenticated(pendingUser),
+      act: (bloc) => bloc.add(
+        const WalletVerificationRequestedEvent(
+          jawwalPayNumber: '0599111111',
+          code: '1234',
         ),
       ),
-      act: (bloc) => bloc.add(const VerificationApprovedEvent()),
-      expect: () => [const Authenticated(testUser)],
-      verify: (_) {
-        verify(
-          () => mockAuthRepository.updateVerificationStatus(
-            'user-1',
-            VerificationStatus.verified,
+      expect: () => [
+        const Authenticated(pendingUser, profileSaving: true),
+        const Authenticated(testUser),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'stays pending with an error when the server refuses the code',
+      build: () {
+        when(
+          () => mockAuthRepository.verifyWallet(
+            jawwalPayNumber: '0599111111',
+            code: '0000',
           ),
-        ).called(1);
+        ).thenAnswer((_) async => null);
+        return AuthBloc(authRepository: mockAuthRepository);
       },
+      seed: () => const Authenticated(pendingUser),
+      act: (bloc) => bloc.add(
+        const WalletVerificationRequestedEvent(
+          jawwalPayNumber: '0599111111',
+          code: '0000',
+        ),
+      ),
+      expect: () => [
+        const Authenticated(pendingUser, profileSaving: true),
+        const Authenticated(pendingUser, profileError: Strings.wrongOtpError),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'reports a connection problem without verifying',
+      build: () {
+        when(
+          () => mockAuthRepository.verifyWallet(
+            jawwalPayNumber: any(named: 'jawwalPayNumber'),
+            code: any(named: 'code'),
+          ),
+        ).thenThrow(Exception('offline'));
+        return AuthBloc(authRepository: mockAuthRepository);
+      },
+      seed: () => const Authenticated(pendingUser),
+      act: (bloc) => bloc.add(
+        const WalletVerificationRequestedEvent(
+          jawwalPayNumber: '0599111111',
+          code: '1234',
+        ),
+      ),
+      expect: () => [
+        const Authenticated(pendingUser, profileSaving: true),
+        const Authenticated(
+          pendingUser,
+          profileError: Strings.walletVerifyFailed,
+        ),
+      ],
     );
 
     blocTest<AuthBloc, AuthState>(

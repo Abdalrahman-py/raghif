@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/i18n/strings.dart';
-import '../../../domain/models/user_model.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -17,7 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginRequestedEvent>(_onLoginRequested);
     on<RegisterRequestedEvent>(_onRegisterRequested);
     on<LogoutRequestedEvent>(_onLogoutRequested);
-    on<VerificationApprovedEvent>(_onVerificationApproved);
+    on<WalletVerificationRequestedEvent>(_onWalletVerification);
     on<UpdateProfileRequestedEvent>(_onUpdateProfile);
   }
 
@@ -187,18 +186,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const Unauthenticated());
   }
 
-  Future<void> _onVerificationApproved(
-    VerificationApprovedEvent event,
+  Future<void> _onWalletVerification(
+    WalletVerificationRequestedEvent event,
     Emitter<AuthState> emit,
   ) async {
     final current = state;
-    if (current is! Authenticated) return;
-    await _authRepository.updateVerificationStatus(
-      current.user.id,
-      VerificationStatus.verified,
-    );
-    final updated = await _authRepository.findById(current.user.id);
-    if (updated != null) emit(Authenticated(updated));
+    if (current is! Authenticated || current.profileSaving) return;
+    final epoch = _sessionEpoch;
+    emit(Authenticated(current.user, profileSaving: true));
+    try {
+      final updated = await _authRepository.verifyWallet(
+        jawwalPayNumber: event.jawwalPayNumber,
+        code: event.code,
+      );
+      if (epoch != _sessionEpoch) return;
+      emit(
+        updated != null
+            ? Authenticated(updated)
+            : Authenticated(current.user, profileError: Strings.wrongOtpError),
+      );
+    } catch (_) {
+      if (epoch != _sessionEpoch) return;
+      emit(
+        Authenticated(current.user, profileError: Strings.walletVerifyFailed),
+      );
+    }
   }
 
   static String _blockedMessage(AccountBlockedException e) =>

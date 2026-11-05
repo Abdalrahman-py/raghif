@@ -148,25 +148,18 @@ class Strings {
   static const guestHow2 = 'احجز دورك من البيت';
   static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
-  // Identity verification
-  static const idPhotoTitle = 'صورة بطاقة الهوية';
-  static const idPhotoInstructions =
-      'التقط صورة واضحة للوجه الأمامي لبطاقة هويتك. تأكد من وضوح الأرقام والصورة.';
-  static const selfiePhotoTitle = 'صورة شخصية';
-  static const selfiePhotoInstructions =
-      'التقط صورة واضحة لوجهك للتأكد من مطابقتها مع بطاقة الهوية.';
-  static const capturePrompt = 'اضغط لالتقاط صورة';
-  static const retakePhoto = 'إعادة الالتقاط';
-  static const captureError =
-      'تعذر فتح الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
-  static const continueLabel = 'متابعة';
-  static const verifyingTitle = 'جاري التحقق من حسابك';
-  static const verifyingBody =
-      'يرجى الانتظار بينما نتحقق من بياناتك. هذا قد يستغرق لحظات.';
-  static const verifiedTitle = 'تم التحقق من حسابك!';
-  static const verifiedBody =
-      'يمكنك الآن حجز كيس الخبز اليومي من أي مخبز متاح.';
-  static const continueToApp = 'الانتقال إلى التطبيق';
+  // Wallet verification (the buyer's proof of account)
+  static const walletVerifyTitle = 'تحقق من رقم جوال باي';
+  static const walletVerifyBody =
+      'سنرسل رمز تحقق إلى رقم محفظتك للتأكد من أنه رقمك، ثم تبدأ الحجز.';
+  static String walletVerifySent(String number) =>
+      'أرسلنا رمز التحقق إلى \u2066$number\u2069. أدخله لإكمال التحقق.';
+  static const walletVerifySend = 'إرسال رمز التحقق';
+  static const walletVerifyCodeLabel = 'رمز التحقق';
+  static const walletVerifyConfirm = 'تأكيد والمتابعة';
+  static const walletVerifyChangeNumber = 'تغيير الرقم';
+  static const walletVerifyFailed =
+      'تعذر التحقق. تأكد من الاتصال وحاول مجدداً.';
 
   // Store list
   static const storeListTitle = 'المخابز المتاحة';

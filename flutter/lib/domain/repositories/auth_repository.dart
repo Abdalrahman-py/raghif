@@ -71,12 +71,13 @@ abstract class AuthRepository {
     String? jawwalPayNumber,
   });
 
-  Future<void> updateVerificationStatus(
-    String userId,
-    VerificationStatus status,
-  );
-
-  Future<void> updateJawwalPayNumber(String userId, String jawwalPayNumber);
+  /// Confirms the buyer's Jawwal Pay number with the code sent to it and marks
+  /// the account verified. Returns the refreshed profile, or null when the
+  /// server refused the code. Throws when the server could not be reached.
+  Future<UserModel?> verifyWallet({
+    required String jawwalPayNumber,
+    required String code,
+  });
 
   Future<UserModel> updateProfile({
     required String name,
