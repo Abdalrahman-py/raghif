@@ -6,6 +6,7 @@ import '../account/account_screen.dart';
 import '../auth/demo_accounts.dart';
 import '../locations/governorate_screen.dart';
 import '../queue/buyer_home_screen.dart';
+import '../queue/purchase_screen.dart';
 import '../queue/queue_controller.dart';
 import 'inbox_navigation.dart';
 import 'pickup_navigation.dart';
@@ -16,16 +17,41 @@ class BuyerShell extends StatefulWidget {
     required this.controller,
     required this.currentUser,
     this.notifications,
+    this.openStoreId,
   });
   final QueueController controller;
   final DemoUser currentUser;
   final NotificationRepository? notifications;
+
+  /// A bakery to open the booking summary for right away (the one the visitor
+  /// chose before signing up).
+  final String? openStoreId;
   @override
   State<BuyerShell> createState() => _BuyerShellState();
 }
 
 class _BuyerShellState extends State<BuyerShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final storeId = widget.openStoreId;
+    if (storeId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.controller.watchStoreListFor(widget.currentUser.id);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PurchaseScreen(
+            controller: widget.controller,
+            storeId: storeId,
+            currentUser: widget.currentUser,
+          ),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) => PopScope(

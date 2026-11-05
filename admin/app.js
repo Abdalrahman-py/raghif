@@ -265,9 +265,32 @@
             danger: true,
             run: async () => {
               const r = await api.resetPin(s.owner_id);
-              this.reveal = { title: 'رمز جديد', who: `${s.name} — ${s.owner_name}`, pin: r.pin };
+              this.reveal = { title: 'رمز جديد', who: `${s.name} — ${s.owner_name}`, pin: r.pin, phone: s.owner_phone };
             },
           });
+        },
+        // Support flow for a buyer who forgot the PIN: confirm who they are on
+        // WhatsApp first (name, national ID, phone on the account), then
+        // generate a one-time PIN here and send it back to the same number.
+        askResetPinBuyer(b) {
+          this.ask({
+            title: `رمز PIN جديد لـ «${b.name || b.phone}»`,
+            body: 'تأكد أولًا من هوية صاحب الحساب (الاسم ورقم الهوية والجوال المسجّل). سيتوقف الرمز الحالي فورًا ويُسجَّل خروجه من كل أجهزته، ويظهر لك الرمز الجديد مرة واحدة.',
+            label: 'توليد رمز جديد',
+            danger: true,
+            run: async () => {
+              const r = await api.resetPin(b.id);
+              this.reveal = { title: 'رمز جديد', who: `${b.name || ''} — ${b.phone}`, pin: r.pin, phone: b.phone };
+            },
+          });
+        },
+        // wa.me link with the PIN message, to the number on the account
+        // (05XXXXXXXX -> 9725XXXXXXXX). The PIN goes to WhatsApp only.
+        waUrl() {
+          const raw = String((this.reveal && this.reveal.phone) || '').replace(/\D/g, '');
+          if (!/^05\d{8}$/.test(raw)) return '';
+          const text = `رغيف: رمزك السري الجديد هو ${this.reveal.pin}. ادخل به ثم غيّره من حسابي. لا تشاركه مع أحد.`;
+          return `https://wa.me/972${raw.slice(1)}?text=${encodeURIComponent(text)}`;
         },
         askAccountStatus(b) {
           const disabling = b.account_status === 'active';

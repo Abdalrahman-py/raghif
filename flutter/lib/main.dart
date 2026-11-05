@@ -9,6 +9,7 @@ import 'core/widgets/offline_notice.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/demo_accounts.dart';
 import 'features/guest/guest_home_screen.dart';
+import 'features/guest/pending_booking.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/navigation/buyer_shell.dart';
 import 'domain/repositories/notification_repository.dart';
@@ -146,6 +147,7 @@ class _RaghifAppState extends State<RaghifApp> {
                       )
                     : BuyerShell(
                         key: ValueKey(state.user.id),
+                        openStoreId: PendingBooking.take(),
                         controller: _controller,
                         currentUser: demoUser,
                         notifications: sl.isRegistered<NotificationRepository>()

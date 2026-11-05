@@ -298,17 +298,25 @@ void main() {
             reason: 'the active profile editor scrolls while editing',
           );
         }
+        // The phone number is support-only: shown, never editable here.
         await reach(find.byKey(const Key('profile-phone')), 'profile phone');
-        await tester.enterText(find.byKey(const Key('profile-phone')), '05');
+        expect(
+          tester
+              .widget<TextFormField>(find.byKey(const Key('profile-phone')))
+              .enabled,
+          isFalse,
+        );
+        await reach(find.byKey(const Key('profile-wallet')), 'profile wallet');
+        await tester.enterText(find.byKey(const Key('profile-wallet')), '05');
         tester.testTextInput.hide();
         await tap(find.text('حفظ التغييرات'), 'validate profile edits');
-        expect(find.text('أدخل رقم جوال صحيحاً من 10 أرقام'), findsOneWidget);
+        expect(find.text('أدخل رقم محفظة صحيحاً من 10 أرقام'), findsOneWidget);
         // Validation retains the draft while leaving the authenticated user intact.
         expect(find.text('أحمد ناصر الجديد'), findsOneWidget);
         expect((auth.state as Authenticated).user, _user);
-        await reach(find.byKey(const Key('profile-phone')), 'correct phone');
+        await reach(find.byKey(const Key('profile-wallet')), 'correct wallet');
         await tester.enterText(
-          find.byKey(const Key('profile-phone')),
+          find.byKey(const Key('profile-wallet')),
           '0599444444',
         );
         tester.testTextInput.hide();
@@ -316,11 +324,11 @@ void main() {
         expect(find.byType(TextFormField), findsNothing);
         final updated = (auth.state as Authenticated).user;
         expect(updated.name, 'أحمد ناصر الجديد');
-        expect(updated.phone, '0599444444');
+        expect(updated.phone, _user.phone);
+        expect(updated.jawwalPayNumber, '0599444444');
         expect(updated.nationalId, _user.nationalId);
         expect(updated.role, _user.role);
         expect(updated.verificationStatus, _user.verificationStatus);
-        expect(updated.jawwalPayNumber, _user.jawwalPayNumber);
         expect(find.text(updated.name), findsOneWidget);
         check('profile saved with identity retained');
 

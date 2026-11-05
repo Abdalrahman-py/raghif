@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/di/injection.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
@@ -9,6 +10,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../auth/bloc/auth_bloc.dart';
+import '../legal/legal_screens.dart';
 import '../queue/confirm_action.dart';
 import 'change_pin_sheet.dart';
 
@@ -132,7 +134,7 @@ class AccountScreen extends StatelessWidget {
                             ? null
                             : () => _edit(context, user),
                       ),
-                      if (user.isOwner && _repository != null) ...[
+                      if (_repository != null) ...[
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
                           key: const Key('change-pin'),
@@ -146,6 +148,52 @@ class AccountScreen extends StatelessWidget {
                           label: const Text('تغيير الرمز السري'),
                         ),
                       ],
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              key: const Key('privacy-link'),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const LegalScreen.privacy(),
+                                ),
+                              ),
+                              child: const Text(Strings.privacyTitle),
+                            ),
+                          ),
+                          Expanded(
+                            child: TextButton(
+                              key: const Key('terms-link'),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const LegalScreen.terms(),
+                                ),
+                              ),
+                              child: const Text(Strings.termsTitle),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        key: const Key('delete-account'),
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text(Strings.deleteAccountTitle),
+                            content: const SelectableText(
+                              Strings.deleteAccountBody,
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text(Strings.ok),
+                              ),
+                            ],
+                          ),
+                        ),
+                        child: const Text(Strings.deleteAccountTitle),
+                      ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
@@ -261,7 +309,9 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                   TextFormField(
                     key: const Key('profile-phone'),
                     controller: _phone,
-                    enabled: !saving,
+                    // The phone is what support checks and sends recovery PINs
+                    // to, so it cannot be edited here.
+                    enabled: false,
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(labelText: 'رقم الجوال'),
@@ -287,7 +337,8 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'تغيير رقم الجوال لا يعني التحقق منه برسالة SMS.',
+                    Strings.phoneChangeViaSupport,
+                    key: Key('phone-support-note'),
                     style: AppTypography.bodySmall,
                   ),
                   if (error != null)

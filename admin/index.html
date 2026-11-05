@@ -173,6 +173,7 @@
                 <td><span class="badge" :class="b.account_status === 'active' ? 'active' : 'archived'">{{ b.account_status === 'active' ? 'فعّال' : 'معطّل' }}</span></td>
                 <td class="actions">
                   <button class="btn small" @click="toggleVerification(b)">{{ b.verification_status === 'verified' ? 'إلغاء التوثيق' : 'توثيق' }}</button>
+                  <button class="btn small" @click="askResetPinBuyer(b)">رمز PIN جديد</button>
                   <button class="btn small" :class="{ danger: b.account_status === 'active' }" @click="askAccountStatus(b)">{{ b.account_status === 'active' ? 'تعطيل' : 'تفعيل' }}</button>
                 </td>
               </tr>
@@ -344,9 +345,10 @@
       <h3>{{ reveal.title }}</h3>
       <p>{{ reveal.who }}</p>
       <div class="pin" dir="ltr" aria-label="الرمز السري">{{ reveal.pin }}</div>
-      <p class="notice" role="note">يظهر هذا الرمز <b>مرة واحدة فقط</b>. انسخه وأرسله لصاحب المخبز الآن؛ لن تستطيع رؤيته لاحقًا (يمكنك فقط توليد رمز جديد).</p>
+      <p class="notice" role="note">يظهر هذا الرمز <b>مرة واحدة فقط</b>. انسخه وأرسله لصاحب الحساب الآن؛ لن تستطيع رؤيته لاحقًا (يمكنك فقط توليد رمز جديد).</p>
       <div class="row end">
         <button class="btn" @click="copyPin">{{ copied ? 'تم النسخ ✓' : 'نسخ الرمز' }}</button>
+        <a v-if="waUrl()" class="btn" :href="waUrl()" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a>
         <button class="btn primary" @click="closeReveal">تم، أغلق</button>
       </div>
     </div>

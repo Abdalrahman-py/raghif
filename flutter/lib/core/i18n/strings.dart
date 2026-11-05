@@ -20,6 +20,15 @@ class Strings {
   static const loginOtpTitle = 'أدخل رمز التحقق';
   static const continueButton = 'متابعة';
   static const forgotPin = 'نسيت الرمز السري؟';
+  static const privacyTitle = 'سياسة الخصوصية';
+  static const termsTitle = 'شروط الاستخدام';
+  static const phoneChangeViaSupport =
+      'لتغيير رقم الجوال راسل الدعم على واتساب: $supportWhatsapp';
+  static const deleteAccountTitle = 'طلب حذف الحساب';
+  static const deleteAccountBody =
+      'لحذف حسابك أو تعطيله راسل الدعم على واتساب: $supportWhatsapp مع ذكر اسمك ورقم هويتك، وسنتحقق منك ثم ننفّذ الطلب.';
+  static const ownerViaSupport =
+      'هل أنت صاحب مخبز؟ راسل الدعم على واتساب: $supportWhatsapp لإضافة مخبزك.';
   static const forgotPinTitle = 'استعادة الرمز السري';
 
   /// Support's WhatsApp number (the only support channel for now).

@@ -15,20 +15,23 @@ insert into public.profiles(id, name, phone, national_id, pin_hash, role, verifi
  ('f0000000-0000-0000-0000-000000000002','Second','0599888802','profile-test-2','secret','buyer','pending');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','f0000000-0000-0000-0000-000000000001',true);
-select public.update_my_profile('  New name  ','0599888803','');
+select public.update_my_profile('  New name  ','0599888801','');
 do $$ declare v jsonb; begin
-  select to_jsonb(p) into v from public.update_my_profile('New name','0599888803','0599888804') p;
+  select to_jsonb(p) into v from public.update_my_profile('New name','0599888801','0599888804') p;
   if v ? 'pin_hash' then raise exception 'RPC leaked PIN hash'; end if;
-  if v->>'id' <> 'f0000000-0000-0000-0000-000000000001' or v->>'phone' <> '0599888803'
+  if v->>'id' <> 'f0000000-0000-0000-0000-000000000001' or v->>'phone' <> '0599888801'
     or v->>'national_id' <> 'profile-test-1' or v->>'role' <> 'buyer'
     or v->>'verification_status' <> 'pending' then raise exception 'invalid profile result'; end if;
 end $$;
-select pg_temp.profile_must_fail($q$select public.update_my_profile('','0599888803','')$q$, 'invalid profile');
+select pg_temp.profile_must_fail($q$select public.update_my_profile('','0599888801','')$q$, 'invalid profile');
 select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','123','')$q$, 'invalid profile');
-select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888803','123')$q$, 'invalid profile');
-select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888802','')$q$, 'phone already registered');
+select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888801','123')$q$, 'invalid profile');
+-- The phone is support-only: another number is refused, whether or not it is
+-- taken, with the same message (nothing about who else has an account).
+select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888802','')$q$, 'phone change requires support');
+select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888803','')$q$, 'phone change requires support');
 select set_config('request.jwt.claim.sub','',true);
-select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888803','')$q$, 'authentication required');
+select pg_temp.profile_must_fail($q$select public.update_my_profile('Name','0599888801','')$q$, 'authentication required');
 reset role;
 do $$ begin
   if (select name <> 'Second' or phone <> '0599888802' from public.profiles where id='f0000000-0000-0000-0000-000000000002') then

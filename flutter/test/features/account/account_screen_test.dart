@@ -109,16 +109,20 @@ void main() {
     await tester.tap(find.text('تعديل البيانات'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('profile-name')), 'اسم جديد');
-    await tester.enterText(
-      find.byKey(const Key('profile-phone')),
-      '0599444444',
+    // The phone is support-only: the field is there but cannot be edited.
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const Key('profile-phone')))
+          .enabled,
+      isFalse,
     );
+    expect(find.byKey(const Key('phone-support-note')), findsOneWidget);
     await tester.ensureVisible(find.text('حفظ التغييرات'));
     await tester.tap(find.text('حفظ التغييرات'));
     await tester.pumpAndSettle();
     expect(find.byType(TextFormField), findsNothing);
     expect(find.text('اسم جديد'), findsOneWidget);
-    expect(find.text('0599444444'), findsOneWidget);
+    expect(find.text('0599111111'), findsWidgets);
     expect((bloc.state as Authenticated).user.nationalId, '900111222');
   });
   testWidgets(

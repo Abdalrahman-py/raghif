@@ -268,9 +268,14 @@ reset role;
 
 -- ----------------------------------------------------------- change_my_pin --
 
+update public.profiles set pin_hash = extensions.crypt('4829', extensions.gen_salt('bf'))
+ where id = 'a0000000-0000-0000-0000-000000000004';
 select pg_temp.as_user('a0000000-0000-0000-0000-000000000004'); -- a buyer
 do $$ begin
-  perform pg_temp.ok(public.change_my_pin('0000', '9137') = 'not_allowed', 'buyers cannot change the PIN here');
+  -- (buyers may change their own PIN since 20261105120000; the account must
+  -- still be active, and the current PIN must be right)
+  perform pg_temp.ok(public.change_my_pin('0000', '9137') = 'wrong_pin', 'a buyer is checked like anyone else');
+  perform pg_temp.ok(public.change_my_pin('4829', '9137') = 'ok', 'a buyer can change their own PIN');
 end $$;
 reset role;
 select pg_temp.as_user('a0000000-0000-0000-0000-000000000002'); -- owner1, PIN 4829

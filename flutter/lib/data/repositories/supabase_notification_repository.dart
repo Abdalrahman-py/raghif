@@ -50,7 +50,9 @@ class SupabaseNotificationRepository implements NotificationRepository {
             .select('id,purchase_id,kind,title,body,created_at,read_at')
             .eq('user_id', id)
             .order('created_at', ascending: false)
-            .order('id', ascending: false);
+            .order('id', ascending: false)
+            // Newest first and bounded: the inbox grows with every booking.
+            .limit(100);
         return rows.map(notificationFromRow).toList();
       });
 

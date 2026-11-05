@@ -77,7 +77,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('an owner can change the PIN; a buyer has no such button', (
+  testWidgets('owners and buyers can both change their own PIN', (
     tester,
   ) async {
     await pumpAccount(tester, owner);
@@ -85,7 +85,8 @@ void main() {
     await tester.pumpWidget(const SizedBox());
 
     await pumpAccount(tester, buyer);
-    expect(find.byKey(const Key('change-pin')), findsNothing);
+    // Support hands out a one-time PIN, so every account needs this button.
+    expect(find.byKey(const Key('change-pin')), findsOneWidget);
   });
 
   testWidgets(

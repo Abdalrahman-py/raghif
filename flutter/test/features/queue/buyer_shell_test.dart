@@ -5,6 +5,8 @@ import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
+import 'package:raghif/core/i18n/strings.dart';
+import 'package:raghif/features/guest/pending_booking.dart';
 import 'package:raghif/features/navigation/buyer_shell.dart';
 import 'package:raghif/features/queue/store_list_screen.dart';
 import '../../support/fake_auth_repository.dart';
@@ -12,6 +14,46 @@ import '../../support/fake_notification_repository.dart';
 import '../../support/queue_test_harness.dart';
 
 void main() {
+  test('PendingBooking remembers a bakery once and forgets it when read', () {
+    PendingBooking.set('store-1');
+    expect(PendingBooking.storeId, 'store-1');
+    expect(PendingBooking.take(), 'store-1');
+    expect(PendingBooking.take(), isNull);
+  });
+
+  testWidgets('a bakery chosen before signing up opens its booking summary', (
+    tester,
+  ) async {
+    final harness = buildQueueHarness();
+    final bloc = AuthBloc(authRepository: FakeAuthRepository());
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: bloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (_, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
+          home: BuyerShell(
+            controller: harness.controller,
+            openStoreId: seededStoreId,
+            currentUser: const DemoUser(
+              id: seededBuyerId,
+              name: 'أحمد ناصر',
+              phone: '0599111111',
+              pin: '',
+              role: UserRole.buyer,
+            ),
+            notifications: FakeNotificationRepository(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(Strings.purchaseTitle), findsOneWidget);
+  });
+
   testWidgets(
     'home geographic selection filters existing list; tabs retain auth',
     (tester) async {

@@ -11,6 +11,8 @@ import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../auth/login_screen.dart';
 import '../auth/registration_screen.dart';
+import '../legal/legal_screens.dart';
+import 'pending_booking.dart';
 
 /// What a visitor who is not signed in sees first: the bakeries and how many
 /// bags each still has today, read-only. Nothing here needs an account, so the
@@ -45,6 +47,8 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
   }
 
   void _signUp([StoreModel? store]) {
+    // Remembered so the booking can continue once there is an account.
+    PendingBooking.set(store?.id);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RegistrationScreen(storeName: store?.name),
@@ -145,6 +149,34 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
                       onPressed: _login,
                       child: const Text(Strings.guestHaveAccount),
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    Strings.ownerViaSupport,
+                    key: const Key('guest-owner-note'),
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyMedium?.copyWith(color: muted),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LegalScreen.privacy(),
+                          ),
+                        ),
+                        child: const Text(Strings.privacyTitle),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LegalScreen.terms(),
+                          ),
+                        ),
+                        child: const Text(Strings.termsTitle),
+                      ),
+                    ],
                   ),
                 ],
               );
