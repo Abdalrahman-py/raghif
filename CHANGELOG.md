@@ -18,6 +18,13 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Changed — 2026-11-05 — notification copy, Firebase tooling, Gradle 8.14
+
+- Migration `20261105150000_notification_copy` (applied live): clearer Arabic text for the confirmed / postponed / ready notifications, dates as DD/MM/YYYY.
+- `flutter/firebase.json` points at `ragheef-b8c20`. Gradle wrapper 8.12 -> 8.14 (the installed Flutter 3.47 refuses anything older).
+- Demo-data cleanup was run by the owner in the Supabase SQL editor.
+- Bakery owners are created only by the administrator in the panel; there is no owner self-registration (decision, not a gap). Remote alerts are by WhatsApp to the support number; there is no automatic sender yet.
+
 ### Changed — 2026-11-05 — wallet verification live; postponed bookings show their original day
 
 - Migration `20261105140000_wallet_verification` applied to the live project (version aligned); client `UPDATE` on `verification_status` / `jawwal_pay_number` is now closed.
