@@ -24,4 +24,5 @@ psql < update_my_profile.sql
 psql < postpone_purchase.sql
 psql < admin_panel.sql
 psql < login_lockout.sql
+psql < cash_payments.sql
 echo "SQL tests passed"

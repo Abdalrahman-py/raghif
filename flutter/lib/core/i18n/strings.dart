@@ -228,7 +228,19 @@ class Strings {
   }
 
   static const viewOrder = 'عرض الطلب';
-  static const payButton = 'ادفع 3 شيكل';
+  static const reserveCashButton = 'احجز رغيفك';
+  static const cashOnPickupTitle = 'الدفع عند الاستلام';
+
+  /// A whole price reads "3", not "3.00".
+  static String shekels(double amount) => amount == amount.roundToDouble()
+      ? amount.toInt().toString()
+      : amount.toStringAsFixed(2);
+  static String cashOnPickupBody(double price) =>
+      'ادفع ${shekels(price)} شيكل نقدًا للمخبز عند استلام رغيفك. لا يُطلب منك أي دفع الآن.';
+  static String cashCollected(double amount) =>
+      'المحصَّل نقدًا: ${shekels(amount)} شيكل';
+  static String amountDueAtPickup(double price) =>
+      'المطلوب عند الاستلام: ${shekels(price)} شيكل نقدًا';
 
   // Confirmation
   static const confirmationTitle = 'تأكيد الحجز';

@@ -335,6 +335,13 @@ class _HistoryTable extends StatelessWidget {
                             style: textTheme.titleSmall,
                           ),
                           Text(day.date, style: textTheme.bodyMedium),
+                          if (day.cashTotal > 0)
+                            Text(
+                              Strings.cashCollected(day.cashTotal),
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: AppColors.success,
+                              ),
+                            ),
                         ],
                       ),
                     ),

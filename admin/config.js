@@ -9,9 +9,8 @@ window.RAGHIF_ADMIN = {
   supabaseUrl: 'https://mgmerkaokkffsypnkryj.supabase.co',
   supabaseKey: 'sb_publishable_W1krXaSZDx6v4z5Un-BPrg_sa2nJbOc',
 
-  // Announcements write inbox rows with no purchase behind them. The app build
-  // that is out today reads purchase_id as non-null and cannot display them.
-  // Flip this to true only once the app that tolerates it has shipped
-  // (docs/superpowers/plans/2026-11-04-admin-panel.md, phase 6).
-  announcementsReady: false,
+  // Announcements write inbox rows with no purchase behind them. Only app
+  // builds from 2026-11-04 on (phase 6) can display them; an older build
+  // cannot, so send announcements once the devices have updated.
+  announcementsReady: true,
 };

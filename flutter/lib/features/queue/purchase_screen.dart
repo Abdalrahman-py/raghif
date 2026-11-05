@@ -7,9 +7,9 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../auth/demo_accounts.dart';
-import '../payment/payment_number_screen.dart';
 import 'confirmation_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -58,20 +58,6 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
       setState(() {
         _blocker = blocker;
       });
-    }
-  }
-
-  void _startPaymentFlow() async {
-    final paid = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => PaymentNumberScreen(
-          initialNumber:
-              widget.currentUser.jawwalPayNumber ?? widget.currentUser.phone,
-        ),
-      ),
-    );
-    if (paid == true && mounted) {
-      _pay();
     }
   }
 
@@ -186,7 +172,7 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   Text(
-                                    'تأكد من المخبز قبل متابعة الدفع.',
+                                    'تأكد من المخبز قبل تأكيد الحجز.',
                                     style: textTheme.bodyMedium,
                                   ),
                                 ],
@@ -308,12 +294,15 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'الدفع عبر جوال باي',
+                                      Strings.cashOnPickupTitle,
                                       style: textTheme.titleMedium,
                                     ),
                                     const SizedBox(height: AppSpacing.xs),
                                     Text(
-                                      'ستؤكد رقم المحفظة ورمز الدفع في الخطوة التالية.',
+                                      Strings.cashOnPickupBody(
+                                        store?.bagPrice ??
+                                            StoreModel.defaultBagPrice,
+                                      ),
                                       style: textTheme.bodyMedium,
                                     ),
                                   ],
@@ -330,9 +319,9 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                         )
                       else
                         PrimaryButton(
-                          text: Strings.payButton,
+                          text: Strings.reserveCashButton,
                           loading: _isPaying,
-                          onPressed: _startPaymentFlow,
+                          onPressed: _pay,
                         ),
                       const SizedBox(height: AppSpacing.sm),
                       SecondaryButton(

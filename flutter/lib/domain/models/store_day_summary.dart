@@ -11,6 +11,7 @@ class StoreDaySummary extends Equatable {
     required this.sold,
     required this.collected,
     required this.notCollected,
+    this.cashTotal = 0,
   });
 
   final String date;
@@ -18,8 +19,12 @@ class StoreDaySummary extends Equatable {
   final int collected;
   final int notCollected;
 
+  /// Cash taken that day, in shekels (from the `payments` the server wrote when
+  /// bags were collected).
+  final double cashTotal;
+
   bool get everythingCollected => notCollected == 0;
 
   @override
-  List<Object?> get props => [date, sold, collected, notCollected];
+  List<Object?> get props => [date, sold, collected, notCollected, cashTotal];
 }

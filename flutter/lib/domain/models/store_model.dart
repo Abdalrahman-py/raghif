@@ -14,7 +14,11 @@ class StoreModel extends Equatable {
     this.area = '',
     this.governorate,
     this.status = StoreStatus.active,
+    this.bagPrice = defaultBagPrice,
   });
+
+  /// What a bag costs unless the bakery has its own price (`stores.bag_price`).
+  static const defaultBagPrice = 3.0;
 
   /// Supabase `stores.id`. Same value on device, on the server and in a
   /// QR payload.
@@ -46,6 +50,9 @@ class StoreModel extends Equatable {
   /// owner's own daily switch.
   final String status;
 
+  /// Shekels per bag, paid in cash at the bakery when the bag is collected.
+  final double bagPrice;
+
   bool get isPaused => status == StoreStatus.paused;
   bool get isArchived => status == StoreStatus.archived;
   bool get isSoldOut => bagsRemaining <= 0;
@@ -66,6 +73,7 @@ class StoreModel extends Equatable {
     String? area,
     String? governorate,
     String? status,
+    double? bagPrice,
   }) {
     return StoreModel(
       id: id ?? this.id,
@@ -80,6 +88,7 @@ class StoreModel extends Equatable {
       area: area ?? this.area,
       governorate: governorate ?? this.governorate,
       status: status ?? this.status,
+      bagPrice: bagPrice ?? this.bagPrice,
     );
   }
 
@@ -97,6 +106,7 @@ class StoreModel extends Equatable {
     area,
     governorate,
     status,
+    bagPrice,
   ];
 }
 

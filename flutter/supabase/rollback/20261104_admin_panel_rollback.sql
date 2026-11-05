@@ -1,4 +1,5 @@
--- Undoes migrations 20261104100000 .. 20261104105000 (the admin panel schema).
+-- Undoes migrations 20261104100000 .. 20261105100000 (the admin panel schema,
+-- sign-in lockout and cash payments).
 -- NOT a migration: it lives outside migrations/ on purpose and is run by hand,
 -- only if the panel's database changes have to be taken back out.
 --
@@ -20,6 +21,47 @@
 --
 -- Run it in one transaction; it fails closed if anything is missing.
 begin;
+
+-- 8. cash payments (20261105100000): the payments table (and every cash record
+-- in it) is dropped, and collect_purchase / store_daily_summaries go back to
+-- not knowing about money.
+drop function if exists public.store_daily_summaries(uuid, integer);
+create function public.store_daily_summaries(p_store_id uuid, p_limit integer default 30)
+returns table(purchase_date date, sold bigint, collected bigint, not_collected bigint)
+language plpgsql security definer set search_path to 'public'
+as $$
+begin
+  if not exists (select 1 from public.stores where id = p_store_id and owner_id = (select auth.uid()))
+  then raise exception 'not the store owner' using errcode = 'P0001'; end if;
+  return query
+    select p.purchase_date, count(*),
+           count(*) filter (where p.status = 'collected'),
+           count(*) filter (where p.status <> 'collected')
+      from public.purchases p where p.store_id = p_store_id
+     group by p.purchase_date order by p.purchase_date desc limit greatest(p_limit, 1);
+end; $$;
+revoke execute on function public.store_daily_summaries(uuid, integer) from public, anon, authenticated;
+grant execute on function public.store_daily_summaries(uuid, integer) to authenticated;
+
+create or replace function public.collect_purchase(p_purchase_id uuid)
+returns public.purchases
+language plpgsql security definer set search_path to 'public'
+as $$
+declare v_p public.purchases; v_store_id uuid;
+begin
+ select store_id into v_store_id from public.purchases where id=p_purchase_id;
+ perform 1 from public.stores where id=v_store_id and owner_id=auth.uid() for update;
+ if not found then raise exception 'not the store owner'; end if;
+ select * into v_p from public.purchases where id=p_purchase_id for update;
+ if v_p.purchase_date <> (now() at time zone 'Asia/Hebron')::date then raise exception 'collection is for today only'; end if;
+ if v_p.status='waiting' then raise exception 'batch not notified yet'; end if;
+ update public.purchases set status='collected' where id=p_purchase_id returning * into v_p;
+ return v_p;
+end $$;
+revoke execute on function public.collect_purchase(uuid) from public, anon, authenticated;
+grant execute on function public.collect_purchase(uuid) to authenticated;
+
+drop table if exists public.payments;
 
 -- 7. sign-in lockout (20261104110000): the counters are dropped with their
 -- values, so a locked account can sign in again.

@@ -563,6 +563,7 @@ class SupabaseQueueRepository implements QueueRepository {
         sold: (r['sold'] as num?)?.toInt() ?? 0,
         collected: (r['collected'] as num?)?.toInt() ?? 0,
         notCollected: (r['not_collected'] as num?)?.toInt() ?? 0,
+        cashTotal: (r['cash_total'] as num?)?.toDouble() ?? 0,
       );
     }).toList();
   }
@@ -583,6 +584,8 @@ class SupabaseQueueRepository implements QueueRepository {
     area: (row['area'] as String?) ?? '',
     governorate: row['governorate'] as String?,
     status: (row['status'] as String?) ?? StoreStatus.active,
+    bagPrice:
+        (row['bag_price'] as num?)?.toDouble() ?? StoreModel.defaultBagPrice,
   );
 
   /// A `purchases` row, with the embedded `profiles` / `stores` names when

@@ -14,6 +14,7 @@ import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../auth/demo_accounts.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_model.dart';
 import 'qr_payload.dart';
 import 'queue_controller.dart';
 import 'receipt_card.dart';
@@ -177,6 +178,24 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                             .bodyMedium
                                             ?.copyWith(
                                               color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                    if (purchase.status !=
+                                        PurchaseStatus.collected) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        Strings.amountDueAtPickup(
+                                          store?.bagPrice ??
+                                              StoreModel.defaultBagPrice,
+                                        ),
+                                        key: const Key('amount-due'),
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
                                             ),
                                       ),
                                     ],

@@ -13,10 +13,6 @@ import 'package:raghif/core/widgets/primary_button.dart';
 import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
-import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
-import 'package:raghif/features/payment/payment_number_screen.dart';
-import 'package:raghif/features/payment/payment_otp_screen.dart';
-import 'package:raghif/features/payment/payment_success_screen.dart';
 import 'package:raghif/features/queue/owner_customers_screen.dart';
 import 'package:raghif/features/queue/owner_history_screen.dart';
 import 'package:raghif/features/queue/owner_queue_screen.dart';
@@ -289,47 +285,10 @@ void main() {
         await paint();
         expect(find.text('مخبز الرمال'), findsOneWidget);
         await capture('purchase');
-        await reach(find.text(Strings.payButton), 'purchase payment');
-        await tester.tap(find.text(Strings.payButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentNumberScreen), findsOneWidget);
-        check('purchase opens payment');
-
-        final payment = MockJawwalPayService(initialCode: '1234');
-        await show(
-          PaymentNumberScreen(initialNumber: _buyer.phone, service: payment),
-        );
-        expect(find.text(_buyer.phone), findsOneWidget);
-        await capture('payment_number');
-        await reach(find.text(Strings.proceedToOtp), 'proceed to OTP');
-        await tester.tap(find.text(Strings.proceedToOtp));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentOtpScreen), findsOneWidget);
-        expect(find.text(Strings.demoOtpNotification('1234')), findsOneWidget);
-        await capture('payment_otp');
-        await reach(find.text(Strings.resendCodeButton), 'resend OTP');
-        await tester.tap(find.text(Strings.resendCodeButton));
-        await paint();
-        expect(payment.code, '1234');
-        await reach(find.byType(TextField), 'OTP field');
-        await tester.enterText(find.byType(TextField), '1234');
-        tester.testTextInput.hide();
-        await paint();
-        await reach(find.text(Strings.confirmPaymentButton), 'confirm OTP');
-        await tester.tap(find.text(Strings.confirmPaymentButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentSuccessScreen), findsOneWidget);
-        await capture('payment_success');
-        await reach(
-          find.text(Strings.completeReservationButton),
-          'complete reservation',
-        );
+        // Payment is cash at the bakery: the booking button reserves directly
+        // and the screen says what is due at pickup.
+        await reach(find.text(Strings.reserveCashButton), 'reserve button');
+        expect(find.text(Strings.cashOnPickupTitle), findsOneWidget);
 
         // Seed all queue statuses and another day through the fake repository.
         // No purchase or owner action in this fixture reaches a remote backend.
