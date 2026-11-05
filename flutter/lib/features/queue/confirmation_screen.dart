@@ -185,10 +185,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                         PurchaseStatus.collected) ...[
                                       const SizedBox(height: 6),
                                       Text(
-                                        Strings.amountDueAtPickup(
-                                          store?.bagPrice ??
-                                              StoreModel.defaultBagPrice,
-                                        ),
+                                        purchase.isPrepaid
+                                            ? Strings.paidAlready
+                                            : Strings.amountDueAtPickup(
+                                                store?.bagPrice ??
+                                                    StoreModel.defaultBagPrice,
+                                              ),
                                         key: const Key('amount-due'),
                                         textAlign: TextAlign.center,
                                         style: Theme.of(context)

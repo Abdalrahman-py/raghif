@@ -427,6 +427,20 @@ class _ResultView extends StatelessWidget {
               ],
             ),
           ),
+          if (result.outcome == QrRedemptionOutcome.checkedIn &&
+              result.purchase != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              result.purchase!.isPrepaid
+                  ? Strings.scanPaidAlready
+                  : Strings.scanTakeCash,
+              key: const Key('scan-payment'),
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(text: Strings.scanAgain, onPressed: onRescan),
           const SizedBox(height: AppSpacing.sm),

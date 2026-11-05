@@ -285,10 +285,8 @@ void main() {
         await paint();
         expect(find.text('مخبز الرمال'), findsOneWidget);
         await capture('purchase');
-        // Payment is cash at the bakery: the booking button reserves directly
-        // and the screen says what is due at pickup.
-        await reach(find.text(Strings.reserveCashButton), 'reserve button');
-        expect(find.text(Strings.cashOnPickupTitle), findsOneWidget);
+        await reach(find.text(Strings.payWalletButton(3)), 'pay button');
+        expect(find.text(Strings.walletPaymentTitle), findsOneWidget);
 
         // Seed all queue statuses and another day through the fake repository.
         // No purchase or owner action in this fixture reaches a remote backend.

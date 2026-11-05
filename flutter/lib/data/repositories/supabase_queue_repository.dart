@@ -74,7 +74,7 @@ class SupabaseQueueRepository implements QueueRepository {
 
   /// Purchase row plus the buyer and store names the screens show.
   static const _purchaseColumns =
-      '*, profiles(name, phone, national_id), stores(name)';
+      '*, profiles(name, phone, national_id), stores(name), payments(method)';
 
   // ------------------------------------------------------------- writes --
 
@@ -134,6 +134,13 @@ class SupabaseQueueRepository implements QueueRepository {
     final bare = purchaseFromRow(row);
     await _receipts.save(bare);
     return bare;
+  }
+
+  @override
+  Future<void> recordWalletPayment(String purchaseId) async {
+    await _write<dynamic>('record_wallet_payment', {
+      'p_purchase_id': purchaseId,
+    });
   }
 
   @override
@@ -607,7 +614,17 @@ class SupabaseQueueRepository implements QueueRepository {
       userPhone: buyer?['phone'] as String?,
       userNationalId: buyer?['national_id'] as String?,
       storeName: store?['name'] as String?,
+      paymentMethod: _paymentMethod(row['payments']),
     );
+  }
+
+  /// `payments` is embedded as one object (a purchase has at most one), but a
+  /// list is tolerated too.
+  static String? _paymentMethod(Object? embedded) {
+    final row = embedded is List
+        ? (embedded.isEmpty ? null : embedded.first)
+        : embedded;
+    return row is Map ? row['method'] as String? : null;
   }
 
   static PurchaseStatus _status(Object? value) => switch (value) {

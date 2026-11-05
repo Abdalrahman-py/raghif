@@ -382,6 +382,14 @@ class _BuyerRow extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               StatusChip(text: statusText, tone: tone),
+              StatusChip(
+                text: purchase.isPrepaid
+                    ? Strings.ownerPaidBadge
+                    : Strings.ownerCashBadge,
+                tone: purchase.isPrepaid
+                    ? StatusTone.success
+                    : StatusTone.neutral,
+              ),
               Text(
                 formatReadyTime(purchase.createdAtMillis),
                 style: Theme.of(context).textTheme.bodyMedium,

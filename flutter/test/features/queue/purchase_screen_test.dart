@@ -4,7 +4,7 @@ import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/widgets/status_chip.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/domain/models/store_model.dart';
-import 'package:raghif/features/queue/confirmation_screen.dart';
+import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/queue/purchase_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
 
@@ -55,54 +55,28 @@ void main() {
     });
   });
 
-  group('Cash on pickup', () {
+  group('Price and payment record', () {
     test('prices read as whole shekels or with two decimals', () {
       expect(Strings.shekels(3), '3');
       expect(Strings.shekels(4.5), '4.50');
-      expect(Strings.cashOnPickupBody(3), contains('ادفع 3 شيكل نقدًا'));
+      expect(Strings.payWalletButton(3), 'ادفع 3 شيكل');
       expect(StoreModel.defaultBagPrice, 3.0);
     });
 
-    testWidgets(
-      'says what is due at pickup and reserves with no payment screen',
-      (tester) async {
-        final harness = buildQueueHarness();
-        final controller = harness.controller;
-        final store = (await harness.repo.getStoreById(seededStoreId))!;
-        await tester.pumpWidget(
-          wrapWithMaterial(
-            PurchaseScreen(
-              controller: controller,
-              storeId: store.id,
-              currentUser: testUser,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text(Strings.cashOnPickupTitle), findsOneWidget);
-        expect(
-          find.text(Strings.cashOnPickupBody(store.bagPrice)),
-          findsOneWidget,
-        );
-
-        await tester.ensureVisible(find.text(Strings.reserveCashButton));
-        await tester.tap(find.text(Strings.reserveCashButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 600));
-        await tester.pumpAndSettle();
-
-        // Straight to the booking: no wallet number, no code.
-        expect(find.byType(ConfirmationScreen), findsOneWidget);
-        expect(
-          await controller.blockingPurchaseFor(testUser.id, todayDateString()),
-          isNotNull,
-        );
-
-        await tester.pumpWidget(const SizedBox());
-        await tester.pumpAndSettle();
-      },
-    );
+    test('a wallet payment marks the booking as prepaid', () {
+      const unpaid = PurchaseModel(
+        id: 'p',
+        storeId: 's',
+        userId: 'u',
+        purchaseDate: '2026-11-05',
+        batchNumber: 1,
+        status: PurchaseStatus.waiting,
+        createdAtMillis: 0,
+      );
+      expect(unpaid.isPrepaid, isFalse);
+      expect(unpaid.copyWith(paymentMethod: 'jawwal_pay').isPrepaid, isTrue);
+      expect(unpaid.copyWith(paymentMethod: 'cash').isPrepaid, isFalse);
+    });
   });
 
   group('PurchaseScreen store-detail layout', () {
@@ -138,7 +112,7 @@ void main() {
 
       // Price shown once, on the buy button itself — not as a separate row
       expect(find.text(Strings.priceLabel), findsNothing);
-      expect(find.text(Strings.reserveCashButton), findsOneWidget);
+      expect(find.text(Strings.payWalletButton(3)), findsOneWidget);
       expect(find.text(Strings.viewOrder), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
@@ -215,7 +189,7 @@ void main() {
       // Same store blocker message
       expect(find.text(Strings.dailyLimitReached), findsOneWidget);
       expect(find.text(Strings.viewOrder), findsOneWidget);
-      expect(find.text(Strings.reserveCashButton), findsNothing);
+      expect(find.text(Strings.payWalletButton(3)), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
@@ -257,7 +231,7 @@ void main() {
 
         // Action button is viewOrder, not payButton
         expect(find.text(Strings.viewOrder), findsOneWidget);
-        expect(find.text(Strings.reserveCashButton), findsNothing);
+        expect(find.text(Strings.payWalletButton(3)), findsNothing);
 
         await tester.pumpWidget(const SizedBox());
         await tester.pumpAndSettle();

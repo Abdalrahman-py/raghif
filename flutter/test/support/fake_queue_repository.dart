@@ -194,6 +194,14 @@ class FakeQueueRepository implements QueueRepository {
   // --- writes -------------------------------------------------------------
 
   @override
+  Future<void> recordWalletPayment(String purchaseId) async {
+    _requireOnline();
+    final i = _purchases.indexWhere((p) => p.id == purchaseId);
+    if (i < 0) throw StateError('purchase not found');
+    _purchases[i] = _purchases[i].copyWith(paymentMethod: 'jawwal_pay');
+  }
+
+  @override
   Future<PurchaseModel> reserveBag({
     required String storeId,
     required String date,

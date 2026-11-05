@@ -228,7 +228,15 @@ class Strings {
   }
 
   static const viewOrder = 'عرض الطلب';
-  static const reserveCashButton = 'احجز رغيفك';
+  static String payWalletButton(double price) => 'ادفع ${shekels(price)} شيكل';
+  static const walletPaymentTitle = 'الدفع عبر جوال باي';
+  static const walletPaymentBody =
+      'ستؤكد رقم المحفظة ورمز الدفع في الخطوة التالية. الدفع تجريبي حاليًا ولا يُخصم أي مبلغ.';
+  static const paidAlready = 'تم الدفع عبر جوال باي';
+  static const ownerPaidBadge = 'مدفوع مسبقًا';
+  static const ownerCashBadge = 'يدفع نقدًا';
+  static const scanPaidAlready = 'مدفوع مسبقًا عبر المحفظة: لا تأخذ نقدًا';
+  static const scanTakeCash = 'غير مدفوع: خذ ثمن الرغيف نقدًا';
   static const cashOnPickupTitle = 'الدفع عند الاستلام';
 
   /// A whole price reads "3", not "3.00".

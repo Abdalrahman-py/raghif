@@ -1,4 +1,4 @@
--- Undoes migrations 20261104100000 .. 20261105100000 (the admin panel schema,
+-- Undoes migrations 20261104100000 .. 20261105110000 (the admin panel schema,
 -- sign-in lockout and cash payments).
 -- NOT a migration: it lives outside migrations/ on purpose and is run by hand,
 -- only if the panel's database changes have to be taken back out.
@@ -21,6 +21,10 @@
 --
 -- Run it in one transaction; it fails closed if anything is missing.
 begin;
+
+-- 9. wallet payment record (20261105110000): the function goes; the provider
+-- column and the widened method check go with the payments table below.
+drop function if exists public.record_wallet_payment(uuid);
 
 -- 8. cash payments (20261105100000): the payments table (and every cash record
 -- in it) is dropped, and collect_purchase / store_daily_summaries go back to

@@ -250,6 +250,17 @@ class QueueController extends ChangeNotifier {
     return purchase;
   }
 
+  /// Records the (simulated) wallet payment for a booking just made. A failure
+  /// is not fatal: the booking stands and the bakery will ask for cash.
+  Future<void> recordWalletPayment(String purchaseId) async {
+    await _repository.recordWalletPayment(purchaseId);
+    final cached = _purchaseCache[purchaseId];
+    if (cached != null) {
+      _purchaseCache[purchaseId] = cached.copyWith(paymentMethod: 'jawwal_pay');
+      notifyListeners();
+    }
+  }
+
   /// Owner action: release the next un-notified batch. The push to those
   /// buyers is sent by the backend (notify-batch Edge Function). Returns
   /// false when there was no waiting batch left.

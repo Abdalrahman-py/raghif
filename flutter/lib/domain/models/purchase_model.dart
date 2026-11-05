@@ -17,6 +17,7 @@ class PurchaseModel extends Equatable {
     this.userNationalId,
     this.storeName,
     this.postponementCount = 0,
+    this.paymentMethod,
   });
 
   final String id;
@@ -32,6 +33,13 @@ class PurchaseModel extends Equatable {
   final String? storeName;
   final int postponementCount;
 
+  /// How this bag was paid: `jawwal_pay`, `cash` (taken at collection), or
+  /// null while nothing is recorded yet (cash is due at pickup).
+  final String? paymentMethod;
+
+  /// Paid through the wallet before pickup: the bakery takes no cash.
+  bool get isPrepaid => paymentMethod == 'jawwal_pay';
+
   PurchaseModel copyWith({
     String? id,
     String? storeId,
@@ -45,6 +53,7 @@ class PurchaseModel extends Equatable {
     String? userNationalId,
     String? storeName,
     int? postponementCount,
+    String? paymentMethod,
   }) {
     return PurchaseModel(
       id: id ?? this.id,
@@ -59,6 +68,7 @@ class PurchaseModel extends Equatable {
       userNationalId: userNationalId ?? this.userNationalId,
       storeName: storeName ?? this.storeName,
       postponementCount: postponementCount ?? this.postponementCount,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -76,5 +86,6 @@ class PurchaseModel extends Equatable {
     userNationalId,
     storeName,
     postponementCount,
+    paymentMethod,
   ];
 }

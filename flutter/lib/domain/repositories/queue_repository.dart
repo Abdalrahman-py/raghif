@@ -105,6 +105,11 @@ abstract class QueueRepository {
     required String date,
   });
 
+  /// Records that the buyer paid for [purchaseId] through the wallet. The price
+  /// is the bakery's; until the real provider is connected the payment is
+  /// flagged as simulated on the server.
+  Future<void> recordWalletPayment(String purchaseId);
+
   /// Returns true if a waiting batch existed and was notified, false if
   /// there was nothing left to notify.
   Future<bool> notifyNextBatch(String storeId, String date);

@@ -10,6 +10,7 @@ import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../auth/demo_accounts.dart';
+import '../payment/payment_number_screen.dart';
 import 'confirmation_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -61,7 +62,23 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     }
   }
 
-  void _pay() async {
+  /// Wallet payment first (simulated until the real provider is connected),
+  /// then the booking, then the record of the payment.
+  void _startPaymentFlow() async {
+    final paid = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PaymentNumberScreen(
+          initialNumber:
+              widget.currentUser.jawwalPayNumber ?? widget.currentUser.phone,
+        ),
+      ),
+    );
+    if (paid == true && mounted) {
+      _pay(paidByWallet: true);
+    }
+  }
+
+  void _pay({bool paidByWallet = false}) async {
     setState(() => _isPaying = true);
     await Future<void>.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
@@ -94,6 +111,14 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
         storeId: widget.storeId,
         date: date,
       );
+      if (!mounted) return;
+      if (paidByWallet) {
+        try {
+          await widget.controller.recordWalletPayment(purchase.id);
+        } catch (_) {
+          // The booking stands; without a record the bakery asks for cash.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _isPaying = false;
@@ -294,15 +319,12 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      Strings.cashOnPickupTitle,
+                                      Strings.walletPaymentTitle,
                                       style: textTheme.titleMedium,
                                     ),
                                     const SizedBox(height: AppSpacing.xs),
                                     Text(
-                                      Strings.cashOnPickupBody(
-                                        store?.bagPrice ??
-                                            StoreModel.defaultBagPrice,
-                                      ),
+                                      Strings.walletPaymentBody,
                                       style: textTheme.bodyMedium,
                                     ),
                                   ],
@@ -319,9 +341,11 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                         )
                       else
                         PrimaryButton(
-                          text: Strings.reserveCashButton,
+                          text: Strings.payWalletButton(
+                            store?.bagPrice ?? StoreModel.defaultBagPrice,
+                          ),
                           loading: _isPaying,
-                          onPressed: _pay,
+                          onPressed: _startPaymentFlow,
                         ),
                       const SizedBox(height: AppSpacing.sm),
                       SecondaryButton(
