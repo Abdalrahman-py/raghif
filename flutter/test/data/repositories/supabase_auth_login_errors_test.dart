@@ -35,17 +35,14 @@ void main() {
   test('a 401 from the gateway is a wrong PIN: null', () async {
     gatewayReplies(const FunctionException(status: 401));
 
-    expect(
-      await repo.loginWithPin(nationalId: '900111222', pin: '0000'),
-      isNull,
-    );
+    expect(await repo.login(phone: '0599111111', pin: '0000'), isNull);
   });
 
   test('no connection is not a wrong PIN: it throws', () async {
     gatewayReplies(const SocketException('Failed host lookup'));
 
     await expectLater(
-      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      repo.login(phone: '0599111111', pin: '1234'),
       throwsA(isA<SocketException>()),
     );
   });
@@ -56,7 +53,7 @@ void main() {
         FunctionException(status: 403, details: {'error': reason}),
       );
       await expectLater(
-        repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+        repo.login(phone: '0599111111', pin: '1234'),
         throwsA(
           isA<AccountBlockedException>().having(
             (e) => e.reason,
@@ -76,7 +73,7 @@ void main() {
       ),
     );
     await expectLater(
-      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      repo.login(phone: '0599111111', pin: '1234'),
       throwsA(
         isA<AccountBlockedException>().having(
           (e) => e.reason,
@@ -95,7 +92,7 @@ void main() {
       ),
     );
     await expectLater(
-      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      repo.login(phone: '0599111111', pin: '1234'),
       throwsA(isA<FunctionException>()),
     );
   });
@@ -104,7 +101,7 @@ void main() {
     gatewayReplies(const FunctionException(status: 500));
 
     await expectLater(
-      repo.loginWithPin(nationalId: '900111222', pin: '1234'),
+      repo.login(phone: '0599111111', pin: '1234'),
       throwsA(isA<FunctionException>()),
     );
   });

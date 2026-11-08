@@ -28,7 +28,7 @@ export interface AdminClient extends Rpc {
       createUser(args: {
         email: string;
         email_confirm: boolean;
-        user_metadata: Record<string, unknown>;
+        user_metadata?: Record<string, unknown>;
       }): Promise<{
         data: { user: { id: string } | null };
         error: { message: string } | null;
@@ -72,9 +72,9 @@ export function generatePin(randomInt: (max: number) => number): string {
   }
 }
 
-/** Must match auth-gateway's syntheticEmail so the owner can sign in later. */
-export function syntheticEmail(nationalId: string): string {
-  return `nid-${nationalId.replace(/[^a-zA-Z0-9]/g, "")}@raghif.internal`;
+/** Never emailed; random, so it does not depend on the phone number. */
+export function syntheticEmail(): string {
+  return `u-${crypto.randomUUID()}@raghif.internal`;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -134,7 +134,6 @@ async function createBakery(
 ): Promise<Reply> {
   const ownerName = text(b.ownerName);
   const phone = text(b.phone);
-  const nationalId = text(b.nationalId);
   const storeName = text(b.storeName);
   const area = text(b.area);
   const governorate = text(b.governorate);
@@ -144,7 +143,6 @@ async function createBakery(
 
   if (!ownerName) return fail(400, "ownerName required");
   if (!/^0\d{9}$/.test(phone)) return fail(400, "phone must be 10 digits starting with 0");
-  if (!/^\d{9}$/.test(nationalId)) return fail(400, "nationalId must be 9 digits");
   if (!storeName) return fail(400, "storeName required");
   if (!GOVERNORATES.includes(governorate)) return fail(400, "invalid governorate");
   if (!Number.isInteger(dailyBagLimit) || dailyBagLimit < 0) return fail(400, "invalid dailyBagLimit");
@@ -153,20 +151,17 @@ async function createBakery(
 
   const avail = await deps.admin.rpc("check_availability", {
     p_phone: phone,
-    p_national_id: nationalId,
   });
   if (avail.error) throw new Error(avail.error.message);
   const row = Array.isArray(avail.data) ? avail.data[0] : avail.data;
   // deno-lint-ignore no-explicit-any
   const r = row as any;
   if (r?.phone_exists) return fail(409, "phone already registered");
-  if (r?.national_id_exists) return fail(409, "national id already registered");
 
   const { data: created, error: createError } = await deps.admin.auth.admin
     .createUser({
-      email: syntheticEmail(nationalId),
+      email: syntheticEmail(),
       email_confirm: true,
-      user_metadata: { national_id: nationalId },
     });
   if (createError || !created?.user) {
     throw new Error(createError?.message ?? "could not create the account");
@@ -178,10 +173,8 @@ async function createBakery(
     const profile = await deps.admin.rpc("create_profile", {
       p_id: userId,
       p_phone: phone,
-      p_national_id: nationalId,
       p_pin: pin,
       p_name: ownerName,
-      p_jawwal_pay_number: null,
       p_role: "owner",
       p_verification_status: "verified",
     });

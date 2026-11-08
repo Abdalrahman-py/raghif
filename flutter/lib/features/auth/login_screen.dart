@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/i18n/strings.dart';
+import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/labeled_field.dart';
@@ -39,6 +40,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _idController = TextEditingController();
   final _pinController = TextEditingController();
+  final _pinFocus = FocusNode();
 
   _Step _step = _Step.id;
   bool _showPin = false;
@@ -47,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _pinError;
   String? _formError;
 
-  /// The server said this ID has no account: offer registration right where
+  /// The server said this number has no account: offer registration right where
   /// the message appears instead of making the user hunt for it.
   bool _notRegistered = false;
 
@@ -55,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _idController.dispose();
     _pinController.dispose();
+    _pinFocus.dispose();
     super.dispose();
   }
 
@@ -62,8 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validateId() {
     final value = _idController.text.trim();
-    if (value.isEmpty) return Strings.nationalIdRequired;
-    if (value.length != 9) return Strings.nationalIdLengthError;
+    if (value.isEmpty) return Strings.phoneRequired;
+    if (!RegExp(r'^05\d{8}$').hasMatch(value)) return Strings.phoneInvalid;
     return null;
   }
 
@@ -98,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submitPin() {
+    if (context.read<AuthBloc>().state is AuthLoading) return;
     final error = _validatePin();
     setState(() {
       _pinError = error;
@@ -105,8 +109,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     if (error != null) return;
     context.read<AuthBloc>().add(
-      PinLoginRequestedEvent(
-        nationalId: _idController.text.trim(),
+      LoginRequestedEvent(
+        phone: _idController.text.trim(),
         pin: _pinController.text.trim(),
       ),
     );
@@ -119,7 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text(Strings.forgotPinTitle),
-        content: const Text(Strings.forgotPinBody),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(Strings.forgotPinBody),
+            SizedBox(height: 16),
+            SupportWhatsAppButton(
+              message: 'مرحبًا، نسيت الرمز السري لحسابي في تطبيق رغيف.',
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -128,6 +142,18 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  /// After a refused PIN the field is emptied and focused again, so the next
+  /// attempt is just typing. (Before, the field was disabled while the request
+  /// ran, lost focus for good, and kept the wrong digits that had to be
+  /// deleted one by one.)
+  void _retryPin() {
+    if (_step != _Step.pin) return;
+    _pinController.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _pinFocus.requestFocus();
+    });
   }
 
   void _back() {
@@ -172,21 +198,21 @@ class _LoginScreenState extends State<LoginScreen> {
               _demoRow(
                 sheetContext,
                 Strings.demoBuyerLabel,
-                demoBuyerNationalId,
+                demoBuyerPhone,
                 demoBuyerPin,
               ),
               const SizedBox(height: AppSpacing.sm),
               _demoRow(
                 sheetContext,
                 demoBuyer2Name,
-                demoBuyer2NationalId,
+                demoBuyer2Phone,
                 demoBuyer2Pin,
               ),
               const SizedBox(height: AppSpacing.sm),
               _demoRow(
                 sheetContext,
                 Strings.demoOwnerLabel,
-                demoOwnerNationalId,
+                demoOwnerPhone,
                 demoOwnerPin,
               ),
             ],
@@ -233,9 +259,10 @@ class _LoginScreenState extends State<LoginScreen> {
       listener: (context, state) {
         if (state is AuthFailure) {
           setState(() => _formError = state.errorMessage);
+          _retryPin();
         } else if (state is AuthSwitchToRegister) {
           setState(() {
-            _formError = Strings.nationalIdNotFound;
+            _formError = Strings.phoneNotFound;
             _notRegistered = true;
           });
         } else if (state is Authenticated) {
@@ -418,23 +445,22 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LabeledField(
-          label: Strings.personalIdLabel,
+          label: Strings.phoneLabel,
           child: TextField(
             controller: _idController,
-            enabled: !isLoading,
+            readOnly: isLoading,
             autofocus: true,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.username],
+            autofillHints: const [AutofillHints.telephoneNumber],
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              LengthLimitingTextInputFormatter(10),
             ],
             onChanged: (_) => _clearErrors(),
             onSubmitted: (_) => _continue(),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.badge_outlined),
-              helperText: Strings.nationalIdHelper,
+              prefixIcon: const Icon(Icons.phone_outlined),
               errorText: _idError,
             ),
           ),
@@ -470,7 +496,8 @@ class _LoginScreenState extends State<LoginScreen> {
           label: Strings.pinLabel,
           child: TextField(
             controller: _pinController,
-            enabled: !isLoading,
+            focusNode: _pinFocus,
+            readOnly: isLoading,
             autofocus: true,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,

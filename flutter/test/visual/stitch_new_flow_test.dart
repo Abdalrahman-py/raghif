@@ -10,9 +10,8 @@ import 'package:raghif/domain/models/app_notification.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/account/account_screen.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
-import 'package:raghif/features/locations/area_screen.dart';
-import 'package:raghif/features/locations/governorate_screen.dart';
-import 'package:raghif/features/locations/location_logic.dart';
+import 'package:raghif/features/auth/demo_accounts.dart';
+import 'package:raghif/features/queue/buyer_stores_home.dart';
 import 'package:raghif/features/notifications/notifications_screen.dart';
 import 'package:raghif/features/queue/postpone_booking_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
@@ -22,12 +21,18 @@ import '../support/fake_auth_repository.dart';
 import '../support/fake_notification_repository.dart';
 import '../support/queue_test_harness.dart';
 
+const _buyer = DemoUser(
+  id: seededBuyerId,
+  phone: '0599111111',
+  pin: '1234',
+  role: UserRole.buyer,
+  name: 'أحمد ناصر',
+);
+
 const _user = UserModel(
   id: seededBuyerId,
   phone: '0599111111',
-  nationalId: '900111222',
   name: 'أحمد ناصر',
-  jawwalPayNumber: '0599333333',
   verificationStatus: VerificationStatus.verified,
 );
 
@@ -169,47 +174,13 @@ void main() {
       }
 
       try {
-        var browsed = 0;
-        String? selectedGovernorate;
-        String? selectedArea;
-        void select(String governorate, String area) {
-          selectedGovernorate = governorate;
-          selectedArea = area;
-        }
-
         await show(
-          GovernorateScreen(
-            controller: harness.controller,
-            onSelected: select,
-            onBrowseAll: () => browsed++,
-          ),
+          BuyerStoresHome(controller: harness.controller, currentUser: _buyer),
         );
-        expect(harness.controller.storesLoaded, isTrue);
-        await capture('governorate');
-        // Verify the final governorate and browse action remain reachable.
-        await reach(find.text(governorates.last), 'last governorate');
-        await tap(find.text('عرض جميع المخابز'), 'browse all governorates');
-        expect(browsed, 1);
-        await tap(find.text('غزة'), 'select Gaza governorate');
-        expect(find.byType(AreaScreen), findsOneWidget);
-        expect(find.text('محافظة غزة'), findsOneWidget);
-        await capture('area');
-        await reach(find.byType(TextField), 'area search');
-        await tester.enterText(find.byType(TextField), 'منطقة غير مسجلة');
-        tester.testTextInput.hide();
-        await paint();
-        expect(find.text('لم نجد المنطقة المطلوبة'), findsOneWidget);
-        expect(selectedArea, isNull);
-        await tap(find.text('عرض جميع المخابز'), 'browse after empty search');
-        expect(browsed, 2);
-        await reach(find.byType(TextField), 'refine area search');
-        await tester.enterText(find.byType(TextField), 'الرمال');
-        tester.testTextInput.hide();
-        await paint();
-        expect(find.text('الشاطئ'), findsNothing);
-        await tap(find.widgetWithText(Card, 'الرمال'), 'select filtered area');
-        expect(selectedGovernorate, 'غزة');
-        expect(selectedArea, 'الرمال');
+        await tester.pumpAndSettle();
+        expect(harness.controller.storeListLoaded, isTrue);
+        expect(find.text('اشترِ ربطة'), findsWidgets);
+        await capture('buyer_home');
 
         final notifications = FakeNotificationRepository()
           ..items = [
@@ -266,7 +237,7 @@ void main() {
         await show(const AccountScreen());
         expect(auth.state, isA<Authenticated>());
         expect(find.text(_user.name), findsOneWidget);
-        expect(find.text(_user.nationalId), findsOneWidget);
+        expect(find.text(_user.phone), findsOneWidget);
         await capture('account');
         await reach(find.text('تسجيل الخروج'), 'account logout action');
         await tap(find.text('تعديل البيانات'), 'open profile editor');
@@ -288,7 +259,7 @@ void main() {
         final editorPosition = tester
             .state<ScrollableState>(editorScroll)
             .position;
-        if (editorPosition.maxScrollExtent > 0) {
+        if (editorPosition.maxScrollExtent > editorPosition.pixels) {
           final beforeDrag = editorPosition.pixels;
           await tester.drag(editorScroll, const Offset(0, -120));
           await paint();
@@ -306,18 +277,10 @@ void main() {
               .enabled,
           isFalse,
         );
-        await reach(find.byKey(const Key('profile-wallet')), 'profile wallet');
-        await tester.enterText(find.byKey(const Key('profile-wallet')), '05');
-        tester.testTextInput.hide();
-        await tap(find.text('حفظ التغييرات'), 'validate profile edits');
-        expect(find.text('أدخل رقم محفظة صحيحاً من 10 أرقام'), findsOneWidget);
-        // Validation retains the draft while leaving the authenticated user intact.
-        expect(find.text('أحمد ناصر الجديد'), findsOneWidget);
-        expect((auth.state as Authenticated).user, _user);
-        await reach(find.byKey(const Key('profile-wallet')), 'correct wallet');
+        await reach(find.byKey(const Key('profile-name')), 'correct name');
         await tester.enterText(
-          find.byKey(const Key('profile-wallet')),
-          '0599444444',
+          find.byKey(const Key('profile-name')),
+          'أحمد ناصر الجديد',
         );
         tester.testTextInput.hide();
         await tap(find.text('حفظ التغييرات'), 'save corrected profile');
@@ -325,8 +288,6 @@ void main() {
         final updated = (auth.state as Authenticated).user;
         expect(updated.name, 'أحمد ناصر الجديد');
         expect(updated.phone, _user.phone);
-        expect(updated.jawwalPayNumber, '0599444444');
-        expect(updated.nationalId, _user.nationalId);
         expect(updated.role, _user.role);
         expect(updated.verificationStatus, _user.verificationStatus);
         expect(find.text(updated.name), findsOneWidget);

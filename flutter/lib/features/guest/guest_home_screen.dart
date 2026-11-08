@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/i18n/strings.dart';
+import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -13,6 +14,16 @@ import '../auth/login_screen.dart';
 import '../auth/registration_screen.dart';
 import '../legal/legal_screens.dart';
 import 'pending_booking.dart';
+
+class _GuestData {
+  const _GuestData({required this.all, required this.top});
+
+  /// Every visible bakery (the summary counts these).
+  final List<StoreModel> all;
+
+  /// The busiest few, in rank order (the list shows these).
+  final List<StoreModel> top;
+}
 
 /// What a visitor who is not signed in sees first: the bakeries and how many
 /// bags each still has today, read-only. Nothing here needs an account, so the
@@ -29,21 +40,46 @@ class GuestHomeScreen extends StatefulWidget {
 }
 
 class _GuestHomeScreenState extends State<GuestHomeScreen> {
-  late Future<List<StoreModel>> _stores = _load();
+  late Future<_GuestData> _stores = _load();
 
-  Future<List<StoreModel>> _load() async {
-    final stores = await widget.repository.getStores();
-    // Bookable bakeries first, then the most stock.
-    return [...stores]..sort((a, b) {
-      if (a.canPurchase != b.canPurchase) return a.canPurchase ? -1 : 1;
-      return b.bagsRemaining.compareTo(a.bagsRemaining);
-    });
+  /// A visitor sees the five busiest bakeries (most bookings this week), not
+  /// the whole directory; the full list is for people with an account.
+  static const topCount = 5;
+
+  Future<_GuestData> _load() async {
+    final stores = (await widget.repository.getStores())
+        .where((s) => !s.isArchived)
+        .toList();
+    var ranked = <String>[];
+    try {
+      ranked = await widget.repository.getPopularStoreIds(limit: topCount);
+    } catch (_) {
+      // Ranking is a nicety: fall back to today's sales below.
+    }
+    final byId = {for (final s in stores) s.id: s};
+    final top = [
+      for (final id in ranked)
+        if (byId[id] != null) byId[id]!,
+    ];
+    if (top.isEmpty) {
+      // No ranking (offline function, or no bookings yet): most sold today.
+      top.addAll(
+        ([...stores]..sort((a, b) {
+              final sold = (b.dailyBagLimit - b.bagsRemaining).compareTo(
+                a.dailyBagLimit - a.bagsRemaining,
+              );
+              return sold != 0 ? sold : a.name.compareTo(b.name);
+            }))
+            .take(topCount),
+      );
+    }
+    return _GuestData(all: stores, top: top.take(topCount).toList());
   }
 
   Future<void> _refresh() async {
     final next = _load();
     setState(() => _stores = next);
-    await next.catchError((_) => <StoreModel>[]);
+    await next.catchError((_) => const _GuestData(all: [], top: []));
   }
 
   void _signUp([StoreModel? store]) {
@@ -85,10 +121,10 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refresh,
-          child: FutureBuilder<List<StoreModel>>(
+          child: FutureBuilder<_GuestData>(
             future: _stores,
             builder: (context, snapshot) {
-              final stores = snapshot.data;
+              final stores = snapshot.data?.all;
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -157,6 +193,13 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
                     textAlign: TextAlign.center,
                     style: textTheme.bodyMedium?.copyWith(color: muted),
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const SupportWhatsAppButton(
+                    key: Key('guest-owner-whatsapp'),
+                    message: Strings.ownerRequestMessage,
+                    label: 'تواصل معنا لإضافة مخبزك',
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -213,7 +256,7 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
   }
 
   List<Widget> _storeList(
-    AsyncSnapshot<List<StoreModel>> snapshot,
+    AsyncSnapshot<_GuestData> snapshot,
     TextTheme textTheme,
     Color muted,
   ) {
@@ -245,7 +288,7 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
         ),
       ];
     }
-    final stores = snapshot.data!;
+    final stores = snapshot.data!.top;
     if (stores.isEmpty) {
       return [
         Padding(

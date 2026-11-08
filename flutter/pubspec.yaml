@@ -38,6 +38,10 @@ dependencies:
   # purpose: that release needs Flutter >=3.44, while CI builds on the pinned
   # 3.41.6 — a caret would resolve to it locally and break CI.
   audioplayers: '>=6.7.1 <6.8.0'
+  url_launcher: ^6.3.3
+  # Already pulled in by supabase_flutter; named here because the connectivity
+  # probe imports it directly.
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -78,16 +82,6 @@ flutter:
         - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
           weight: 600
         - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
-          weight: 700
-    - family: NotoSansArabic
-      fonts:
-        - asset: assets/fonts/NotoSansArabic-VariableFont.ttf
-          weight: 400
-        - asset: assets/fonts/NotoSansArabic-VariableFont.ttf
-          weight: 500
-        - asset: assets/fonts/NotoSansArabic-VariableFont.ttf
-          weight: 600
-        - asset: assets/fonts/NotoSansArabic-VariableFont.ttf
           weight: 700
 
 flutter_launcher_icons:

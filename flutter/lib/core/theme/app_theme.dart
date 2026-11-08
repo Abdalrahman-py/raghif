@@ -38,21 +38,20 @@ class AppTheme {
         toolbarHeight: 64,
         titleTextStyle: AppTypography.titleMedium.copyWith(fontSize: 20),
       ),
-      // Bottom bar: flat white strip with a hairline on top, like the owner
-      // dashboard's pinned action bar. The selected tab is the accent color
-      // with a soft accent pill; the others stay quiet.
+      // Bottom bar (see AppBottomBar): the selected tab is a solid accent
+      // pill with a white icon and an accent label; the others stay quiet.
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        height: 68,
-        indicatorColor: AppColors.accentContainer,
+        height: 70,
+        indicatorColor: AppColors.accent,
         indicatorShape: const StadiumBorder(),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             size: 24,
             color: states.contains(WidgetState.selected)
-                ? AppColors.accent
+                ? AppColors.onAccent
                 : AppColors.textSecondary,
           ),
         ),
@@ -135,7 +134,7 @@ class AppTheme {
           minimumSize: const Size.fromHeight(56),
           shape: const StadiumBorder(),
           elevation: 2,
-          shadowColor: const Color(0x33884E00),
+          shadowColor: const Color(0x331D4ED8),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: AppTypography.labelLarge,
         ),
@@ -144,7 +143,7 @@ class AppTheme {
         color: AppColors.surface,
         elevation: 1,
         surfaceTintColor: Colors.transparent,
-        shadowColor: const Color(0x142E3B2E),
+        shadowColor: const Color(0x141B2433),
         shape: RoundedRectangleBorder(
           borderRadius: AppShapes.large,
           side: const BorderSide(color: AppColors.border),

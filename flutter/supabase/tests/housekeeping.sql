@@ -8,8 +8,8 @@ begin
 end $$;
 
 insert into auth.users (id) values ('b1000000-0000-0000-0000-0000000000a1');
-insert into public.profiles (id, phone, national_id, pin_hash, name, role)
-  values ('b1000000-0000-0000-0000-0000000000a1', 'hk-1', 'hk-n1', 'x', 'hk', 'buyer');
+insert into public.profiles (id, phone, pin_hash, name, role)
+  values ('b1000000-0000-0000-0000-0000000000a1', 'hk-1', 'x', 'hk', 'buyer');
 insert into public.stores (id, name, is_open, daily_bag_limit, bags_remaining)
   values ('b2000000-0000-0000-0000-0000000000a1', 'hk-store', true, 5, 5);
 insert into public.scan_events (store_id, outcome, scanned_at) values

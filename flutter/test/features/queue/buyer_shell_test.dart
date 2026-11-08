@@ -8,7 +8,8 @@ import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/features/guest/pending_booking.dart';
 import 'package:raghif/features/navigation/buyer_shell.dart';
-import 'package:raghif/features/queue/store_list_screen.dart';
+import 'package:raghif/features/queue/buyer_stores_home.dart';
+import 'package:raghif/features/queue/queue_logic.dart' show todayDateString;
 import '../../support/fake_auth_repository.dart';
 import '../../support/fake_notification_repository.dart';
 import '../../support/queue_test_harness.dart';
@@ -51,7 +52,53 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.purchaseTitle), findsOneWidget);
+    // Straight to payment: no review screen in between.
+    expect(find.text(Strings.paymentTitle), findsOneWidget);
+    expect(find.text('راجع حجزك'), findsNothing);
+  });
+
+  testWidgets('the home opens on "my bakeries" and "all" is one tap away', (
+    tester,
+  ) async {
+    final harness = buildQueueHarness(actingAs: seededBuyerId);
+    await harness.controller.buy(
+      storeId: seededStoreId,
+      date: todayDateString(),
+    );
+    final bloc = AuthBloc(authRepository: FakeAuthRepository());
+    addTearDown(bloc.close);
+    await tester.pumpWidget(
+      BlocProvider.value(
+        value: bloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (_, child) =>
+              Directionality(textDirection: TextDirection.rtl, child: child!),
+          home: BuyerShell(
+            controller: harness.controller,
+            currentUser: const DemoUser(
+              id: seededBuyerId,
+              name: 'أحمد ناصر',
+              phone: '0599111111',
+              pin: '',
+              role: UserRole.buyer,
+            ),
+            notifications: FakeNotificationRepository(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Only the bakery bought from is listed, under the first (selected) chip.
+    final mine = find.widgetWithText(FilterChip, 'مخابزي');
+    expect(tester.widget<FilterChip>(mine).selected, isTrue);
+    expect(find.byType(BakeryCard), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'الكل'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilterChip>(mine).selected, isFalse);
+    expect(find.byType(BakeryCard).evaluate().length, greaterThan(1));
   });
 
   testWidgets(
@@ -65,7 +112,6 @@ void main() {
               id: seededBuyerId,
               name: 'أحمد ناصر',
               phone: '0599111111',
-              nationalId: '900111222',
               verificationStatus: VerificationStatus.verified,
             ),
           ],
@@ -96,28 +142,33 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('اختار المحافظة'), findsOneWidget);
-      await tester.tap(find.text('غزة'));
+      // New home: governorate filter chips and bakery cards, no pickers.
+      expect(find.text('اختار المحافظة'), findsNothing);
+      expect(find.text('كل المخابز'), findsOneWidget);
+      expect(find.text('مخبز الرمال'), findsOneWidget);
+      expect(find.text('مخبز الشاطئ'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilterChip, 'غزة'));
       await tester.pumpAndSettle();
-      expect(find.text('اختار المنطقة'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'الرمال');
+      expect(find.text('مخبز الرمال'), findsOneWidget);
+      expect(find.text('اشترِ ربطة'), findsWidgets);
+      expect(find.text('عرض المخبز'), findsWidgets);
+      // Search by name narrows the list and says so when nothing matches.
+      await tester.enterText(find.byKey(const Key('store-search')), 'الرمال');
       await tester.pumpAndSettle();
-      expect(find.text('الشاطئ'), findsNothing);
-      await tester.tap(find.widgetWithText(Card, 'الرمال'));
-      await tester.pumpAndSettle();
-      expect(find.byType(StoreListScreen), findsOneWidget);
       expect(find.text('مخبز الرمال'), findsOneWidget);
       expect(find.text('مخبز الشاطئ'), findsNothing);
-      await tester.pageBack();
+      await tester.enterText(find.byKey(const Key('store-search')), 'لا يوجد');
       await tester.pumpAndSettle();
-      await tester.pageBack();
+      expect(find.text(Strings.noMatchingStores), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('store-search')), '');
       await tester.pumpAndSettle();
+
       await tester.tap(find.text('حجزي'));
       await tester.pumpAndSettle();
       expect(find.text('لا يوجد طلب اليوم'), findsOneWidget);
       await tester.tap(find.text('حسابي').last);
       await tester.pumpAndSettle();
-      expect(find.text('900111222'), findsOneWidget);
+      expect(find.text('0599111111'), findsOneWidget);
       expect(bloc.state, isA<Authenticated>());
       await tester.pumpWidget(const SizedBox.shrink());
       harness.controller.dispose();

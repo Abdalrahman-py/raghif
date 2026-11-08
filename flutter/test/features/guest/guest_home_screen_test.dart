@@ -14,6 +14,34 @@ import '../../support/fake_queue_repository.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
+/// Eight bakeries; the ranking says which five are busiest, in order.
+class _Ranked extends FakeQueueRepository {
+  _Ranked({required this.ranking, this.rankingFails = false})
+    : super(
+        stores: [
+          for (var i = 1; i <= 8; i++)
+            StoreModel(
+              id: 's$i',
+              name: 'مخبز رقم $i',
+              isOpen: true,
+              dailyBagLimit: 100,
+              // s8 sold the most today, s1 the least.
+              bagsRemaining: 100 - i * 10,
+              area: 'منطقة',
+            ),
+        ],
+      );
+
+  final List<String> ranking;
+  final bool rankingFails;
+
+  @override
+  Future<List<String>> getPopularStoreIds({int limit = 5}) async {
+    if (rankingFails) throw Exception('rpc down');
+    return ranking;
+  }
+}
+
 class _FailingStores extends Fake implements QueueRepository {
   @override
   Future<List<StoreModel>> getStores() async => throw Exception('offline');
@@ -54,6 +82,42 @@ void main() {
     );
   });
 
+  testWidgets('shows only the five busiest bakeries, busiest first', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await pump(tester, _Ranked(ranking: ['s3', 's7', 's1', 's8', 's2', 's5']));
+
+    for (final shown in [3, 7, 1, 8, 2]) {
+      expect(find.text('مخبز رقم $shown'), findsOneWidget);
+    }
+    // Ranked sixth, and the ones not ranked at all, stay out of the list.
+    for (final hidden in [5, 4, 6]) {
+      expect(find.text('مخبز رقم $hidden'), findsNothing);
+    }
+    final top = tester.getTopLeft(find.text('مخبز رقم 3')).dy;
+    final next = tester.getTopLeft(find.text('مخبز رقم 7')).dy;
+    expect(top, lessThan(next));
+    // The summary still counts every bakery, not just the five.
+    expect(find.text(Strings.guestSummary(8, 440)), findsOneWidget);
+  });
+
+  testWidgets('without a ranking it falls back to what sold most today', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 3200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await pump(tester, _Ranked(ranking: const [], rankingFails: true));
+
+    for (final shown in [8, 7, 6, 5, 4]) {
+      expect(find.text('مخبز رقم $shown'), findsOneWidget);
+    }
+    expect(find.text('مخبز رقم 3'), findsNothing);
+  });
+
   testWidgets('choosing a bakery and booking starts the account steps', (
     tester,
   ) async {
@@ -67,7 +131,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RegistrationScreen), findsOneWidget);
-    expect(find.text(Strings.stepOf(1, 5)), findsOneWidget);
+    expect(find.text(Strings.stepOf(1, 3)), findsOneWidget);
     expect(find.textContaining(stores.first.name), findsWidgets);
   });
 

@@ -33,11 +33,11 @@ insert into auth.users (id) values
   ('d0000000-0000-0000-0000-000000000002'),
   ('d0000000-0000-0000-0000-000000000003'),
   ('d0000000-0000-0000-0000-000000000004');
-insert into public.profiles (id, phone, national_id, pin_hash, name, role) values
-  ('d0000000-0000-0000-0000-000000000001', 'cp-1', 'cp-n1', 'x', 'cp-owner1', 'owner'),
-  ('d0000000-0000-0000-0000-000000000002', 'cp-2', 'cp-n2', 'x', 'cp-owner2', 'owner'),
-  ('d0000000-0000-0000-0000-000000000003', 'cp-3', 'cp-n3', 'x', 'cp-buyer1', 'buyer'),
-  ('d0000000-0000-0000-0000-000000000004', 'cp-4', 'cp-n4', 'x', 'cp-buyer2', 'buyer');
+insert into public.profiles (id, phone, pin_hash, name, role) values
+  ('d0000000-0000-0000-0000-000000000001', 'cp-1', 'x', 'cp-owner1', 'owner'),
+  ('d0000000-0000-0000-0000-000000000002', 'cp-2', 'x', 'cp-owner2', 'owner'),
+  ('d0000000-0000-0000-0000-000000000003', 'cp-3', 'x', 'cp-buyer1', 'buyer'),
+  ('d0000000-0000-0000-0000-000000000004', 'cp-4', 'x', 'cp-buyer2', 'buyer');
 insert into public.stores (id, name, owner_id, is_open, daily_bag_limit, bags_remaining, batch_size, bag_price) values
   ('e0000000-0000-0000-0000-000000000001', 'cp-store1', 'd0000000-0000-0000-0000-000000000001', true, 5, 5, 2, 4.50),
   ('e0000000-0000-0000-0000-000000000002', 'cp-store2', 'd0000000-0000-0000-0000-000000000002', true, 5, 5, 2, 3.00);

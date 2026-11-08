@@ -7,11 +7,10 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
-import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../auth/demo_accounts.dart';
 import 'confirmation_screen.dart';
-import 'purchase_screen.dart';
+import 'purchase_flow.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
 import 'store_list_logic.dart';
@@ -57,17 +56,12 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
     return widget.entry;
   }
 
-  void _openPurchase() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PurchaseScreen(
-          controller: widget.controller,
-          storeId: widget.entry.store.id,
-          currentUser: widget.currentUser,
-        ),
-      ),
-    );
-  }
+  void _openPurchase() => startPurchase(
+    context,
+    controller: widget.controller,
+    currentUser: widget.currentUser,
+    storeId: widget.entry.store.id,
+  );
 
   void _openReceipt(String purchaseId) {
     Navigator.of(context).push(
@@ -115,7 +109,7 @@ class _StoreDetailsScreenState extends State<StoreDetailsScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(32),
                       child: Image.asset(
-                        'assets/images/stitch_bread.png',
+                        'assets/images/stitch_bread.webp',
                         height: 256,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -356,7 +350,6 @@ class _MyOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final status = entry.todayStatus!;
 
     return AppCard(
       child: Column(
@@ -368,7 +361,6 @@ class _MyOrderCard extends StatelessWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.xs,
             children: [
-              StatusChip(text: _orderLabel(status), tone: _orderTone(status)),
               const StatusChip(
                 text: Strings.paidBadge,
                 tone: StatusTone.success,
@@ -384,18 +376,6 @@ class _MyOrderCard extends StatelessWidget {
       ),
     );
   }
-
-  String _orderLabel(PurchaseStatus status) => switch (status) {
-    PurchaseStatus.waiting => Strings.orderWaiting,
-    PurchaseStatus.notified => Strings.orderReady,
-    PurchaseStatus.collected => Strings.orderCollected,
-  };
-
-  StatusTone _orderTone(PurchaseStatus status) => switch (status) {
-    PurchaseStatus.waiting => StatusTone.warning,
-    PurchaseStatus.notified => StatusTone.success,
-    PurchaseStatus.collected => StatusTone.neutral,
-  };
 }
 
 class _HistoryCard extends StatelessWidget {

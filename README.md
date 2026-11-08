@@ -56,12 +56,12 @@ by the `seed-demo` Edge Function action, not by the app.
 |---|---|
 | App | Flutter |
 | Backend | Supabase (Postgres + realtime) |
-| Auth | Phone + national ID + local 4-digit PIN |
+| Auth | Jawwal Pay phone number + 4-digit PIN (no national ID) |
 | Push | FCM |
 
 ## Business rules
 
-- One bag per national ID per day across all stores, no cancellations
+- One bag per account (phone number) per day across all stores, no cancellations
 - Owner-set daily batch size
 - Bilingual AR/EN
 

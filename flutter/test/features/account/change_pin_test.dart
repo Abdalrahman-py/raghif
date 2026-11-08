@@ -14,7 +14,6 @@ void main() {
   const owner = UserModel(
     id: 'owner-1',
     phone: '0599222222',
-    nationalId: '900333444',
     name: 'صاحب المخبز',
     role: UserRole.owner,
     verificationStatus: VerificationStatus.verified,
@@ -22,7 +21,6 @@ void main() {
   const buyer = UserModel(
     id: 'buyer-1',
     phone: '0599111111',
-    nationalId: '900111222',
     name: 'أحمد ناصر',
     verificationStatus: VerificationStatus.verified,
   );

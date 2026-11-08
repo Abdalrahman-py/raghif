@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/connectivity/connectivity_banner.dart';
+import 'core/connectivity/connectivity_monitor.dart';
 import 'core/di/injection.dart';
 import 'core/i18n/strings.dart';
 import 'core/onboarding/onboarding_store.dart';
@@ -11,10 +13,11 @@ import 'features/auth/demo_accounts.dart';
 import 'features/guest/guest_home_screen.dart';
 import 'features/guest/pending_booking.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/splash/splash_screen.dart';
 import 'features/navigation/buyer_shell.dart';
 import 'domain/repositories/notification_repository.dart';
 import 'domain/repositories/queue_repository.dart';
-import 'features/queue/owner_dashboard_screen.dart';
+import 'features/navigation/owner_shell.dart';
 import 'domain/models/store_model.dart';
 import 'features/queue/queue_controller.dart';
 import 'features/verification/wallet_verification_screen.dart';
@@ -23,6 +26,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
   runApp(const RaghifApp());
+  startPushLater();
 }
 
 class RaghifApp extends StatefulWidget {
@@ -89,8 +93,11 @@ class _RaghifAppState extends State<RaghifApp> {
         listenWhen: (prev, curr) =>
             (prev is Authenticated ? prev.user.id : null) !=
             (curr is Authenticated ? curr.user.id : null),
-        listener: (_, _) {
-          _controller.resetForSession();
+        listener: (prev, _) {
+          // The saved offline copy is wiped only when a signed-in person
+          // leaves. Starting the app (signed out -> restored session) must
+          // keep it, or it would be erased before an offline start can read it.
+          _controller.resetForSession(clearCache: prev is Authenticated);
           _navigatorKey.currentState?.popUntil((route) => route.isFirst);
         },
         child: MaterialApp(
@@ -98,15 +105,18 @@ class _RaghifAppState extends State<RaghifApp> {
           title: 'رغيف',
           theme: AppTheme.light,
           // Forced RTL regardless of device locale — this app is Arabic-only.
-          builder: (context, child) =>
-              Directionality(textDirection: TextDirection.rtl, child: child!),
+          builder: (context, child) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: sl.isRegistered<ConnectivityMonitor>()
+                ? ConnectivityBanner(
+                    monitor: sl<ConnectivityMonitor>(),
+                    child: child!,
+                  )
+                : child!,
+          ),
           home: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
-              if (state is AuthInitial) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
+              if (state is AuthInitial) return const SplashScreen();
 
               if (state is Authenticated) {
                 // Owners are seeded as verified; a buyer confirms the Jawwal
@@ -114,14 +124,11 @@ class _RaghifAppState extends State<RaghifApp> {
                 if (!state.user.isOwner && !state.user.isVerified) {
                   return WalletVerificationScreen(
                     key: ValueKey('verify-${state.user.id}'),
-                    initialNumber: state.user.jawwalPayNumber,
+                    number: state.user.phone,
                     busy: state.profileSaving,
                     error: state.profileError,
-                    onVerify: (number, code) => context.read<AuthBloc>().add(
-                      WalletVerificationRequestedEvent(
-                        jawwalPayNumber: number,
-                        code: code,
-                      ),
+                    onVerify: (code) => context.read<AuthBloc>().add(
+                      WalletVerificationRequestedEvent(code: code),
                     ),
                     onLogout: () => context.read<AuthBloc>().add(
                       const LogoutRequestedEvent(),
@@ -135,7 +142,6 @@ class _RaghifAppState extends State<RaghifApp> {
                   pin: '',
                   role: state.user.isOwner ? UserRole.owner : UserRole.buyer,
                   name: state.user.name,
-                  jawwalPayNumber: state.user.jawwalPayNumber,
                 );
 
                 return state.user.isOwner
@@ -159,11 +165,7 @@ class _RaghifAppState extends State<RaghifApp> {
               // the guest screen (after the once-per-install intro carousel);
               // the login and registration screens it opens read AuthBloc
               // state themselves for their own loading/error UI.
-              if (_hasSeenOnboarding == null) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
+              if (_hasSeenOnboarding == null) return const SplashScreen();
               if (_hasSeenOnboarding == false) {
                 return OnboardingScreen(
                   onDone: () => setState(() => _hasSeenOnboarding = true),
@@ -241,10 +243,7 @@ class _OwnerHomeState extends State<_OwnerHome> {
             ),
           );
         }
-        return OwnerDashboardScreen(
-          controller: widget.controller,
-          storeId: store.id,
-        );
+        return OwnerShell(controller: widget.controller, storeId: store.id);
       },
     );
   }

@@ -87,7 +87,7 @@ void main() {
         const LoginScreen(),
         bloc: AuthBloc(authRepository: FakeAuthRepository()),
       );
-      await t.enterText(fieldByLabel(Strings.personalIdLabel), '900111222');
+      await t.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
       await t.tap(find.text(Strings.continueButton));
       await t.pumpAndSettle();
     },
@@ -107,7 +107,6 @@ void main() {
           UserModel(
             id: seededOwnerId,
             phone: '0599000002',
-            nationalId: '900333444',
             name: 'صاحب المخبز',
             role: UserRole.owner,
             verificationStatus: VerificationStatus.verified,

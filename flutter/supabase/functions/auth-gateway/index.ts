@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Custom national-ID + PIN auth on top of Supabase Auth. PIN verification
+// Custom phone-number + PIN auth on top of Supabase Auth. PIN verification
 // and profile creation happen in Postgres (service-role-only RPCs — see
 // migration `auth_gateway_rpcs`). A session is minted by generating a
 // magic-link token for a synthetic, never-emailed address and immediately
@@ -17,15 +17,9 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// Seeding writes accounts (PIN 1234) and overwrites the pilot store's counters
-// in the live database, so it is off unless a secret is configured, and then
-// only for callers that present it: `supabase secrets set SEED_DEMO_SECRET=...`
-// and send it as `x-seed-secret`.
-const SEED_DEMO_SECRET = Deno.env.get("SEED_DEMO_SECRET");
-
 // There is deliberately no code-based sign-in ("forgot PIN" by SMS/OTP): with no
 // SMS gateway a code can only be shown to the person asking, which lets anyone
-// who knows a national ID in. A forgotten PIN is reset by support through the
+// who knows a phone number in. A forgotten PIN is reset by support through the
 // admin panel until a real gateway exists. `otp-request` / `otp-confirm` answer
 // 410 so an old app build fails closed.
 
@@ -55,101 +49,15 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Demo accounts seeded by the `seed-demo` action — mirrors
-// flutter/lib/core/auth/demo_accounts.dart. Kept in sync manually; these
-// are prototype/demo credentials, not secrets. Pre-verified, matching the
-// local drift AuthRepositoryImpl.ensureSeeded() demo accounts.
-const DEMO_ACCOUNTS = [
-  {
-    phone: "0599111111",
-    pin: "1234",
-    nationalId: "900111222",
-    name: "أحمد ناصر",
-    jawwalPayNumber: "0599000001",
-    role: "buyer",
-  },
-  {
-    phone: "0599222222",
-    pin: "1234",
-    nationalId: "900333444",
-    name: "صاحب المخبز",
-    jawwalPayNumber: "0599000002",
-    role: "owner",
-  },
-  {
-    phone: "0599444555",
-    pin: "1234",
-    nationalId: "900444555",
-    name: "حسن الخليلي",
-    jawwalPayNumber: "0599000003",
-    role: "buyer",
-  },
-];
-
-// Dummy buyers that populate the demo queue. They exist so the owner's
-// screens have a believable day in them. They are created by the same
-// seedAccount() as the sign-in demo accounts, so they share the demo PIN —
-// the seed is why `seed-demo` is gated above. They used to be invented
-// locally per install, which made every device's queue disagree with the
-// server's — now there is one copy, here.
-const DEMO_QUEUE_BUYERS = [
-  { nationalId: "900111333", phone: "0599111333", name: "محمود سعيد" },
-  { nationalId: "900111444", phone: "0599111444", name: "إبراهيم حمدان" },
-  { nationalId: "900111555", phone: "0599111555", name: "سارة عبد الرحمن" },
-  { nationalId: "900111666", phone: "0599111666", name: "ليلى المصري" },
-  { nationalId: "900111777", phone: "0599111777", name: "عمر الخطيب" },
-  { nationalId: "900111888", phone: "0599111888", name: "فاطمة الزهراء" },
-  { nationalId: "900111999", phone: "0599111999", name: "يوسف النجار" },
-  { nationalId: "900222111", phone: "0599222111", name: "مريم خالد" },
-  { nationalId: "900222222", phone: "0599222333", name: "حسن عباس" },
-];
-
-/// Creates the auth user + profile for one demo identity, or reports that it
-/// already exists. Profiles are FK'd to auth.users, so this cannot be done
-/// from SQL alone — hence the seed splitting across here and the
-/// seed_demo_* RPCs.
-async function seedAccount(
-  demo: {
-    nationalId: string;
-    phone: string;
-    name: string;
-    pin?: string;
-    jawwalPayNumber?: string;
-    role?: string;
-  },
-): Promise<string> {
-  const email = syntheticEmail(demo.nationalId);
-  const { data: created, error: createError } = await admin.auth.admin
-    .createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { national_id: demo.nationalId },
-    });
-  if (createError || !created?.user) return `${demo.nationalId}: already exists`;
-
-  const { data: profile, error: profileError } = await admin.rpc(
-    "create_profile",
-    {
-      p_id: created.user.id,
-      p_phone: demo.phone,
-      p_national_id: demo.nationalId,
-      p_pin: demo.pin ?? "1234",
-      p_name: demo.name,
-      p_jawwal_pay_number: demo.jawwalPayNumber ?? null,
-      p_role: demo.role ?? "buyer",
-      p_verification_status: "verified",
-    },
-  );
-  if (profileError || !hasId(profile)) {
-    await admin.auth.admin.deleteUser(created.user.id);
-    return `${demo.nationalId}: profile failed - ${profileError?.message}`;
+// The sign-in address is never emailed. New accounts get a random one (not
+// derived from the phone number, which support may change).
+// Read it back from the auth user rather than recomputing it.
+async function emailOf(userId: string): Promise<string> {
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error || !data?.user?.email) {
+    throw new Error(error?.message ?? "account has no sign-in address");
   }
-  return `${demo.nationalId}: seeded`;
-}
-
-function syntheticEmail(nationalId: string): string {
-  const safe = nationalId.replace(/[^a-zA-Z0-9]/g, "");
-  return `nid-${safe}@raghif.internal`;
+  return data.user.email;
 }
 
 async function mintSession(email: string) {
@@ -160,7 +68,14 @@ async function mintSession(email: string) {
   }
   const tokenHash = linkData.properties.hashed_token;
 
-  const { data: verifyData, error: verifyError } = await admin.auth.verifyOtp({
+  // A throwaway client: verifyOtp stores the resulting session on the client
+  // it is called on, and a service-role client that holds a user session starts
+  // sending that user's token, so every later call in this warm instance would
+  // run as `authenticated` and be refused ("permission denied for function").
+  const redeemer = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: verifyData, error: verifyError } = await redeemer.auth.verifyOtp({
     type: "magiclink",
     token_hash: tokenHash,
   });
@@ -175,10 +90,8 @@ function profileResponse(profile: any) {
   return {
     remoteId: profile.id,
     phone: profile.phone,
-    nationalId: profile.national_id,
     name: profile.name,
     role: profile.role,
-    jawwalPayNumber: profile.jawwal_pay_number,
     verificationStatus: profile.verification_status,
   };
 }
@@ -228,97 +141,63 @@ Deno.serve(async (req: Request) => {
   try {
     switch (action) {
       case "check-availability": {
-        const { phone, nationalId } = body;
+        const { phone } = body;
         const { data, error } = await admin.rpc("check_availability", {
           p_phone: phone ?? "",
-          p_national_id: nationalId ?? "",
         });
         if (error) throw error;
         const row = Array.isArray(data) ? data[0] : data;
-        return json({
-          phoneExists: !!row?.phone_exists,
-          nationalIdExists: !!row?.national_id_exists,
-        });
-      }
-
-      case "seed-demo": {
-        if (
-          !SEED_DEMO_SECRET ||
-          req.headers.get("x-seed-secret") !== SEED_DEMO_SECRET
-        ) {
-          return json({ error: "seeding is disabled" }, 403);
-        }
-        if (body.date != null && !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
-          return json({ error: "date must be YYYY-MM-DD" }, 400);
-        }
-        // Whole demo world, idempotent: sign-in accounts, the dummy buyers
-        // behind the queue, the bakeries, and one day's worth of orders.
-        // Safe to call repeatedly — each step no-ops when already present.
-        const results: string[] = [];
-        for (const demo of [...DEMO_ACCOUNTS, ...DEMO_QUEUE_BUYERS]) {
-          results.push(await seedAccount(demo));
-        }
-
-        const { data: storesCreated, error: storesError } = await admin.rpc(
-          "seed_demo_stores",
-        );
-        if (storesError) {
-          return json({ error: `stores: ${storesError.message}` }, 500);
-        }
-
-        const { data: daySeeded, error: dayError } = await admin.rpc(
-          "seed_demo_day",
-          { p_date: body.date ?? new Date().toISOString().slice(0, 10) },
-        );
-        if (dayError) return json({ error: `day: ${dayError.message}` }, 500);
-
-        return json({
-          seeded: true,
-          accounts: results,
-          storesCreated,
-          purchasesSeeded: daySeeded,
-        });
+        return json({ phoneExists: !!row?.phone_exists });
       }
 
       case "register": {
-        const { phone, pin, nationalId, name, jawwalPayNumber } = body;
-        if (!phone || !pin || !nationalId || !name) {
+        const { phone, pin, name } = body;
+        if (!phone || !pin || !name) {
           return json({ error: "missing required fields" }, 400);
+        }
+        // The phone number is also the Jawwal Pay wallet number.
+        if (typeof phone !== "string" || !/^05[69][0-9]{7}$/.test(phone)) {
+          return json({ error: "invalid_phone" }, 400);
         }
         const problem = pinProblem(pin);
         if (problem) return json({ error: problem }, 400);
-        const email = syntheticEmail(nationalId);
+        const { data: taken, error: takenError } = await admin.rpc(
+          "check_availability",
+          { p_phone: phone },
+        );
+        // Never treat "could not ask" as "not taken".
+        if (takenError) throw new Error(takenError.message);
+        const takenRow = Array.isArray(taken) ? taken[0] : taken;
+        if (takenRow?.phone_exists) {
+          return json({ error: "phone already registered" }, 409);
+        }
         const { data: created, error: createError } = await admin.auth.admin
           .createUser({
-            email,
+            email: `u-${crypto.randomUUID()}@raghif.internal`,
             email_confirm: true,
-            user_metadata: { national_id: nationalId },
           });
         if (createError || !created?.user) {
           throw new Error(createError?.message ?? "failed to create account");
         }
 
         try {
-          // Role is never taken from client input — always 'buyer' for
-          // self-registration; only `seed-demo` (server-fixed accounts) sets
-          // 'owner'. verification_status stays the 'pending' default — only
-          // seeded demo accounts are pre-verified.
+          // Role is never taken from client input: self-registration is always
+          // 'buyer'. verification_status stays the 'pending' default until the
+          // wallet number is verified.
           const { data: profile, error: profileError } = await admin.rpc(
             "create_profile",
             {
               p_id: created.user.id,
               p_phone: phone,
-              p_national_id: nationalId,
               p_pin: pin,
               p_name: name,
-              p_jawwal_pay_number: jawwalPayNumber ?? null,
             },
           );
           if (profileError || !hasId(profile)) {
             throw new Error(profileError?.message ?? "failed to create profile");
           }
 
-          const session = await mintSession(email);
+          const session = await mintSession(created.user.email!);
           return json({
             accessToken: session.access_token,
             refreshToken: session.refresh_token,
@@ -326,21 +205,20 @@ Deno.serve(async (req: Request) => {
           });
         } catch (inner) {
           // Roll back the auth user (profile cascade-deletes with it) so the
-          // client can safely retry registration with the same identifiers
-          // instead of getting stuck on an orphaned, session-less account.
+          // client can safely retry registration with the same number instead
+          // of getting stuck on an orphaned, session-less account.
           await admin.auth.admin.deleteUser(created.user.id);
           throw inner;
         }
       }
 
       case "login-pin": {
-        const { identifier, by, pin } = body;
-        if (!identifier || !pin) {
+        const { phone, pin } = body;
+        if (!phone || !pin) {
           return json({ error: "missing required fields" }, 400);
         }
         const { data: attempt, error } = await admin.rpc("login_attempt", {
-          p_identifier: identifier,
-          p_by: by === "phone" ? "phone" : "national_id",
+          p_phone: phone,
           p_pin: pin,
         });
         if (error) throw new Error(error.message);
@@ -356,7 +234,7 @@ Deno.serve(async (req: Request) => {
         }
         const blocked = await loginBlock(profile.id);
         if (blocked) return json({ error: blocked }, 403);
-        const email = syntheticEmail(profile.national_id);
+        const email = await emailOf(profile.id);
         const session = await mintSession(email);
         return json({
           accessToken: session.access_token,

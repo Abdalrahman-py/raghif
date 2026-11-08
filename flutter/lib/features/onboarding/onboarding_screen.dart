@@ -232,7 +232,7 @@ class _SlideView extends StatelessWidget {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(44),
                             child: Image.asset(
-                              'assets/images/stitch_bread.png',
+                              'assets/images/stitch_bread.webp',
                               fit: BoxFit.cover,
                               excludeFromSemantics: true,
                             ),

@@ -36,14 +36,14 @@ insert into auth.users (id) values
   ('a0000000-0000-0000-0000-000000000004'), -- buyer 1
   ('a0000000-0000-0000-0000-000000000005'), -- buyer 2
   ('a0000000-0000-0000-0000-000000000006'); -- buyer 3
-insert into public.profiles (id, phone, national_id, pin_hash, name, role) values
-  ('a0000000-0000-0000-0000-000000000001', 'tst-7001', 'tst-n7001', 'x', 'tst-admin',  'buyer'),
-  ('a0000000-0000-0000-0000-000000000002', 'tst-7002', 'tst-n7002',
+insert into public.profiles (id, phone, pin_hash, name, role) values
+  ('a0000000-0000-0000-0000-000000000001', 'tst-7001', 'x', 'tst-admin',  'buyer'),
+  ('a0000000-0000-0000-0000-000000000002', 'tst-7002',
      extensions.crypt('4829', extensions.gen_salt('bf')), 'tst-owner1', 'owner'),
-  ('a0000000-0000-0000-0000-000000000003', 'tst-7003', 'tst-n7003', 'x', 'tst-owner2', 'owner'),
-  ('a0000000-0000-0000-0000-000000000004', 'tst-7004', 'tst-n7004', 'x', 'tst-buyer1', 'buyer'),
-  ('a0000000-0000-0000-0000-000000000005', 'tst-7005', 'tst-n7005', 'x', 'tst-buyer2', 'buyer'),
-  ('a0000000-0000-0000-0000-000000000006', 'tst-7006', 'tst-n7006', 'x', 'tst-buyer3', 'buyer');
+  ('a0000000-0000-0000-0000-000000000003', 'tst-7003', 'x', 'tst-owner2', 'owner'),
+  ('a0000000-0000-0000-0000-000000000004', 'tst-7004', 'x', 'tst-buyer1', 'buyer'),
+  ('a0000000-0000-0000-0000-000000000005', 'tst-7005', 'x', 'tst-buyer2', 'buyer'),
+  ('a0000000-0000-0000-0000-000000000006', 'tst-7006', 'x', 'tst-buyer3', 'buyer');
 insert into public.admins (user_id) values ('a0000000-0000-0000-0000-000000000001');
 insert into public.stores (id, name, owner_id, is_open, daily_bag_limit, bags_remaining, batch_size) values
   ('b0000000-0000-0000-0000-000000000001', 'tst-store1', 'a0000000-0000-0000-0000-000000000002', true, 5, 5, 2),

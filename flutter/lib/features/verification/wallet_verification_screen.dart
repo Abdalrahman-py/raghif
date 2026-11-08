@@ -8,12 +8,11 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/labeled_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../payment/mock_jawwal_pay_service.dart';
 
-/// A new buyer proves the account by confirming the Jawwal Pay number: a code
-/// is "sent" to that number and typed back.
+/// A new buyer proves the account by confirming their phone number (which is
+/// also their Jawwal Pay number): a code is "sent" to it and typed back.
 ///
 /// The text message is simulated for now ([MockJawwalPayService] always uses
 /// 1234 and the code is shown on screen). The server repeats the check, so
@@ -22,7 +21,7 @@ import '../payment/mock_jawwal_pay_service.dart';
 class WalletVerificationScreen extends StatefulWidget {
   const WalletVerificationScreen({
     super.key,
-    required this.initialNumber,
+    required this.number,
     required this.onVerify,
     required this.onLogout,
     this.busy = false,
@@ -30,12 +29,12 @@ class WalletVerificationScreen extends StatefulWidget {
     this.service,
   });
 
-  /// The wallet number already on the profile, if any.
-  final String? initialNumber;
+  /// The account's phone number. Shown, never edited here.
+  final String number;
 
-  /// Called with the number and the code the person typed, after the local
-  /// check passed. The caller asks the server and swaps this screen away.
-  final void Function(String number, String code) onVerify;
+  /// Called with the code the person typed, after the local check passed. The
+  /// caller asks the server and swaps this screen away.
+  final void Function(String code) onVerify;
 
   final VoidCallback onLogout;
 
@@ -65,7 +64,7 @@ class _WalletVerificationScreenState extends State<WalletVerificationScreen> {
   void initState() {
     super.initState();
     _service = widget.service ?? MockJawwalPayService();
-    _number = TextEditingController(text: widget.initialNumber ?? '');
+    _number = TextEditingController(text: widget.number);
   }
 
   @override
@@ -78,7 +77,7 @@ class _WalletVerificationScreenState extends State<WalletVerificationScreen> {
   void _send() {
     final number = _number.text.trim();
     if (!_numberPattern.hasMatch(number)) {
-      setState(() => _localError = Strings.jawwalPayInvalid);
+      setState(() => _localError = Strings.phoneInvalid);
       return;
     }
     setState(() {
@@ -96,15 +95,7 @@ class _WalletVerificationScreenState extends State<WalletVerificationScreen> {
       return;
     }
     setState(() => _localError = null);
-    widget.onVerify(_number.text.trim(), entered);
-  }
-
-  void _changeNumber() {
-    setState(() {
-      _sentCode = null;
-      _localError = null;
-      _service.reset();
-    });
+    widget.onVerify(entered);
   }
 
   @override
@@ -173,6 +164,7 @@ class _WalletVerificationScreenState extends State<WalletVerificationScreen> {
                             label: Strings.jawwalPayNumberLabel,
                             child: TextField(
                               controller: _number,
+                              readOnly: true,
                               keyboardType: TextInputType.phone,
                               textDirection: TextDirection.ltr,
                               style: AppTypography.bodyLarge,
@@ -252,10 +244,6 @@ class _WalletVerificationScreenState extends State<WalletVerificationScreen> {
                         ),
                         child: const Text(Strings.resendCodeButton),
                       ),
-                    ),
-                    SecondaryButton(
-                      text: Strings.walletVerifyChangeNumber,
-                      onPressed: _changeNumber,
                     ),
                   ],
                   const SizedBox(height: AppSpacing.sm),

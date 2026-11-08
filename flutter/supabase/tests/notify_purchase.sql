@@ -2,8 +2,8 @@
 -- asks notify-batch to push its confirmation, with the shared secret.
 
 insert into auth.users (id) values ('00000000-0000-0000-0000-0000000000e1');
-insert into public.profiles (id, phone, national_id, pin_hash, name, role)
-  values ('00000000-0000-0000-0000-0000000000e1', 'e1', 'e1', 'h', 'buyer', 'buyer');
+insert into public.profiles (id, phone, pin_hash, name, role)
+  values ('00000000-0000-0000-0000-0000000000e1', 'e1', 'h', 'buyer', 'buyer');
 insert into public.stores (id, name, is_open, daily_bag_limit, bags_remaining)
   values ('00000000-0000-0000-0000-0000000000f1', 'store', true, 10, 10);
 truncate net.calls;

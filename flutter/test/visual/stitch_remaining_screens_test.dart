@@ -11,11 +11,9 @@ import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
-import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/owner_customers_screen.dart';
 import 'package:raghif/features/queue/owner_history_screen.dart';
 import 'package:raghif/features/queue/owner_queue_screen.dart';
-import 'package:raghif/features/queue/purchase_screen.dart';
 import 'package:raghif/features/queue/qr_scanner_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
 import 'package:raghif/features/verification/wallet_verification_screen.dart';
@@ -23,15 +21,6 @@ import 'package:raghif/features/verification/wallet_verification_screen.dart';
 import '../goldens/test_fonts.dart';
 import '../support/fake_auth_repository.dart';
 import '../support/queue_test_harness.dart';
-
-const _buyer = DemoUser(
-  id: seededBuyerId,
-  phone: '0599111111',
-  pin: '1234',
-  role: UserRole.buyer,
-  name: 'أحمد ناصر',
-  jawwalPayNumber: '0599111111',
-);
 
 /// Exercise the production scanner's error handling without a camera or
 /// permission dialog. This fixture represents camera unavailable, not a camera
@@ -228,8 +217,8 @@ void main() {
       try {
         await show(
           WalletVerificationScreen(
-            initialNumber: '0599123456',
-            onVerify: (_, _) {},
+            number: '0599123456',
+            onVerify: (_) {},
             onLogout: () {},
           ),
         );
@@ -242,25 +231,6 @@ void main() {
         await capture('wallet_verification_code');
         await reach(find.text(Strings.walletVerifyConfirm), 'verify confirm');
 
-        await show(
-          PurchaseScreen(
-            controller: harness.controller,
-            storeId: seededStoreId,
-            currentUser: _buyer,
-          ),
-        );
-        await tester.runAsync(() async {
-          await precacheImage(
-            const AssetImage('assets/images/stitch_bread.png'),
-            boundaryKey.currentContext!,
-          );
-        });
-        await paint();
-        expect(find.text('مخبز الرمال'), findsOneWidget);
-        await capture('purchase');
-        await reach(find.text(Strings.payWalletButton(3)), 'pay button');
-        expect(find.text(Strings.walletPaymentTitle), findsOneWidget);
-
         // Seed all queue statuses and another day through the fake repository.
         // No purchase or owner action in this fixture reaches a remote backend.
         final date = todayDateString();
@@ -268,12 +238,7 @@ void main() {
         final names = ['أحمد ناصر', 'محمود سعيد', 'ليلى منصور', 'سارة خليل'];
         for (var i = 0; i < names.length; i++) {
           final userId = i == 0 ? seededBuyerId : 'visual-buyer-$i';
-          harness.repo.addUser(
-            userId,
-            name: names[i],
-            phone: '059911111$i',
-            nationalId: '90011122$i',
-          );
+          harness.repo.addUser(userId, name: names[i], phone: '059911111$i');
           harness.repo.givenPurchase(
             userId: userId,
             storeId: seededStoreId,

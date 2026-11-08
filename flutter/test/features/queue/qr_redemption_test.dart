@@ -26,7 +26,6 @@ void main() {
       createdAtMillis: 0,
       userName: 'أحمد',
       userPhone: '0599000001',
-      userNationalId: '900111222',
       storeName: 'مخبز الرمال',
     );
   }

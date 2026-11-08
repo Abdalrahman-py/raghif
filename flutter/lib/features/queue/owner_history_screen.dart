@@ -76,8 +76,20 @@ class OwnerHistoryScreen extends StatefulWidget {
 class _OwnerHistoryScreenState extends State<OwnerHistoryScreen> {
   // A year of days: the filters below work on this list, so it has to reach
   // further back than the old 30-day window or "last month" would be empty.
-  late final Future<List<StoreDaySummary>> _days = widget.controller
-      .dailySummariesForStore(widget.storeId, limit: 366);
+  // The newest 30 days first, then 60 more each time "عرض المزيد" is tapped
+  // (a year of rows on every visit grows without bound).
+  static const _firstPage = 30;
+  static const _nextPage = 60;
+  int _limit = _firstPage;
+  late Future<List<StoreDaySummary>> _days = _load();
+
+  Future<List<StoreDaySummary>> _load() =>
+      widget.controller.dailySummariesForStore(widget.storeId, limit: _limit);
+
+  void _showMore() => setState(() {
+    _limit += _nextPage;
+    _days = _load();
+  });
 
   /// `yyyy-MM`, or null for all months.
   String? _month;
@@ -185,6 +197,14 @@ class _OwnerHistoryScreenState extends State<OwnerHistoryScreen> {
                       )
                     else
                       _HistoryTable(days: shown, onOpen: _openDay),
+                    if (days.length >= _limit) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      OutlinedButton(
+                        key: const Key('history-more'),
+                        onPressed: _showMore,
+                        child: const Text('عرض المزيد'),
+                      ),
+                    ],
                   ],
                 );
               },
@@ -506,9 +526,6 @@ class _BuyerHistoryRow extends StatelessWidget {
       ),
     };
     final meta = [
-      if (purchase.userNationalId != null &&
-          purchase.userNationalId!.isNotEmpty)
-        purchase.userNationalId!,
       if (purchase.userPhone != null && purchase.userPhone!.isNotEmpty)
         purchase.userPhone!,
     ].join('  ·  ');

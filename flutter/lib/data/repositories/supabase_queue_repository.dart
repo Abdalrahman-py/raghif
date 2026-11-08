@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/customer_summary_model.dart';
@@ -15,11 +15,13 @@ import '../receipt_store.dart';
 /// The only [QueueRepository]. Supabase is the only source of data.
 ///
 /// Every read is a query against Postgres, scoped by RLS. `watch*` streams
-/// re-run their query whenever Realtime reports a change to `purchases` or
-/// `stores`, and after this device's own writes. Nothing is kept on the
+/// re-run their query whenever something calls `refresh()` (see `_live`); no
+/// Realtime connection is kept open. Nothing is kept on the
 /// phone except the buyer's latest receipt ([ReceiptStore]), so the pickup
 /// QR still opens with no signal.
-class SupabaseQueueRepository implements QueueRepository {
+class SupabaseQueueRepository
+    with WidgetsBindingObserver
+    implements QueueRepository {
   SupabaseQueueRepository({
     required SupabaseClient client,
     ReceiptStore? receipts,
@@ -67,14 +69,54 @@ class SupabaseQueueRepository implements QueueRepository {
     return purchase;
   }
 
-  /// Fires when server data may have changed: a Realtime event or a write
-  /// made from this device. Every live stream re-queries on it.
+  /// Fires when server data may have changed: a write made from
+  /// this device or an explicit refresh. Every watch stream re-queries on it.
   final _changes = StreamController<void>.broadcast();
-  RealtimeChannel? _channel;
 
   /// Purchase row plus the buyer and store names the screens show.
   static const _purchaseColumns =
-      '*, profiles(name, phone, national_id), stores(name), payments(method)';
+      'id, store_id, user_id, purchase_date, batch_number, postponement_count, '
+      'status, created_at, original_purchase_date, '
+      'profiles(name, phone), stores(name), payments(method)';
+
+  /// Only what [storeFromRow] reads. On a weak connection every byte counts.
+  static const _storeColumns =
+      'id, name, is_open, daily_bag_limit, bags_remaining, owner_id, '
+      'batch_size, open_time, close_time, area, governorate, status, bag_price';
+
+  /// Called after anything that may have made a read out of date: this
+  /// device's own writes, a pull-to-refresh, a push, coming back to the app.
+  /// There is no live connection to the server (no Realtime): screens show what
+  /// they last read and re-read only when told to.
+  void _notifyChange() {
+    _storesFresh = null;
+    _storesInFlight = null;
+    _changes.add(null);
+  }
+
+  bool _observing = false;
+  DateTime? _leftAt;
+
+  /// Coming back after a minute or more away: what is on screen is old.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _leftAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      final left = _leftAt;
+      _leftAt = null;
+      if (left != null &&
+          DateTime.now().difference(left) >= const Duration(minutes: 1)) {
+        _notifyChange();
+      }
+    }
+  }
+
+  // Several screens ask for the store list at once (and again on each
+  // refresh). They share one request, and a result is reused for a
+  // couple of seconds, unless something changed in between.
+  Future<List<StoreModel>>? _storesInFlight;
+  ({List<StoreModel> stores, DateTime at})? _storesFresh;
 
   // ------------------------------------------------------------- writes --
 
@@ -99,7 +141,7 @@ class SupabaseQueueRepository implements QueueRepository {
   /// An RPC that changes server state: live streams re-query after it.
   Future<T> _write<T>(String name, Map<String, dynamic> params) async {
     final result = await _rpc<T>(name, params);
-    _changes.add(null);
+    _notifyChange();
     return result;
   }
 
@@ -171,13 +213,12 @@ class SupabaseQueueRepository implements QueueRepository {
       purchase = purchase.copyWith(
         userName: previous!.userName,
         userPhone: previous.userPhone,
-        userNationalId: previous.userNationalId,
         storeName: previous.storeName,
       );
     }
     // Save the authoritative move before streams re-query.
     purchase = await _rememberPurchase(purchase);
-    _changes.add(null);
+    _notifyChange();
     return purchase;
   }
 
@@ -233,13 +274,11 @@ class SupabaseQueueRepository implements QueueRepository {
     required String outcome,
     String? purchaseId,
     String? scannedName,
-    String? scannedNationalId,
   }) => _write<dynamic>('record_scan', {
     'p_store_id': storeId,
     'p_outcome': outcome,
     'p_purchase_id': purchaseId,
     'p_scanned_name': scannedName,
-    'p_scanned_national_id': scannedNationalId,
   });
 
   @override
@@ -264,40 +303,41 @@ class SupabaseQueueRepository implements QueueRepository {
     }
   }
 
-  /// [fetch] now, then again on every change. A failed fetch keeps the last
-  /// value on screen and retries shortly, instead of erroring the stream.
-  ///
-  /// ponytail: re-runs the whole query per change; fine for one pilot store,
-  /// filter Realtime by store_id if the queue ever gets large.
+  /// [fetch] now, then again whenever something calls [_notifyChange]. A
+  /// failed fetch is reported as an error and not retried on a timer: nothing
+  /// downloads by itself, the person pulls to refresh or taps retry.
   Stream<T> _live<T>(Future<T> Function() fetch) {
     late final StreamController<T> out;
     StreamSubscription<void>? changes;
-    Timer? retry;
+    Timer? settle;
     var generation = 0;
 
     Future<void> emit() async {
       final requestGeneration = ++generation;
-      retry?.cancel();
       try {
         final value = await fetch();
         if (!out.isClosed && requestGeneration == generation) out.add(value);
       } catch (error) {
         if (!out.isClosed && requestGeneration == generation) {
           out.addError(BackendUnavailableException(error));
-          retry = Timer(const Duration(seconds: 10), emit);
         }
       }
     }
 
     out = StreamController<T>(
       onListen: () {
-        _listenForServerChanges();
-        changes = _changes.stream.listen((_) => emit());
+        _observeLifecycle();
+        // Several changes in a row (a write and the refresh after it) read
+        // once, shortly after the last one.
+        changes = _changes.stream.listen((_) {
+          settle?.cancel();
+          settle = Timer(const Duration(milliseconds: 300), emit);
+        });
         emit();
       },
       onCancel: () async {
         generation++;
-        retry?.cancel();
+        settle?.cancel();
         await changes?.cancel();
         await out.close();
       },
@@ -305,41 +345,55 @@ class SupabaseQueueRepository implements QueueRepository {
     return out.stream;
   }
 
-  void _listenForServerChanges() {
-    _channel ??= _client
-        .channel('public-changes')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'purchases',
-          callback: (_) => _changes.add(null),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'stores',
-          callback: (_) => _changes.add(null),
-        )
-        .subscribe();
+  void _observeLifecycle() {
+    if (_observing) return;
+    try {
+      WidgetsBinding.instance.addObserver(this);
+      _observing = true;
+    } catch (_) {}
   }
 
   @override
-  Future<void> refresh() async => _changes.add(null);
+  Future<void> refresh() async => _notifyChange();
 
   @override
   Stream<List<StoreModel>> watchStores() => _live(getStores);
 
   @override
-  Future<List<StoreModel>> getStores() => _read(() async {
-    final rows = await _client.from('stores').select().order('created_at');
-    return rows.map(storeFromRow).toList();
-  });
+  Future<List<StoreModel>> getStores() {
+    final fresh = _storesFresh;
+    if (fresh != null &&
+        DateTime.now().difference(fresh.at) < const Duration(seconds: 2)) {
+      return Future.value(fresh.stores);
+    }
+    final running = _storesInFlight;
+    if (running != null) return running;
+    late final Future<List<StoreModel>> request;
+    request =
+        _read(() async {
+              final rows = await _client
+                  .from('stores')
+                  .select(_storeColumns)
+                  .order('created_at');
+              return rows.map(storeFromRow).toList();
+            })
+            .then((stores) {
+              if (identical(_storesInFlight, request)) {
+                _storesFresh = (stores: stores, at: DateTime.now());
+              }
+              return stores;
+            })
+            .whenComplete(() {
+              if (identical(_storesInFlight, request)) _storesInFlight = null;
+            });
+    return _storesInFlight = request;
+  }
 
   @override
   Future<StoreModel?> getStoreById(String storeId) => _read(() async {
     final row = await _client
         .from('stores')
-        .select()
+        .select(_storeColumns)
         .eq('id', storeId)
         .maybeSingle();
     return row == null ? null : storeFromRow(row);
@@ -349,7 +403,7 @@ class SupabaseQueueRepository implements QueueRepository {
   Future<StoreModel?> getStoreForOwner(String ownerId) => _read(() async {
     final row = await _client
         .from('stores')
-        .select()
+        .select(_storeColumns)
         .eq('owner_id', ownerId)
         .limit(1)
         .maybeSingle();
@@ -373,7 +427,10 @@ class SupabaseQueueRepository implements QueueRepository {
               .from('purchases')
               .select('id, store_id, purchase_date, status')
               .eq('user_id', userId)
-              .order('purchase_date', ascending: false),
+              .order('purchase_date', ascending: false)
+              // The newest bookings are all the list needs (today's, and the
+              // last visit per bakery); the full history only costs data.
+              .limit(100),
         ),
       );
       final pinned = pins.map((p) => p['store_id'] as String).toSet();
@@ -523,7 +580,6 @@ class SupabaseQueueRepository implements QueueRepository {
             purchaseId: r['purchase_id'] as String?,
             outcome: (r['outcome'] as String?) ?? '',
             scannedName: r['scanned_name'] as String?,
-            scannedNationalId: r['scanned_national_id'] as String?,
             scannedAtMillis: _millis(r['scanned_at']),
           ),
         )
@@ -532,6 +588,21 @@ class SupabaseQueueRepository implements QueueRepository {
 
   // Computed by Postgres (`store_customers` / `store_daily_summaries`) so the
   // owner's numbers come from the same rows the queue does.
+
+  @override
+  Future<List<String>> getPopularStoreIds({int limit = 5}) async {
+    try {
+      final rows =
+          await _client.rpc('popular_stores', params: {'p_limit': limit})
+              as List<dynamic>;
+      return [
+        for (final r in rows.cast<Map<String, dynamic>>())
+          r['store_id'] as String,
+      ];
+    } catch (e) {
+      throw BackendUnavailableException(e);
+    }
+  }
 
   @override
   Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId) =>
@@ -612,7 +683,6 @@ class SupabaseQueueRepository implements QueueRepository {
       createdAtMillis: _millis(row['created_at']),
       userName: buyer?['name'] as String?,
       userPhone: buyer?['phone'] as String?,
-      userNationalId: buyer?['national_id'] as String?,
       storeName: store?['name'] as String?,
       paymentMethod: _paymentMethod(row['payments']),
       originalPurchaseDate: row['original_purchase_date'] as String?,

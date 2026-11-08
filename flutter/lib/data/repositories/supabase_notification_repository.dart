@@ -52,7 +52,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
             .order('created_at', ascending: false)
             .order('id', ascending: false)
             // Newest first and bounded: the inbox grows with every booking.
-            .limit(100);
+            .limit(50);
         return rows.map(notificationFromRow).toList();
       });
 

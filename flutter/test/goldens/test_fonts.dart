@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// placeholder glyphs.
 ///
 /// Two sources:
-/// - the bundled Noto Sans Arabic weights, loaded as a pubspec asset;
+/// - the bundled IBM Plex Sans Arabic weights, loaded as a pubspec asset;
 /// - MaterialIcons (every `Icon(Icons.*)` in the app), which isn't a pubspec
 ///   asset — it ships inside the Flutter SDK cache itself — so it's read
 ///   straight off disk relative to the running `flutter_tester` executable.
@@ -23,11 +23,6 @@ Future<void> loadAppFonts(WidgetTester tester) async {
     );
   }
   await ibmLoader.load();
-  final notoLoader = FontLoader('NotoSansArabic');
-  notoLoader.addFont(
-    rootBundle.load('assets/fonts/NotoSansArabic-VariableFont.ttf'),
-  );
-  await notoLoader.load();
 
   final materialIconsFont = File(
     '${File(Platform.resolvedExecutable).parent.parent.parent.path}/material_fonts/MaterialIcons-Regular.otf',

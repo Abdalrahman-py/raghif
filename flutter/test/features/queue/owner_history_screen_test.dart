@@ -25,7 +25,6 @@ void main() {
     String id,
     PurchaseStatus status, {
     String name = 'أحمد ناصر',
-    String? nationalId = '900111222',
     String? phone = '0599111111',
   }) => PurchaseModel(
     id: id,
@@ -37,7 +36,6 @@ void main() {
     createdAtMillis: 1,
     userName: name,
     userPhone: phone,
-    userNationalId: nationalId,
   );
 
   Future<void> pumpHistory(WidgetTester tester) async {

@@ -43,7 +43,6 @@ void main() {
         UserModel(
           id: seededOwnerId,
           phone: '0599000002',
-          nationalId: '900333444',
           name: 'صاحب المخبز',
           role: UserRole.owner,
           verificationStatus: VerificationStatus.verified,

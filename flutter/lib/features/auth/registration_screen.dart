@@ -8,14 +8,13 @@ import '../../core/widgets/labeled_field.dart';
 import '../../core/widgets/primary_button.dart';
 import 'bloc/auth_bloc.dart';
 
-/// Account creation, one question per screen: name, national ID, phone, PIN,
-/// then the Jawwal Pay number last (it only matters at payment time, and it
-/// starts out as the phone number just given).
+/// Account creation, one question per screen: name, phone, PIN. The phone is
+/// also the Jawwal Pay wallet number, so there is nothing else to ask.
 ///
-/// Nothing is sent until the last step. The server decides whether the phone or
-/// ID is already registered; when it says so the form jumps back to the step
-/// that holds the offending value instead of leaving the person on the last
-/// screen with an error about something they typed three screens ago.
+/// Nothing is sent until the last step. The server decides whether the phone is
+/// already registered; when it says so the form jumps back to the phone step
+/// instead of leaving the person on the last screen with an error about
+/// something they typed earlier.
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key, this.initialPhone, this.storeName});
 
@@ -30,11 +29,10 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  static const _total = 5;
+  static const _total = 3;
   static const _nameStep = 0;
-  static const _idStep = 1;
-  static const _phoneStep = 2;
-  static const _pinStep = 3;
+  static const _phoneStep = 1;
+  static const _pinStep = 2;
 
   final _formKeys = List.generate(_total, (_) => GlobalKey<FormState>());
 
@@ -44,14 +42,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   final _nameController = TextEditingController();
-  final _personalIdController = TextEditingController();
-  final _jawwalPayController = TextEditingController();
 
   int _step = 0;
   bool _showPin = false;
   String? _formError;
 
-  static final _palestinianMobile = RegExp(r'^05\d{8}$');
+  // Jawwal / Wataniya: this number is also the Jawwal Pay wallet number.
+  static final _palestinianMobile = RegExp(r'^05[69]\d{7}$');
   static final _repeatedDigits = RegExp(r'^(\d)\1{3}$');
   static const _sequentialPins = {
     '0123',
@@ -76,8 +73,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _pinController.dispose();
     _confirmPinController.dispose();
     _nameController.dispose();
-    _personalIdController.dispose();
-    _jawwalPayController.dispose();
     super.dispose();
   }
 
@@ -88,12 +83,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final text = (value ?? '').trim();
     if (text.isEmpty) return Strings.phoneRequired;
     return _palestinianMobile.hasMatch(text) ? null : Strings.phoneInvalid;
-  }
-
-  String? _validateNationalId(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) return Strings.nationalIdRequired;
-    return text.length == 9 ? null : Strings.nationalIdLengthError;
   }
 
   String? _validatePin(String? value) {
@@ -112,13 +101,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final text = (value ?? '').trim();
     if (text.isEmpty) return Strings.pinRequired;
     return text == _pinController.text.trim() ? null : Strings.pinMismatch;
-  }
-
-  /// Optional: empty means "use the phone number / add it later".
-  String? _validateJawwalPay(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) return null;
-    return _palestinianMobile.hasMatch(text) ? null : Strings.jawwalPayInvalid;
   }
 
   void _goTo(int step) {
@@ -140,13 +122,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     FocusScope.of(context).unfocus();
     final form = _formKeys[_step].currentState;
     if (form == null || !form.validate()) return;
-    if (_step == _phoneStep) {
-      // The wallet number starts out as the phone just given, unless the person
-      // already typed their own.
-      if (_jawwalPayController.text.isEmpty) {
-        _jawwalPayController.text = _phoneController.text.trim();
-      }
-    }
     if (_step < _total - 1) {
       _goTo(_step + 1);
     } else {
@@ -155,15 +130,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   void _submit() {
-    final wallet = _jawwalPayController.text.trim();
     setState(() => _formError = null);
     context.read<AuthBloc>().add(
       RegisterRequestedEvent(
         phone: _phoneController.text.trim(),
         pin: _pinController.text.trim(),
-        nationalId: _personalIdController.text.trim(),
         name: _nameController.text.trim(),
-        jawwalPayNumber: wallet.isEmpty ? null : wallet,
       ),
     );
   }
@@ -172,7 +144,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   /// they can fix.
   void _showFailure(String message) {
     final target = switch (message) {
-      Strings.nationalIdAlreadyRegistered => _idStep,
       Strings.phoneAlreadyRegistered => _phoneStep,
       _ => null,
     };
@@ -196,21 +167,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           autofill: const [AutofillHints.name],
           capitalization: TextCapitalization.words,
         );
-      case _idStep:
-        return _single(
-          title: Strings.stepIdTitle,
-          hint: Strings.stepIdHint,
-          label: Strings.personalIdLabel,
-          controller: _personalIdController,
-          validator: _validateNationalId,
-          enabled: !isLoading,
-          keyboardType: TextInputType.number,
-          formatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(9),
-          ],
-          helper: Strings.nationalIdHelper,
-        );
       case _phoneStep:
         return _single(
           title: Strings.stepPhoneTitle,
@@ -226,23 +182,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ],
           autofill: const [AutofillHints.telephoneNumber],
         );
-      case _pinStep:
-        return _pinFields(isLoading);
       default:
-        return _single(
-          title: Strings.stepWalletTitle,
-          hint: Strings.stepWalletHint,
-          label: Strings.jawwalPayNumberLabel,
-          controller: _jawwalPayController,
-          validator: _validateJawwalPay,
-          enabled: !isLoading,
-          keyboardType: TextInputType.phone,
-          formatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
-          helper: Strings.jawwalPayNumberHint,
-        );
+        return _pinFields(isLoading);
     }
   }
 

@@ -80,7 +80,6 @@ void main() {
         status: PurchaseStatus.waiting,
         createdAtMillis: 0,
         userName: 'أحمد',
-        userNationalId: '900111222',
       ),
     );
 
@@ -100,7 +99,6 @@ void main() {
       createdAtMillis: 0,
       userName: 'أحمد',
       userPhone: '0599111111',
-      userNationalId: '900111222',
     );
 
     setUp(() {
@@ -125,7 +123,6 @@ void main() {
 
       expect(user?.id, 'u1');
       expect(user?.name, 'أحمد');
-      expect(user?.nationalId, '900111222');
       expect(user?.isVerified, isTrue);
       expect(user?.role, UserRole.buyer);
     });

@@ -14,7 +14,6 @@ class PurchaseModel extends Equatable {
     required this.createdAtMillis,
     this.userName,
     this.userPhone,
-    this.userNationalId,
     this.storeName,
     this.postponementCount = 0,
     this.paymentMethod,
@@ -30,7 +29,6 @@ class PurchaseModel extends Equatable {
   final int createdAtMillis;
   final String? userName;
   final String? userPhone;
-  final String? userNationalId;
   final String? storeName;
   final int postponementCount;
 
@@ -54,7 +52,6 @@ class PurchaseModel extends Equatable {
     int? createdAtMillis,
     String? userName,
     String? userPhone,
-    String? userNationalId,
     String? storeName,
     int? postponementCount,
     String? paymentMethod,
@@ -70,7 +67,6 @@ class PurchaseModel extends Equatable {
       createdAtMillis: createdAtMillis ?? this.createdAtMillis,
       userName: userName ?? this.userName,
       userPhone: userPhone ?? this.userPhone,
-      userNationalId: userNationalId ?? this.userNationalId,
       storeName: storeName ?? this.storeName,
       postponementCount: postponementCount ?? this.postponementCount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
@@ -89,7 +85,6 @@ class PurchaseModel extends Equatable {
     createdAtMillis,
     userName,
     userPhone,
-    userNationalId,
     storeName,
     postponementCount,
     paymentMethod,

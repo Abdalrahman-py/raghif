@@ -20,10 +20,10 @@ const int qrPayloadVersion = 2;
 ///    the app is not verifiable, and without a server a token cannot be
 ///    revoked anyway — fake security theater. Signature/issuer logic belongs
 ///    server-side, so `QrPayload` as a client-mintable type should DIE.
-/// 2. DROP PII from the QR: `user_name` and `national_id` in a scannable
+/// 2. DROP PII from the QR: `user_name` in a scannable
 ///    code leak the moment a receipt photo is shared. In production the code
 ///    should be a random reference (or signed claims the server resolves);
-///    name/national ID are returned by the server AT redemption time, never
+///    the name is returned by the server AT redemption time, never
 ///    embedded in the code.
 /// 3. REDEMPTION moves server-side: scan → POST token → atomic
 ///    `mark collected`. That kills the prototype's same-device limitation
@@ -40,18 +40,15 @@ const int qrPayloadVersion = 2;
 /// [ConfirmationScreen] and scanned on [OwnerQueueScreen].
 ///
 /// v1 fields beyond the original four (purchase/user/store/date):
-/// `v` (format version), `national_id` and `store_id` — both optional and
-/// only serialized when present, so codes minted before this change still
-/// decode. `store_id` lets the scanner detect a wrong-store code even when
-/// the purchase is NOT in the owner's local database (prototype: no sync);
-/// `national_id` binds the code to a person for pickup identity checks.
+/// `v` (format version) and `store_id` — optional and only serialized when
+/// present, so codes minted before this change still decode. `store_id` lets the scanner detect a wrong-store code even when
+/// the purchase is NOT in the owner's local database (prototype: no sync).
 class QrPayload {
   const QrPayload({
     required this.purchaseId,
     required this.userName,
     required this.storeName,
     required this.purchaseDate,
-    this.nationalId,
     this.storeId,
   });
 
@@ -59,11 +56,6 @@ class QrPayload {
   final String userName;
   final String storeName;
   final String purchaseDate;
-
-  /// Buyer national ID (absent on codes minted pre-v1, or for users without
-  /// one). Display-only in the prototype — identity VERIFICATION is a
-  /// production/backend concern (see Farid's comment above).
-  final String? nationalId;
 
   /// Store the receipt was issued for, as its Supabase UUID. Lets
   /// redemption report a wrong-store code from the code alone, with no
@@ -76,7 +68,6 @@ class QrPayload {
     'user_name': userName,
     'store_name': storeName,
     'purchase_date': purchaseDate,
-    if (nationalId != null) 'national_id': nationalId,
     if (storeId != null) 'store_id': storeId,
   };
 
@@ -94,7 +85,6 @@ class QrPayload {
       userName: json['user_name'] as String? ?? '',
       storeName: json['store_name'] as String? ?? '',
       purchaseDate: json['purchase_date'] as String? ?? '',
-      nationalId: json['national_id'] as String?,
       storeId: json['store_id'] as String?,
     );
   }
@@ -132,22 +122,15 @@ class QrPayload {
           userName == other.userName &&
           storeName == other.storeName &&
           purchaseDate == other.purchaseDate &&
-          nationalId == other.nationalId &&
           storeId == other.storeId;
 
   @override
-  int get hashCode => Object.hash(
-    purchaseId,
-    userName,
-    storeName,
-    purchaseDate,
-    nationalId,
-    storeId,
-  );
+  int get hashCode =>
+      Object.hash(purchaseId, userName, storeName, purchaseDate, storeId);
 
   @override
   String toString() =>
       'QrPayload(purchaseId: $purchaseId, userName: $userName, '
       'storeName: $storeName, purchaseDate: $purchaseDate, '
-      'nationalId: $nationalId, storeId: $storeId)';
+      'storeId: $storeId)';
 }

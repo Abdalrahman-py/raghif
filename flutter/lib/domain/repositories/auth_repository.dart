@@ -40,50 +40,33 @@ enum ChangePinResult {
 abstract class AuthRepository {
   Future<UserModel?> login({required String phone, required String pin});
 
-  Future<UserModel?> loginWithPin({
-    required String nationalId,
-    required String pin,
-  });
-
   /// The signed-in user from the persisted Supabase session, with their
   /// profile read from the server; null when nobody is signed in.
   Future<UserModel?> restoreSession();
 
   Future<UserModel?> findById(String id);
 
-  Future<bool> nationalIdExists(String nationalId);
-
   Future<bool> phoneExists(String phone);
 
   String? validateRegistration({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
   });
 
   Future<UserModel> register({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
   });
 
-  /// Confirms the buyer's Jawwal Pay number with the code sent to it and marks
-  /// the account verified. Returns the refreshed profile, or null when the
+  /// Confirms the buyer's phone number (which is their Jawwal Pay number) with
+  /// the code sent to it and marks the account verified. Returns the refreshed profile, or null when the
   /// server refused the code. Throws when the server could not be reached.
-  Future<UserModel?> verifyWallet({
-    required String jawwalPayNumber,
-    required String code,
-  });
+  Future<UserModel?> verifyWallet({required String code});
 
-  Future<UserModel> updateProfile({
-    required String name,
-    required String phone,
-    required String jawwalPayNumber,
-  });
+  /// Only the name is editable here; the phone number is changed by support.
+  Future<UserModel> updateProfile({required String name});
 
   /// An owner replaces their own PIN. Checked on the server: the current PIN
   /// must be right, five misses lock it for 15 minutes, and trivial PINs are

@@ -32,7 +32,7 @@ function harness(opts: {
     const custom = opts.rpc?.[name];
     if (custom) return custom(args);
     if (name === "check_availability") {
-      return { data: [{ phone_exists: false, national_id_exists: false }], error: null };
+      return { data: [{ phone_exists: false }], error: null };
     }
     if (name === "admin_create_store_for") return { data: { id: STORE }, error: null };
     if (name === "admin_revoke_sessions") return { data: 2, error: null };
@@ -75,7 +75,6 @@ const bakery = {
   action: "create-bakery",
   ownerName: "أبو أحمد",
   phone: "0599123456",
-  nationalId: "912345678",
   storeName: "مخبز الأمل",
   area: "الرمال",
   governorate: "غزة",
@@ -95,8 +94,8 @@ test("PIN rules: weak PINs are refused, generator never returns one", () => {
 });
 
 test("synthetic email matches the auth gateway's", () => {
-  assert.equal(syntheticEmail("912345678"), "nid-912345678@raghif.internal");
-  assert.equal(syntheticEmail("9-12 3"), "nid-9123@raghif.internal");
+  assert.match(syntheticEmail(), /^u-[0-9a-f-]{36}@raghif\.internal$/);
+  assert.notEqual(syntheticEmail(), syntheticEmail());
 });
 
 test("a request without a token is 401 and touches nothing", async () => {
@@ -143,17 +142,13 @@ test("create-bakery: owner profile + store, PIN returned once", async () => {
   assert.equal(store.args!.p_bag_price, 3);
   assert.equal(store.args!.p_daily_bag_limit, 100);
   assert.equal(h.deleted.length, 0);
-  assert.deepEqual(h.created[0], {
-    email: "nid-912345678@raghif.internal",
-    email_confirm: true,
-    user_metadata: { national_id: "912345678" },
-  });
+  assert.match(String((h.created[0] as Record<string, unknown>).email), /^u-[0-9a-f-]{36}@raghif\.internal$/);
+  assert.equal((h.created[0] as Record<string, unknown>).email_confirm, true);
 });
 
 test("create-bakery validates its input before creating anything", async () => {
   const bad: Array<[string, Record<string, unknown>]> = [
     ["phone", { phone: "123" }],
-    ["nationalId", { nationalId: "12" }],
     ["governorate", { governorate: "الشمال" }],
     ["storeName", { storeName: "  " }],
     ["ownerName", { ownerName: "" }],
@@ -170,10 +165,9 @@ test("create-bakery validates its input before creating anything", async () => {
   assert.ok(GOVERNORATES.includes("غزة"));
 });
 
-test("create-bakery: a taken phone or national id is 409, no user created", async () => {
+test("create-bakery: a taken phone is 409, no user created", async () => {
   for (const flags of [
-    { phone_exists: true, national_id_exists: false },
-    { phone_exists: false, national_id_exists: true },
+    { phone_exists: true },
   ]) {
     const h = harness({ rpc: { check_availability: () => ({ data: [flags], error: null }) } });
     const r = await handle(authed, bakery, h.deps);

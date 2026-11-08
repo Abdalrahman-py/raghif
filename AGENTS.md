@@ -15,7 +15,10 @@ cover product intent.
 
 ## The database is the only data source
 
-- Every screen reads Supabase. There is no on-device database and no
+- The only on-device copy is `OfflineCache` (bakery list, receipts, an owner's
+  bakery and queue): a read-only fallback shown when the server cannot be
+  reached, cleared on sign-out, never a source of truth. Every screen reads
+  Supabase. There is no on-device database and no
   `USE_SUPABASE` switch; do not reintroduce a local database or cache as truth.
 - Schema changes go in a new migration under `flutter/supabase/migrations/`.
   Never change live objects without a matching file.
@@ -24,7 +27,8 @@ cover product intent.
   will try to re-apply it and fail. Current versions:
   `20261027140000` store_governorates, `20261027141000` notification_inbox,
   `20261027142000` update_my_profile, `20261027143000` postpone_purchase,
-  `20261029120000` harden_table_privileges.
+  `20261029120000` harden_table_privileges, `20261108120000` drop_national_id,
+  `20261108150000` drop_realtime.
 - The hosted Supabase MCP server is scoped to project `mgmerkaokkffsypnkryj` by
   its URL. Do not pass a `project_id` argument; the tool schema has no such
   field.
@@ -68,28 +72,29 @@ cover product intent.
 
 ## Sign-in (read before touching auth-gateway)
 
-- `login-pin` goes through `login_attempt()` (service role only): 5 wrong PINs lock the account for 15 minutes (429 `login_locked`). Do not call `verify_pin_and_get_profile` from the gateway; it has no limit.
+- Sign-in is phone number + PIN. The phone is also the Jawwal Pay wallet number and the only uniqueness key; there is no national ID anywhere. `login-pin` goes through `login_attempt(phone, pin)` (service role only): 5 wrong PINs lock the account for 15 minutes (429 `login_locked`). The old `verify_pin_and_get_profile` (no limit) was dropped; never add a sign-in path that skips `login_attempt`.
 - There is **no code/OTP sign-in**. `otp-request`/`otp-confirm` return 410 on purpose: with no SMS gateway a code can only be shown to the requester, which is an account takeover. A forgotten PIN is reset by support in the admin panel (`admin_set_pin`, which also clears the lock). Reintroduce a code path only with a real gateway that delivers the code out of band.
 
 ## Known open issues — decide explicitly, do not drift into them
 
-- `update_my_profile` can change `phone`, which is the login identifier, with no
-  proof of ownership and no re-authentication. A stolen session becomes a
-  persistent takeover. Either require the current PIN / an OTP to the new number,
-  or make phone a support-only field.
-- The same RPC returns `phone already registered`, which lets any signed-in user
-  probe whether a number has an account. Return a generic error or rate-limit.
-- Buyer verification is the Jawwal Pay number: `verify_my_wallet(number, code)` is the only client path to `verification_status = 'verified'` (the column grants are revoked), and changing the wallet number through `update_my_profile` sends a buyer back to `pending`. The code is the fixed stand-in `1234` until the gateway can text a real one; swap the comparison in that function (and count wrong attempts) when it can.
-- Postponement writes an inbox row but sends no push: push triggers fire on
-  insert and on `status = 'notified'` only.
-- `purchases.original_purchase_date` is written and never read. Surface it in
-  receipts/history or drop it.
+- The phone number is support-only: `update_my_profile(name)` takes no phone.
+  Because the phone is the login name and the wallet, a number change must stay
+  a support action until an SMS code to the new number exists.
+- `register` answers `phone already registered` (409) and `check-availability`
+  tells anyone whether a number has an account. Rate-limit them before launch.
+- Buyer verification: `verify_my_wallet(code)` is the only client path to `verification_status = 'verified'` (the column grants are revoked); it verifies the account's own phone, which is its Jawwal Pay number. The code is the fixed stand-in `1234` until an SMS gateway can text a real one to that number; swap the comparison in that function (and count wrong attempts) when it can.
+- There is no Realtime. Do not re-add a channel or a polling timer: it costs
+  server RAM per connection and mobile data on weak networks. Freshness comes
+  from reading on open, pull-to-refresh, own actions, pushes and app resume.
+- Postponement does push: it writes an inbox row (`persist_purchase_notification`)
+  and the `notification_inbox_push` trigger sends a push for every inbox insert
+  (checked 2026-11-06; this note used to say it did not).
+- `purchases.original_purchase_date` is shown on a postponed booking ("تم تأجيله من يوم …").
 - Nothing sets `stores.governorate` for future stores, and there is no owner UI
   for it. New bakeries will be invisible in the governorate screen until
   classified.
-- Notification title/body copy is hardcoded Arabic inside the trigger, with ISO
-  dates. Changing it needs a migration.
-- The inbox fetch is unbounded; add a limit/pagination before it grows.
+- Notification title/body copy is hardcoded Arabic inside the trigger (migration `20261105150000_notification_copy`, dates DD/MM/YYYY); changing it needs a migration.
+- The inbox fetch is capped at 100 rows; add pagination before it grows past that.
 
 ## Unmerged backend hardening
 

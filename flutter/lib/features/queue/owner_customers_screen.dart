@@ -9,7 +9,7 @@ import '../../domain/models/customer_summary_model.dart';
 import 'queue_controller.dart';
 
 /// Screen displaying all customers who have ever purchased from this store.
-class OwnerCustomersScreen extends StatelessWidget {
+class OwnerCustomersScreen extends StatefulWidget {
   const OwnerCustomersScreen({
     super.key,
     required this.controller,
@@ -18,6 +18,18 @@ class OwnerCustomersScreen extends StatelessWidget {
 
   final QueueController controller;
   final dynamic storeId;
+
+  @override
+  State<OwnerCustomersScreen> createState() => _OwnerCustomersScreenState();
+}
+
+class _OwnerCustomersScreenState extends State<OwnerCustomersScreen> {
+  /// The list can reach thousands of buyers: draw a page at a time.
+  static const _pageSize = 30;
+  int _shown = _pageSize;
+
+  QueueController get controller => widget.controller;
+  dynamic get storeId => widget.storeId;
 
   @override
   Widget build(BuildContext context) {
@@ -31,41 +43,56 @@ class OwnerCustomersScreen extends StatelessWidget {
       body: StreamBuilder<List<CustomerSummaryModel>>(
         stream: controller.watchCustomersForStore(storeId),
         builder: (context, snapshot) {
-          final customers = snapshot.data ?? [];
+          final all = snapshot.data ?? [];
+          final customers = all.length > _shown ? all.sublist(0, _shown) : all;
+          final hasMore = all.length > _shown;
           return SafeArea(
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  itemCount: customers.length + 1,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    if (index > 0) {
-                      return _CustomerCard(
-                        rank: index,
-                        customer: customers[index - 1],
-                      );
-                    }
-                    // Header slot: only state notices. The owner knows which
-                    // bakery this is, so no name card.
-                    if (snapshot.hasError) return const OfflineNotice();
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        !snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (customers.isEmpty) {
-                      return AppCard(
-                        child: Text(
-                          Strings.customersEmpty,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                child: RefreshIndicator(
+                  onRefresh: controller.refreshAll,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    itemCount: customers.length + 1 + (hasMore ? 1 : 0),
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      if (hasMore && index == customers.length + 1) {
+                        return OutlinedButton(
+                          key: const Key('customers-more'),
+                          onPressed: () => setState(() => _shown += _pageSize),
+                          child: Text(
+                            'عرض المزيد (${all.length - _shown} متبقٍ)',
+                          ),
+                        );
+                      }
+                      if (index > 0) {
+                        return _CustomerCard(
+                          rank: index,
+                          customer: customers[index - 1],
+                        );
+                      }
+                      // Header slot: only state notices. The owner knows which
+                      // bakery this is, so no name card.
+                      if (snapshot.hasError) return const OfflineNotice();
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (customers.isEmpty) {
+                        return AppCard(
+                          child: Text(
+                            Strings.customersEmpty,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ),
               ),
             ),

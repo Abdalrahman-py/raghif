@@ -45,10 +45,10 @@ class AuthFailure extends AuthState {
 }
 
 class AuthSwitchToRegister extends AuthState {
-  const AuthSwitchToRegister({required this.nationalId});
+  const AuthSwitchToRegister({required this.phone});
 
-  final String nationalId;
+  final String phone;
 
   @override
-  List<Object?> get props => [nationalId];
+  List<Object?> get props => [phone];
 }

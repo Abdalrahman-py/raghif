@@ -91,21 +91,9 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                 userName: purchase.userName ?? currentUser.name,
                 storeName: purchase.storeName ?? store?.name ?? '',
                 purchaseDate: purchase.purchaseDate,
-                nationalId: purchase.userNationalId,
                 storeId: purchase.storeId,
               );
 
-              final (statusChipText, tone) = switch (purchase.status) {
-                PurchaseStatus.waiting => (
-                  Strings.statusWaiting,
-                  StatusTone.warning,
-                ),
-                PurchaseStatus.notified => (
-                  Strings.statusNotifiedShort,
-                  StatusTone.success,
-                ),
-                PurchaseStatus.collected => ('اكتمل طلبك', StatusTone.neutral),
-              };
               final headline = switch (purchase.status) {
                 PurchaseStatus.waiting => 'تم حجز ربطتك',
                 PurchaseStatus.notified => Strings.statusNotified,
@@ -220,10 +208,6 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                       spacing: AppSpacing.sm,
                                       runSpacing: AppSpacing.xs,
                                       children: [
-                                        StatusChip(
-                                          text: statusChipText,
-                                          tone: tone,
-                                        ),
                                         if (position > 0)
                                           StatusChip(
                                             text:

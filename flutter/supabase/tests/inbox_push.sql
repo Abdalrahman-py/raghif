@@ -4,8 +4,8 @@
 begin;
 
 insert into auth.users (id) values ('c0000000-0000-0000-0000-000000000001');
-insert into public.profiles (id, phone, national_id, pin_hash, name, role)
-  values ('c0000000-0000-0000-0000-000000000001', 'push-1', 'push-1', 'h', 'push-buyer', 'buyer');
+insert into public.profiles (id, phone, pin_hash, name, role)
+  values ('c0000000-0000-0000-0000-000000000001', 'push-1', 'h', 'push-buyer', 'buyer');
 
 truncate net.calls;
 

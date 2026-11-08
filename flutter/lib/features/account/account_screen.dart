@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/di/injection.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
@@ -63,7 +64,12 @@ class AccountScreen extends StatelessWidget {
     textDirection: TextDirection.rtl,
     child: Scaffold(
       backgroundColor: AppColors.background,
-      appBar: embedded ? null : AppBar(title: const Text('حسابي')),
+      appBar: embedded
+          ? null
+          : AppBar(
+              title: const Text('حسابي'),
+              actions: const [AccountMenuButton()],
+            ),
       body: SafeArea(
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
@@ -107,24 +113,15 @@ class AccountScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _Detail(
-                              label: 'رقم الهوية',
-                              value: user.nationalId,
-                            ),
-                            const Divider(),
-                            _Detail(label: 'رقم الجوال', value: user.phone),
-                            const Divider(),
-                            _Detail(
-                              label: 'محفظة جوال باي',
-                              value: user.jawwalPayNumber?.isNotEmpty == true
-                                  ? user.jawwalPayNumber!
-                                  : 'غير مضافة',
+                              label: 'رقم جوال باي (رقم الدخول)',
+                              value: user.phone,
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'رقم الهوية ونوع الحساب وحالة التحقق لا تتغير من هذه الصفحة.',
+                        'رقم الجوال ونوع الحساب وحالة التحقق لا تتغير من هذه الصفحة.',
                         style: AppTypography.bodySmall,
                       ),
                       const SizedBox(height: 20),
@@ -149,50 +146,9 @@ class AccountScreen extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              key: const Key('privacy-link'),
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const LegalScreen.privacy(),
-                                ),
-                              ),
-                              child: const Text(Strings.privacyTitle),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextButton(
-                              key: const Key('terms-link'),
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const LegalScreen.terms(),
-                                ),
-                              ),
-                              child: const Text(Strings.termsTitle),
-                            ),
-                          ),
-                        ],
-                      ),
-                      TextButton(
-                        key: const Key('delete-account'),
-                        onPressed: () => showDialog<void>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text(Strings.deleteAccountTitle),
-                            content: const SelectableText(
-                              Strings.deleteAccountBody,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text(Strings.ok),
-                              ),
-                            ],
-                          ),
-                        ),
-                        child: const Text(Strings.deleteAccountTitle),
+                      const SupportWhatsAppButton(
+                        key: Key('account-support-whatsapp'),
+                        message: Strings.supportMessage,
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
@@ -212,6 +168,88 @@ class AccountScreen extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// The three-dots menu of the profile: privacy policy, terms of use and the
+/// account-deletion request. They are rarely needed, so they live here instead
+/// of taking space on the profile itself.
+class AccountMenuButton extends StatelessWidget {
+  const AccountMenuButton({super.key});
+
+  static const _privacy = 'privacy';
+  static const _terms = 'terms';
+  static const _delete = 'delete';
+
+  void _open(BuildContext context, String value) {
+    switch (value) {
+      case _privacy:
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LegalScreen.privacy()));
+      case _terms:
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LegalScreen.terms()));
+      case _delete:
+        showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text(Strings.deleteAccountTitle),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SelectableText(Strings.deleteAccountBody),
+                SizedBox(height: 16),
+                SupportWhatsAppButton(
+                  message: 'مرحبًا، أرغب بحذف حسابي في تطبيق رغيف.',
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(Strings.ok),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+    key: const Key('account-menu'),
+    tooltip: 'المزيد',
+    icon: const Icon(Icons.more_vert),
+    onSelected: (value) => _open(context, value),
+    itemBuilder: (_) => const [
+      PopupMenuItem(
+        value: _privacy,
+        child: ListTile(
+          leading: Icon(Icons.privacy_tip_outlined),
+          title: Text(Strings.privacyTitle),
+        ),
+      ),
+      PopupMenuItem(
+        value: _terms,
+        child: ListTile(
+          leading: Icon(Icons.description_outlined),
+          title: Text(Strings.termsTitle),
+        ),
+      ),
+      PopupMenuItem(
+        value: _delete,
+        child: ListTile(
+          leading: Icon(Icons.delete_outline, color: AppColors.danger),
+          title: Text(
+            Strings.deleteAccountTitle,
+            style: TextStyle(color: AppColors.danger),
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -244,9 +282,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.user.name);
   late final _phone = TextEditingController(text: widget.user.phone);
-  late final _wallet = TextEditingController(
-    text: widget.user.jawwalPayNumber ?? '',
-  );
   bool _submitted = false;
   static final _phonePattern = RegExp(r'^05[69][0-9]{7}$');
 
@@ -254,7 +289,6 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   void dispose() {
     _name.dispose();
     _phone.dispose();
-    _wallet.dispose();
     super.dispose();
   }
 
@@ -314,26 +348,13 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                     enabled: false,
                     keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'رقم الجوال'),
+                    decoration: const InputDecoration(
+                      labelText: 'رقم جوال باي',
+                    ),
                     validator: (value) =>
                         _phonePattern.hasMatch(value?.trim() ?? '')
                         ? null
                         : 'أدخل رقم جوال صحيحاً من 10 أرقام',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    key: const Key('profile-wallet'),
-                    controller: _wallet,
-                    enabled: !saving,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'رقم محفظة جوال باي (اختياري)',
-                    ),
-                    validator: (value) =>
-                        value!.trim().isEmpty ||
-                            _phonePattern.hasMatch(value.trim())
-                        ? null
-                        : 'أدخل رقم محفظة صحيحاً من 10 أرقام',
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -360,11 +381,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                       if (!_form.currentState!.validate()) return;
                       setState(() => _submitted = true);
                       context.read<AuthBloc>().add(
-                        UpdateProfileRequestedEvent(
-                          name: _name.text,
-                          phone: _phone.text,
-                          jawwalPayNumber: _wallet.text,
-                        ),
+                        UpdateProfileRequestedEvent(name: _name.text),
                       );
                     },
                   ),

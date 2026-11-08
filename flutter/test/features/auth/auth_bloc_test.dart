@@ -18,10 +18,8 @@ void main() {
   const testUser = UserModel(
     id: 'user-1',
     phone: '0599111111',
-    nationalId: '900111222',
     name: 'أحمد ناصر',
     role: UserRole.buyer,
-    jawwalPayNumber: '0599000001',
     verificationStatus: VerificationStatus.verified,
   );
 
@@ -108,16 +106,12 @@ void main() {
       'gets no answer',
       build: () {
         when(
-          () => mockAuthRepository.loginWithPin(
-            nationalId: '900111222',
-            pin: '1234',
-          ),
+          () => mockAuthRepository.login(phone: '0599111111', pin: '1234'),
         ).thenThrow(Exception('SocketException: Failed host lookup'));
         return AuthBloc(authRepository: mockAuthRepository);
       },
-      act: (bloc) => bloc.add(
-        const PinLoginRequestedEvent(nationalId: '900111222', pin: '1234'),
-      ),
+      act: (bloc) =>
+          bloc.add(const LoginRequestedEvent(phone: '0599111111', pin: '1234')),
       expect: () => [
         const AuthLoading(),
         const AuthFailure(Strings.loginOffline),
@@ -139,14 +133,13 @@ void main() {
           bloc.add(const LoginRequestedEvent(phone: '0599999999', pin: '1234')),
       expect: () => [
         const AuthLoading(),
-        const AuthSwitchToRegister(nationalId: '0599999999'),
+        const AuthSwitchToRegister(phone: '0599999999'),
       ],
     );
 
     const pendingUser = UserModel(
       id: 'user-1',
       phone: '0599111111',
-      nationalId: '900111222',
       name: 'أحمد ناصر',
       verificationStatus: VerificationStatus.pending,
     );
@@ -155,20 +148,13 @@ void main() {
       'verifies the account when the server accepts the wallet code',
       build: () {
         when(
-          () => mockAuthRepository.verifyWallet(
-            jawwalPayNumber: '0599111111',
-            code: '1234',
-          ),
+          () => mockAuthRepository.verifyWallet(code: '1234'),
         ).thenAnswer((_) async => testUser); // testUser is verified
         return AuthBloc(authRepository: mockAuthRepository);
       },
       seed: () => const Authenticated(pendingUser),
-      act: (bloc) => bloc.add(
-        const WalletVerificationRequestedEvent(
-          jawwalPayNumber: '0599111111',
-          code: '1234',
-        ),
-      ),
+      act: (bloc) =>
+          bloc.add(const WalletVerificationRequestedEvent(code: '1234')),
       expect: () => [
         const Authenticated(pendingUser, profileSaving: true),
         const Authenticated(testUser),
@@ -179,20 +165,13 @@ void main() {
       'stays pending with an error when the server refuses the code',
       build: () {
         when(
-          () => mockAuthRepository.verifyWallet(
-            jawwalPayNumber: '0599111111',
-            code: '0000',
-          ),
+          () => mockAuthRepository.verifyWallet(code: '0000'),
         ).thenAnswer((_) async => null);
         return AuthBloc(authRepository: mockAuthRepository);
       },
       seed: () => const Authenticated(pendingUser),
-      act: (bloc) => bloc.add(
-        const WalletVerificationRequestedEvent(
-          jawwalPayNumber: '0599111111',
-          code: '0000',
-        ),
-      ),
+      act: (bloc) =>
+          bloc.add(const WalletVerificationRequestedEvent(code: '0000')),
       expect: () => [
         const Authenticated(pendingUser, profileSaving: true),
         const Authenticated(pendingUser, profileError: Strings.wrongOtpError),
@@ -203,20 +182,13 @@ void main() {
       'reports a connection problem without verifying',
       build: () {
         when(
-          () => mockAuthRepository.verifyWallet(
-            jawwalPayNumber: any(named: 'jawwalPayNumber'),
-            code: any(named: 'code'),
-          ),
+          () => mockAuthRepository.verifyWallet(code: any(named: 'code')),
         ).thenThrow(Exception('offline'));
         return AuthBloc(authRepository: mockAuthRepository);
       },
       seed: () => const Authenticated(pendingUser),
-      act: (bloc) => bloc.add(
-        const WalletVerificationRequestedEvent(
-          jawwalPayNumber: '0599111111',
-          code: '1234',
-        ),
-      ),
+      act: (bloc) =>
+          bloc.add(const WalletVerificationRequestedEvent(code: '1234')),
       expect: () => [
         const Authenticated(pendingUser, profileSaving: true),
         const Authenticated(
@@ -241,15 +213,12 @@ void main() {
         'emits [AuthLoading, Authenticated] on successful PIN login',
         build: () {
           when(
-            () => mockAuthRepository.loginWithPin(
-              nationalId: '900111222',
-              pin: '1234',
-            ),
+            () => mockAuthRepository.login(phone: '0599111111', pin: '1234'),
           ).thenAnswer((_) async => testUser);
           return AuthBloc(authRepository: mockAuthRepository);
         },
         act: (bloc) => bloc.add(
-          const PinLoginRequestedEvent(nationalId: '900111222', pin: '1234'),
+          const LoginRequestedEvent(phone: '0599111111', pin: '1234'),
         ),
         expect: () => [const AuthLoading(), const Authenticated(testUser)],
       );
@@ -263,15 +232,12 @@ void main() {
           'a ${blocked.key} account is told so, not "wrong PIN" or "offline"',
           build: () {
             when(
-              () => mockAuthRepository.loginWithPin(
-                nationalId: '900111222',
-                pin: '1234',
-              ),
+              () => mockAuthRepository.login(phone: '0599111111', pin: '1234'),
             ).thenThrow(AccountBlockedException(blocked.key));
             return AuthBloc(authRepository: mockAuthRepository);
           },
           act: (bloc) => bloc.add(
-            const PinLoginRequestedEvent(nationalId: '900111222', pin: '1234'),
+            const LoginRequestedEvent(phone: '0599111111', pin: '1234'),
           ),
           expect: () => [const AuthLoading(), AuthFailure(blocked.value)],
         );
@@ -281,18 +247,15 @@ void main() {
         'emits [AuthLoading, AuthFailure] when PIN is wrong for existing user',
         build: () {
           when(
-            () => mockAuthRepository.loginWithPin(
-              nationalId: '900111222',
-              pin: '0000',
-            ),
+            () => mockAuthRepository.login(phone: '0599111111', pin: '0000'),
           ).thenAnswer((_) async => null);
           when(
-            () => mockAuthRepository.nationalIdExists('900111222'),
+            () => mockAuthRepository.phoneExists('0599111111'),
           ).thenAnswer((_) async => true);
           return AuthBloc(authRepository: mockAuthRepository);
         },
         act: (bloc) => bloc.add(
-          const PinLoginRequestedEvent(nationalId: '900111222', pin: '0000'),
+          const LoginRequestedEvent(phone: '0599111111', pin: '0000'),
         ),
         expect: () => [
           const AuthLoading(),
@@ -301,25 +264,22 @@ void main() {
       );
 
       blocTest<AuthBloc, AuthState>(
-        'emits [AuthLoading, AuthSwitchToRegister] when national ID is not registered',
+        'emits [AuthLoading, AuthSwitchToRegister] when the phone is not registered',
         build: () {
           when(
-            () => mockAuthRepository.loginWithPin(
-              nationalId: '900999999',
-              pin: '1234',
-            ),
+            () => mockAuthRepository.login(phone: '0599999999', pin: '1234'),
           ).thenAnswer((_) async => null);
           when(
-            () => mockAuthRepository.nationalIdExists('900999999'),
+            () => mockAuthRepository.phoneExists('0599999999'),
           ).thenAnswer((_) async => false);
           return AuthBloc(authRepository: mockAuthRepository);
         },
         act: (bloc) => bloc.add(
-          const PinLoginRequestedEvent(nationalId: '900999999', pin: '1234'),
+          const LoginRequestedEvent(phone: '0599999999', pin: '1234'),
         ),
         expect: () => [
           const AuthLoading(),
-          const AuthSwitchToRegister(nationalId: '900999999'),
+          const AuthSwitchToRegister(phone: '0599999999'),
         ],
       );
     });

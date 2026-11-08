@@ -8,7 +8,9 @@ import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
+import 'package:raghif/features/navigation/owner_shell.dart';
 import 'package:raghif/features/queue/owner_customers_screen.dart';
+import 'package:raghif/features/queue/owner_history_screen.dart';
 import 'package:raghif/features/queue/owner_dashboard_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
 
@@ -54,7 +56,6 @@ void main() {
         'long-name',
         name: 'أحمد محمد محمود عبد الرحمن النجار',
         phone: '0599999999',
-        nationalId: '900999999',
       );
       env.repo.givenPurchase(
         userId: 'long-name',
@@ -117,12 +118,7 @@ void main() {
     testWidgets('displays customer info when purchases exist', (tester) async {
       final env = await _buildTestEnv();
 
-      env.repo.addUser(
-        'user-khaled',
-        name: 'خالد محمود',
-        phone: '0599888777',
-        nationalId: '988877766',
-      );
+      env.repo.addUser('user-khaled', name: 'خالد محمود', phone: '0599888777');
       env.repo.givenPurchase(
         userId: 'user-khaled',
         storeId: seededStoreId,
@@ -150,7 +146,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('OwnerDashboardScreen navigates to OwnerCustomersScreen', (
+    testWidgets('OwnerShell tabs: home, customers log, sales log', (
       tester,
     ) async {
       final env = await _buildTestEnv();
@@ -160,7 +156,6 @@ void main() {
           UserModel(
             id: seededOwnerId,
             phone: demoOwnerPhone,
-            nationalId: demoOwnerNationalId,
             name: demoOwnerName,
             role: UserRole.owner,
             verificationStatus: VerificationStatus.verified,
@@ -172,24 +167,30 @@ void main() {
         BlocProvider<AuthBloc>.value(
           value: mockAuthBloc,
           child: wrapWithMaterial(
-            OwnerDashboardScreen(
-              controller: env.controller,
-              storeId: seededStoreId,
-            ),
+            OwnerShell(controller: env.controller, storeId: seededStoreId),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(Strings.customersButton), findsOneWidget);
+      expect(find.byType(OwnerDashboardScreen), findsOneWidget);
+      expect(find.text('سجل الزبائن'), findsOneWidget);
+      expect(find.text('سجل المبيعات'), findsOneWidget);
 
-      await tester.ensureVisible(find.text(Strings.customersButton));
+      await tester.tap(find.text('سجل الزبائن'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(Strings.customersButton));
-      await tester.pumpAndSettle();
-
       expect(find.byType(OwnerCustomersScreen), findsOneWidget);
-      expect(find.text(Strings.customersTitle), findsOneWidget);
+      // The screen title and the tab label read the same.
+      expect(find.text(Strings.customersTitle), findsWidgets);
+
+      await tester.tap(find.text('سجل المبيعات'));
+      await tester.pumpAndSettle();
+      expect(find.byType(OwnerHistoryScreen), findsOneWidget);
+      expect(find.text(Strings.historyTitle), findsWidgets);
+
+      await tester.tap(find.text('الرئيسية'));
+      await tester.pumpAndSettle();
+      expect(find.byType(OwnerDashboardScreen), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

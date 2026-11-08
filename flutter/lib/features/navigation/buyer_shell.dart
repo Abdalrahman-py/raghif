@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_bottom_bar.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../account/account_screen.dart';
 import '../auth/demo_accounts.dart';
-import '../locations/governorate_screen.dart';
 import '../queue/buyer_home_screen.dart';
-import '../queue/purchase_screen.dart';
+import '../queue/buyer_stores_home.dart';
+import '../queue/purchase_flow.dart';
 import '../queue/queue_controller.dart';
 import 'inbox_navigation.dart';
-import 'pickup_navigation.dart';
 
 class BuyerShell extends StatefulWidget {
   const BuyerShell({
@@ -41,14 +40,11 @@ class _BuyerShellState extends State<BuyerShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.controller.watchStoreListFor(widget.currentUser.id);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PurchaseScreen(
-            controller: widget.controller,
-            storeId: storeId,
-            currentUser: widget.currentUser,
-          ),
-        ),
+      startPurchase(
+        context,
+        controller: widget.controller,
+        currentUser: widget.currentUser,
+        storeId: storeId,
       );
     });
   }
@@ -85,21 +81,13 @@ class _BuyerShellState extends State<BuyerShell> {
             ),
             icon: const Icon(Icons.notifications_outlined),
           ),
+          if (_index == 2) const AccountMenuButton(),
         ],
       ),
       body: switch (_index) {
-        0 => GovernorateScreen(
+        0 => BuyerStoresHome(
           controller: widget.controller,
-          embedded: true,
-          onSelected: (province, area) => openStoreResults(
-            context,
-            widget.controller,
-            widget.currentUser,
-            governorate: province,
-            area: area,
-          ),
-          onBrowseAll: () =>
-              openStoreResults(context, widget.controller, widget.currentUser),
+          currentUser: widget.currentUser,
         ),
         1 => BuyerHomeScreen(
           controller: widget.controller,
@@ -108,31 +96,26 @@ class _BuyerShellState extends State<BuyerShell> {
         ),
         _ => const AccountScreen(embedded: true),
       },
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border)),
-        ),
-        child: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: (value) => setState(() => _index = value),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'الرئيسية',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.confirmation_number_outlined),
-              selectedIcon: Icon(Icons.confirmation_number),
-              label: 'حجزي',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'حسابي',
-            ),
-          ],
-        ),
+      bottomNavigationBar: AppBottomBar(
+        selectedIndex: _index,
+        onSelected: (value) => setState(() => _index = value),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'الرئيسية',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.confirmation_number_outlined),
+            selectedIcon: Icon(Icons.confirmation_number),
+            label: 'حجزي',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'حسابي',
+          ),
+        ],
       ),
     ),
   );

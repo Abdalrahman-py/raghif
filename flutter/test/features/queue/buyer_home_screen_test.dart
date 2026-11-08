@@ -42,7 +42,6 @@ void main() {
     createdAtMillis: 1,
     userName: 'أحمد ناصر',
     userPhone: '0599111111',
-    userNationalId: '900111222',
     storeName: 'مخبز الرمال',
   );
 
@@ -84,14 +83,15 @@ void main() {
     ).thenAnswer((_) => Stream.value(purchase));
   }
 
-  testWidgets('no order today → empty state with a way to the stores', (
+  testWidgets('no order today → plain empty state, no browse button', (
     tester,
   ) async {
     stubTodayOrder(null);
     await pumpHome(tester);
 
     expect(find.text(Strings.buyerHomeNoOrder), findsOneWidget);
-    expect(find.text(Strings.browseStoresButton), findsOneWidget);
+    // Nothing to browse from here: the stores are on the home tab.
+    expect(find.text(Strings.browseStoresButton), findsNothing);
   });
 
   testWidgets('server unreachable → says so with a retry, not "no order"', (
@@ -123,7 +123,6 @@ void main() {
     await pumpHome(tester);
 
     expect(find.text('مخبز الرمال'), findsOneWidget);
-    expect(find.text(Strings.statusNotified), findsOneWidget);
     expect(find.text('#purchase-7'), findsOneWidget);
     expect(find.text(Strings.paidBadge), findsOneWidget);
     expect(find.text(Strings.buyerHomeBatch(3)), findsOneWidget);
@@ -140,7 +139,8 @@ void main() {
 
     await pumpHome(tester);
 
-    expect(find.text(Strings.statusWaiting), findsOneWidget);
+    // The banner says it; no separate status chip repeats it.
+    expect(find.text(Strings.statusWaiting), findsNothing);
     expect(find.text(Strings.batchReadyNotificationBody), findsNothing);
   });
 

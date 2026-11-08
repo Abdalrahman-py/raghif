@@ -128,7 +128,7 @@ void main() {
     await pumpDetails(tester, entry);
 
     expect(find.text(Strings.myOrderTodayTitle), findsOneWidget);
-    expect(find.text(Strings.orderReady), findsOneWidget);
+    expect(find.text(Strings.orderReady), findsNothing);
     expect(find.text(Strings.paidBadge), findsOneWidget);
     expect(find.text(Strings.showReceiptButton), findsOneWidget);
   });

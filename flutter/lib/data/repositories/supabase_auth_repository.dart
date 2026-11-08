@@ -8,7 +8,7 @@ import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../receipt_store.dart';
 
-/// Auth backed by Supabase (national-ID + PIN, verified server-side by the
+/// Auth backed by Supabase (phone number + PIN, verified server-side by the
 /// `auth-gateway` Edge Function, which mints a real Supabase session — see
 /// docs/supabase-migration-plan.md).
 ///
@@ -31,17 +31,13 @@ class SupabaseAuthRepository implements AuthRepository {
 
   /// Every profile column the app reads. Named, never `*`: `pin_hash` is
   /// revoked in SQL and asking for it fails the whole request.
-  static const _profileColumns =
-      'id, phone, national_id, name, role, jawwal_pay_number, '
-      'verification_status';
+  static const _profileColumns = 'id, phone, name, role, verification_status';
 
   static UserModel _userFromRow(Map<String, dynamic> row) => UserModel(
     id: row['id'] as String,
     phone: (row['phone'] as String?) ?? '',
-    nationalId: (row['national_id'] as String?) ?? '',
     name: (row['name'] as String?) ?? '',
     role: row['role'] == 'owner' ? UserRole.owner : UserRole.buyer,
-    jawwalPayNumber: row['jawwal_pay_number'] as String?,
     verificationStatus: row['verification_status'] == 'verified'
         ? VerificationStatus.verified
         : VerificationStatus.pending,
@@ -63,7 +59,7 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   /// A gateway call where the server saying no (401 wrong PIN/code, 404 unknown
-  /// ID) is an answer, not a failure: null. Anything else -- no connection, a
+  /// number) is an answer, not a failure: null. Anything else -- no connection, a
   /// timeout, a 5xx -- is rethrown, so the caller never reports "wrong PIN" or
   /// "not registered" for a network that never answered.
   Future<T?> _answered<T>(Future<T> Function() call) async {
@@ -92,10 +88,8 @@ class SupabaseAuthRepository implements AuthRepository {
     return UserModel(
       id: profile['remoteId'] as String,
       phone: profile['phone'] as String? ?? '',
-      nationalId: profile['nationalId'] as String? ?? '',
       name: profile['name'] as String? ?? '',
       role: profile['role'] == 'owner' ? UserRole.owner : UserRole.buyer,
-      jawwalPayNumber: profile['jawwalPayNumber'] as String?,
       verificationStatus: profile['verificationStatus'] == 'verified'
           ? VerificationStatus.verified
           : VerificationStatus.pending,
@@ -106,23 +100,7 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<UserModel?> login({required String phone, required String pin}) async {
     return _answered(() async {
       final result = await _invoke('login-pin', {
-        'identifier': phone.trim(),
-        'by': 'phone',
-        'pin': pin.trim(),
-      });
-      return _applySession(result);
-    });
-  }
-
-  @override
-  Future<UserModel?> loginWithPin({
-    required String nationalId,
-    required String pin,
-  }) async {
-    return _answered(() async {
-      final result = await _invoke('login-pin', {
-        'identifier': nationalId.trim(),
-        'by': 'nationalId',
+        'phone': phone.trim(),
         'pin': pin.trim(),
       });
       return _applySession(result);
@@ -143,7 +121,6 @@ class SupabaseAuthRepository implements AuthRepository {
       return UserModel(
         id: receipt.userId,
         phone: receipt.userPhone ?? '',
-        nationalId: receipt.userNationalId ?? '',
         name: receipt.userName ?? '',
         verificationStatus: VerificationStatus.verified,
       );
@@ -158,18 +135,6 @@ class SupabaseAuthRepository implements AuthRepository {
         .eq('id', id)
         .maybeSingle();
     return row == null ? null : _userFromRow(row);
-  }
-
-  @override
-  Future<bool> nationalIdExists(String nationalId) async {
-    try {
-      final result = await _invoke('check-availability', {
-        'nationalId': nationalId.trim(),
-      });
-      return result['nationalIdExists'] as bool? ?? false;
-    } catch (_) {
-      return false;
-    }
   }
 
   @override
@@ -188,14 +153,9 @@ class SupabaseAuthRepository implements AuthRepository {
   String? validateRegistration({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
   }) {
-    if (phone.trim().isEmpty ||
-        pin.trim().length != 4 ||
-        nationalId.trim().isEmpty ||
-        name.trim().isEmpty) {
+    if (phone.trim().isEmpty || pin.trim().length != 4 || name.trim().isEmpty) {
       return Strings.registerError;
     }
     return null;
@@ -205,48 +165,30 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<UserModel> register({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
   }) async {
     final result = await _invoke('register', {
       'phone': phone.trim(),
       'pin': pin.trim(),
-      'nationalId': nationalId.trim(),
       'name': name.trim(),
-      'jawwalPayNumber': jawwalPayNumber?.trim(),
     });
     return _applySession(result);
   }
 
   @override
-  Future<UserModel?> verifyWallet({
-    required String jawwalPayNumber,
-    required String code,
-  }) async {
+  Future<UserModel?> verifyWallet({required String code}) async {
     final result = await _client.rpc(
       'verify_my_wallet',
-      params: {'p_number': jawwalPayNumber.trim(), 'p_code': code.trim()},
+      params: {'p_code': code.trim()},
     );
     if (result != 'ok') return null;
     return findById(_client.auth.currentUser!.id);
   }
 
   @override
-  Future<UserModel> updateProfile({
-    required String name,
-    required String phone,
-    required String jawwalPayNumber,
-  }) async {
+  Future<UserModel> updateProfile({required String name}) async {
     final row = await _client
-        .rpc(
-          'update_my_profile',
-          params: {
-            'p_name': name.trim(),
-            'p_phone': phone.trim(),
-            'p_jawwal_pay_number': jawwalPayNumber.trim(),
-          },
-        )
+        .rpc('update_my_profile', params: {'p_name': name.trim()})
         .single();
     return _userFromRow(row);
   }
@@ -283,7 +225,7 @@ class SupabaseAuthRepository implements AuthRepository {
     } catch (_) {
       // ignored: the server-side revoke is best effort
     }
-    // The receipt carries this buyer's name and national ID.
+    // The receipt carries this buyer's name and phone number.
     await _receipts.clear();
   }
 }

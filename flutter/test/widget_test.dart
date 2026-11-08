@@ -72,7 +72,7 @@ void main() {
       // Signed out: bakeries first, an account only when asked for.
       expect(find.text(Strings.guestTagline), findsOneWidget);
       expect(find.text(Strings.guestStoresTitle), findsOneWidget);
-      expect(find.text(Strings.personalIdLabel), findsNothing);
+      expect(find.text(Strings.phoneLabel), findsNothing);
 
       // See the first test's comment: unmount inline, not via addTearDown.
       await tester.pumpWidget(const SizedBox());
@@ -87,7 +87,6 @@ void main() {
       const buyer = UserModel(
         id: 'user-buyer',
         phone: '0599111111',
-        nationalId: '900111222',
         name: 'أحمد ناصر',
         verificationStatus: VerificationStatus.verified,
       );
@@ -139,7 +138,6 @@ void main() {
       const buyer = UserModel(
         id: 'user-buyer',
         phone: '0599111111',
-        nationalId: '900111222',
         name: 'أحمد ناصر',
         verificationStatus: VerificationStatus.verified,
       );
@@ -158,24 +156,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The store list is a pushed route with its own sign-out button.
-      await tester.scrollUntilVisible(
-        find.text('عرض جميع المخابز'),
-        200,
-        scrollable: find
-            .byWidgetPredicate(
-              (w) =>
-                  w is Scrollable &&
-                  axisDirectionToAxis(w.axisDirection) == Axis.vertical,
-            )
-            .first,
-      );
+      // Open a bakery (a pushed route), go back, then sign out from the
+      // account tab: the stack must still end up clean.
+      await tester.tap(find.text('عرض المخبز').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('عرض جميع المخابز'));
+      expect(find.text(Strings.storeDetailsTitle), findsOneWidget);
+      await tester.pageBack();
       await tester.pumpAndSettle();
-      expect(find.text(Strings.storeListTitle), findsOneWidget);
-
-      await tester.tap(find.byTooltip(Strings.logout));
+      await tester.tap(find.text('حسابي').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('تسجيل الخروج'));
+      await tester.tap(find.text('تسجيل الخروج'));
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
@@ -185,7 +176,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(Strings.storeListTitle), findsNothing);
+      expect(find.text(Strings.storeDetailsTitle), findsNothing);
       expect(find.text(Strings.guestTagline), findsOneWidget);
       // Back from login must leave the app, not reopen the signed-out screen.
       final navigator = tester.state<NavigatorState>(

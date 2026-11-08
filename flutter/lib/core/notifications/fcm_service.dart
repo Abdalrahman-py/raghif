@@ -20,6 +20,11 @@ class FcmService {
   final SupabaseClient _client;
   bool _listenersAttached = false;
 
+  /// Called when a push arrives while the app is open: the data behind it
+  /// (a batch released, a booking collected) changed, and with no live
+  /// connection this is what makes the screens read again.
+  void Function()? onForegroundPush;
+
   Future<void> init() async {
     if (kIsWeb) return;
 
@@ -36,6 +41,7 @@ class FcmService {
     });
 
     FirebaseMessaging.onMessage.listen((message) {
+      onForegroundPush?.call();
       final notification = message.notification;
       if (notification == null) return;
       NotificationService.instance.showNotification(

@@ -5,7 +5,7 @@ class Strings {
   Strings._();
 
   static const appTitle = 'توزيع الخبز';
-  static const phoneLabel = 'رقم الهاتف';
+  static const phoneLabel = 'رقم جوال باي';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
   static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
@@ -29,6 +29,10 @@ class Strings {
       'لحذف حسابك أو تعطيله راسل الدعم على واتساب: $supportWhatsapp مع ذكر اسمك ورقم هويتك، وسنتحقق منك ثم ننفّذ الطلب.';
   static const ownerViaSupport =
       'هل أنت صاحب مخبز؟ راسل الدعم على واتساب: $supportWhatsapp لإضافة مخبزك.';
+  static const contactSupportWhatsapp = 'تواصل مع الدعم على واتساب';
+  static const ownerRequestMessage =
+      'مرحبًا، أنا صاحب مخبز وأرغب بإضافة مخبزي إلى تطبيق رغيف.';
+  static const supportMessage = 'مرحبًا، أحتاج مساعدة في تطبيق رغيف.';
   static const forgotPinTitle = 'استعادة الرمز السري';
 
   /// Support's WhatsApp number (the only support channel for now).
@@ -45,19 +49,17 @@ class Strings {
   static const verifyOtpButton = 'تأكيد الرمز والدخول';
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
-  static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
 
-  static const personalIdLabel = 'رقم الهوية';
   static const nameLabel = 'الاسم';
   static const registerButton = 'تسجيل حساب جديد';
   static const registerError = 'يرجى تعبئة جميع الحقول';
+  static const phoneNotFound = 'رقم الجوال غير مسجل، يرجى إنشاء حساب جديد';
   static const phoneAlreadyRegistered = 'رقم الهاتف مسجل مسبقاً';
-  static const nationalIdAlreadyRegistered = 'رقم الهوية مسجل مسبقاً';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';
   static const createAccountLink = 'إنشاء حساب جديد';
@@ -83,9 +85,6 @@ class Strings {
   // Login — the old screen reused `registerError` ("يرجى تعبئة جميع الحقول")
   // for an empty National ID: it names the wrong problem, and it appeared under
   // the button instead of on the field that was empty.
-  static const nationalIdRequired = 'أدخل رقم الهوية';
-  static const nationalIdLengthError = 'رقم الهوية 9 أرقام';
-  static const nationalIdHelper = '9 أرقام كما في بطاقة الهوية';
   static const pinRequired = 'أدخل الرمز السري';
   static const pinLengthError = 'الرمز السري 4 أرقام';
   static const showPin = 'إظهار الرمز';
@@ -105,12 +104,11 @@ class Strings {
   static const registrationPaymentSection = 'الدخول والدفع';
   static const nameRequired = 'أدخل الاسم';
   static const phoneRequired = 'أدخل رقم الهاتف';
-  static const phoneInvalid = 'رقم الهاتف 10 أرقام ويبدأ بـ 05';
+  static const phoneInvalid = 'أدخل رقم جوال باي: 10 أرقام يبدأ بـ 059 أو 056';
   static const confirmPinLabel = 'تأكيد الرمز السري';
   static const pinMismatch = 'الرمزان السريان غير متطابقين';
   static const pinHelper = 'ستحتاجه للدخول في كل مرة — لا يمكن استعادته';
   static const jawwalPayRequired = 'أدخل رقم جوال باي';
-  static const jawwalPayInvalid = 'رقم جوال باي 10 أرقام';
 
   // Registration
   static const registrationTitle = 'إنشاء حساب جديد';
@@ -122,20 +120,15 @@ class Strings {
   static String stepOf(int step, int total) => 'الخطوة $step من $total';
   static const stepNameTitle = 'ما اسمك؟';
   static const stepNameHint = 'الاسم كما في بطاقة الهوية';
-  static const stepIdTitle = 'ما رقم هويتك؟';
-  static const stepIdHint = 'نتحقق منه مرة واحدة ولن يُعرض للمخابز';
-  static const stepPhoneTitle = 'ما رقم جوالك؟';
-  static const stepPhoneHint = 'نستخدمه للتواصل معك بشأن حجزك';
+  static const stepPhoneTitle = 'ما رقم جوال باي؟';
+  static const stepPhoneHint = 'رقمك للدخول وللدفع ولتأكيد الحساب برسالة';
   static const stepPinTitle = 'اختر رمزًا سريًا';
-  static const stepWalletTitle = 'رقم جوال باي للدفع';
-  static const stepWalletHint =
-      'اتركه كما هو إن كان نفس رقم جوالك، أو أفرغه وأضفه لاحقًا من حسابي';
   static String registrationFor(String store) => 'لحجز رغيف من $store';
   static const guestTagline = 'احجز رغيفك من البيت بدل الازدحام';
   static const guestCreateAccount = 'ابدأ بإنشاء حساب';
   static const guestHaveAccount = 'لدي حساب؟ تسجيل الدخول';
   static const guestBook = 'احجز رغيفك';
-  static const guestStoresTitle = 'المخابز اليوم';
+  static const guestStoresTitle = 'الأكثر طلبًا هذا الأسبوع';
   static const guestLoadError =
       'تعذّر تحميل المخابز. تحقق من الاتصال وحاول مرة أخرى.';
   static const guestRetry = 'إعادة المحاولة';
@@ -184,6 +177,11 @@ class Strings {
   /// back on (constitution I), so the screen says so instead of looking empty.
   static const offlineRead = loginOffline;
   static const retryButton = 'إعادة المحاولة';
+
+  /// The bar across the top of the app (see ConnectivityBanner).
+  static const connectionOffline =
+      'لا يوجد اتصال بالإنترنت — تظهر آخر بيانات محفوظة';
+  static const connectionRestored = 'عاد الاتصال بالإنترنت';
 
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
@@ -342,6 +340,17 @@ class Strings {
   static const buyerQueueTitle = 'طابور المشترين';
   static const queueEmpty = 'لا يوجد مشترون بعد اليوم';
   static String notifyNextBatch(int batch) => 'إشعار الدفعة رقم $batch';
+  static String suggestBatchTitle(int batch) => 'حان وقت الدفعة رقم $batch';
+  static String suggestBatchBody(int count) =>
+      'الزبائن السابقون استلموا تقريبًا، وبانتظارك $count زبون. افتح الطابور لدعوتهم.';
+  static const suggestBatchAction = 'افتح الطابور';
+  static const weeklyTitle = 'آخر 7 أيام';
+  static const weeklyEmpty = 'لا مبيعات خلال آخر أسبوع بعد.';
+  static String weeklySold(int n) => 'مبيعات: $n ربطة';
+  static String weeklyCollected(int percent) => 'تم استلام $percent%';
+  static String weeklyAverage(int n) => 'المعدل اليومي: $n';
+  static String weeklyCash(String amount) => 'المقبوض: $amount ₪';
+  static String weeklyBest(String day, int n) => 'أفضل يوم: $day ($n)';
   static const statusWaitingShort = 'قيد الانتظار';
   static const statusNotifiedShort = 'تم الإشعار';
   static const statusCollectedShort = 'تم الاستلام';
@@ -349,7 +358,6 @@ class Strings {
   static const undoReceived = 'تراجع عن الاستلام';
 
   // Owner queue — pickup (search + QR redemption)
-  static const idShortLabel = 'الهوية';
   static const phoneShortLabel = 'الهاتف';
   static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
   static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';

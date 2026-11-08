@@ -22,7 +22,6 @@ void main() {
     pin: '1234',
     role: UserRole.buyer,
     name: 'أحمد محمود',
-    jawwalPayNumber: '0599111111',
   );
 
   group('ConfirmationScreen QR Receipt', () {
@@ -136,7 +135,7 @@ void main() {
       expect(find.byType(QrImageView), findsOneWidget);
 
       // Verify reassurance message is displayed and fake estimated time clock is NOT shown
-      expect(find.text(Strings.statusWaiting), findsOneWidget);
+      expect(find.text(Strings.statusWaiting), findsNothing);
       expect(find.text(Strings.waitingReassurance), findsOneWidget);
       expect(find.text(Strings.estimatedTime), findsNothing);
 

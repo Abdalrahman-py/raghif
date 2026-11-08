@@ -30,10 +30,10 @@ insert into auth.users (id) values
   ('c1000000-0000-0000-0000-000000000001'),
   ('c1000000-0000-0000-0000-000000000002'),
   ('c1000000-0000-0000-0000-000000000003');
-insert into public.profiles (id, phone, national_id, pin_hash, name, role) values
-  ('c1000000-0000-0000-0000-000000000001', 'wp-1', 'wp-n1', 'x', 'wp-owner', 'owner'),
-  ('c1000000-0000-0000-0000-000000000002', 'wp-2', 'wp-n2', 'x', 'wp-buyer1', 'buyer'),
-  ('c1000000-0000-0000-0000-000000000003', 'wp-3', 'wp-n3', 'x', 'wp-buyer2', 'buyer');
+insert into public.profiles (id, phone, pin_hash, name, role) values
+  ('c1000000-0000-0000-0000-000000000001', 'wp-1', 'x', 'wp-owner', 'owner'),
+  ('c1000000-0000-0000-0000-000000000002', 'wp-2', 'x', 'wp-buyer1', 'buyer'),
+  ('c1000000-0000-0000-0000-000000000003', 'wp-3', 'x', 'wp-buyer2', 'buyer');
 insert into public.stores (id, name, owner_id, is_open, daily_bag_limit, bags_remaining, batch_size, bag_price) values
   ('c2000000-0000-0000-0000-000000000001', 'wp-store', 'c1000000-0000-0000-0000-000000000001', true, 5, 5, 2, 4.50);
 insert into public.purchases (id, store_id, user_id, purchase_date, batch_number, status) values

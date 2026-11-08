@@ -11,16 +11,6 @@ class CheckAuthSessionEvent extends AuthEvent {
   const CheckAuthSessionEvent();
 }
 
-class PinLoginRequestedEvent extends AuthEvent {
-  const PinLoginRequestedEvent({required this.nationalId, required this.pin});
-
-  final String nationalId;
-  final String pin;
-
-  @override
-  List<Object?> get props => [nationalId, pin];
-}
-
 class LoginRequestedEvent extends AuthEvent {
   const LoginRequestedEvent({required this.phone, required this.pin});
 
@@ -35,19 +25,15 @@ class RegisterRequestedEvent extends AuthEvent {
   const RegisterRequestedEvent({
     required this.phone,
     required this.pin,
-    required this.nationalId,
     required this.name,
-    this.jawwalPayNumber,
   });
 
   final String phone;
   final String pin;
-  final String nationalId;
   final String name;
-  final String? jawwalPayNumber;
 
   @override
-  List<Object?> get props => [phone, pin, nationalId, name, jawwalPayNumber];
+  List<Object?> get props => [phone, pin, name];
 }
 
 class LogoutRequestedEvent extends AuthEvent {
@@ -55,30 +41,20 @@ class LogoutRequestedEvent extends AuthEvent {
 }
 
 class UpdateProfileRequestedEvent extends AuthEvent {
-  const UpdateProfileRequestedEvent({
-    required this.name,
-    required this.phone,
-    required this.jawwalPayNumber,
-  });
+  const UpdateProfileRequestedEvent({required this.name});
 
   final String name;
-  final String phone;
-  final String jawwalPayNumber;
 
   @override
-  List<Object?> get props => [name, phone, jawwalPayNumber];
+  List<Object?> get props => [name];
 }
 
-/// The buyer typed the code "sent" to their Jawwal Pay number.
+/// The buyer typed the code "sent" to their phone (Jawwal Pay) number.
 class WalletVerificationRequestedEvent extends AuthEvent {
-  const WalletVerificationRequestedEvent({
-    required this.jawwalPayNumber,
-    required this.code,
-  });
+  const WalletVerificationRequestedEvent({required this.code});
 
-  final String jawwalPayNumber;
   final String code;
 
   @override
-  List<Object?> get props => [jawwalPayNumber, code];
+  List<Object?> get props => [code];
 }

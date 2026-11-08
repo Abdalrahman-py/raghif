@@ -15,7 +15,6 @@ class ScanEventModel extends Equatable {
     required this.scannedAtMillis,
     this.purchaseId,
     this.scannedName,
-    this.scannedNationalId,
   });
 
   final String id;
@@ -23,7 +22,6 @@ class ScanEventModel extends Equatable {
   final String? purchaseId;
   final String outcome;
   final String? scannedName;
-  final String? scannedNationalId;
   final int scannedAtMillis;
 
   DateTime get scannedAt =>
@@ -39,7 +37,6 @@ class ScanEventModel extends Equatable {
     purchaseId,
     outcome,
     scannedName,
-    scannedNationalId,
     scannedAtMillis,
   ];
 }

@@ -4,9 +4,9 @@ begin;
 insert into auth.users (id) values
  ('22000000-0000-0000-0000-000000000001'),
  ('22000000-0000-0000-0000-000000000002');
-insert into public.profiles (id,phone,national_id,pin_hash,name,role) values
- ('22000000-0000-0000-0000-000000000001','inbox1','inbox1','h','buyer1','buyer'),
- ('22000000-0000-0000-0000-000000000002','inbox2','inbox2','h','buyer2','buyer');
+insert into public.profiles (id, phone,pin_hash,name,role) values
+ ('22000000-0000-0000-0000-000000000001','inbox1','h','buyer1','buyer'),
+ ('22000000-0000-0000-0000-000000000002','inbox2','h','buyer2','buyer');
 insert into public.stores (id,name,is_open,daily_bag_limit,bags_remaining)
  values ('22000000-0000-0000-0000-000000000003','inbox bakery',true,10,10);
 insert into public.purchases (id,store_id,user_id,purchase_date,batch_number) values

@@ -12,7 +12,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     : _authRepository = authRepository,
       super(const AuthInitial()) {
     on<CheckAuthSessionEvent>(_onCheckAuthSession);
-    on<PinLoginRequestedEvent>(_onPinLoginRequested);
     on<LoginRequestedEvent>(_onLoginRequested);
     on<RegisterRequestedEvent>(_onRegisterRequested);
     on<LogoutRequestedEvent>(_onLogoutRequested);
@@ -35,8 +34,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final updated = await _authRepository.updateProfile(
         name: event.name.trim(),
-        phone: event.phone.trim(),
-        jawwalPayNumber: event.jawwalPayNumber.trim(),
       );
       if (epoch != _sessionEpoch ||
           state is! Authenticated ||
@@ -74,39 +71,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onPinLoginRequested(
-    PinLoginRequestedEvent event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-    try {
-      final nationalId = event.nationalId.trim();
-      final pin = event.pin.trim();
-
-      final user = await _authRepository.loginWithPin(
-        nationalId: nationalId,
-        pin: pin,
-      );
-      if (user != null) {
-        emit(Authenticated(user));
-        return;
-      }
-
-      final exists = await _authRepository.nationalIdExists(nationalId);
-      if (exists) {
-        emit(const AuthFailure(Strings.loginError));
-      } else {
-        emit(AuthSwitchToRegister(nationalId: nationalId));
-      }
-    } on AccountBlockedException catch (e) {
-      emit(AuthFailure(_blockedMessage(e)));
-    } catch (e) {
-      // The gateway answering "no" is handled in the repository; anything
-      // that gets here is a call that never got an answer.
-      emit(const AuthFailure(Strings.loginOffline));
-    }
-  }
-
   Future<void> _onLoginRequested(
     LoginRequestedEvent event,
     Emitter<AuthState> emit,
@@ -126,7 +90,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (exists) {
         emit(const AuthFailure(Strings.loginError));
       } else {
-        emit(AuthSwitchToRegister(nationalId: phone));
+        emit(AuthSwitchToRegister(phone: phone));
       }
     } on AccountBlockedException catch (e) {
       emit(AuthFailure(_blockedMessage(e)));
@@ -144,9 +108,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final validationError = _authRepository.validateRegistration(
       phone: event.phone,
       pin: event.pin,
-      nationalId: event.nationalId,
       name: event.name,
-      jawwalPayNumber: event.jawwalPayNumber,
     );
 
     if (validationError != null) {
@@ -160,16 +122,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthFailure(Strings.phoneAlreadyRegistered));
         return;
       }
-      if (await _authRepository.nationalIdExists(event.nationalId)) {
-        emit(const AuthFailure(Strings.nationalIdAlreadyRegistered));
-        return;
-      }
       final user = await _authRepository.register(
         phone: event.phone,
         pin: event.pin,
-        nationalId: event.nationalId,
         name: event.name,
-        jawwalPayNumber: event.jawwalPayNumber,
       );
       emit(Authenticated(user));
     } catch (e) {
@@ -195,10 +151,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final epoch = _sessionEpoch;
     emit(Authenticated(current.user, profileSaving: true));
     try {
-      final updated = await _authRepository.verifyWallet(
-        jawwalPayNumber: event.jawwalPayNumber,
-        code: event.code,
-      );
+      final updated = await _authRepository.verifyWallet(code: event.code);
       if (epoch != _sessionEpoch) return;
       emit(
         updated != null

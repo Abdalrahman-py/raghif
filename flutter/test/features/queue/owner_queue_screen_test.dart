@@ -28,7 +28,6 @@ void main() {
         'long-name',
         name: 'أحمد محمد محمود عبد الرحمن النجار',
         phone: '0599999999',
-        nationalId: '900999999',
       );
       final received = repo.givenPurchase(
         userId: 'long-name',
@@ -117,14 +116,9 @@ void main() {
       final controller = harness.controller;
 
       final store = (await repo.getStoreById(seededStoreId))!;
-      const buyer = (
-        id: seededBuyerId,
-        nationalId: '900111222',
-        phone: '0599111111',
-      );
+      const buyer = (id: seededBuyerId, phone: '0599111111');
       final date = todayDateString();
-      final purchase = await controller.buy(storeId: store.id, date: date);
-      expect(purchase.userNationalId, buyer.nationalId);
+      await controller.buy(storeId: store.id, date: date);
 
       await tester.pumpWidget(
         wrapWithMaterial(
@@ -133,21 +127,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Row carries the buyer's national ID so pickup identity can be verified.
-      expect(find.textContaining(buyer.nationalId), findsOneWidget);
       expect(find.textContaining(buyer.phone), findsOneWidget);
       // A waiting buyer means the next batch can be notified — button visible.
       expect(find.textContaining(Strings.notifyNextBatch(1)), findsOneWidget);
       // Scan entry point is present.
       expect(find.byIcon(Icons.qr_code_scanner), findsOneWidget);
 
-      // Searching by ID suffix keeps the matching row…
+      // Searching by phone suffix keeps the matching row…
       await tester.enterText(
         find.byType(TextField),
-        buyer.nationalId.substring(buyer.nationalId.length - 3),
+        buyer.phone.substring(buyer.phone.length - 3),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining(buyer.nationalId), findsOneWidget);
+      expect(find.textContaining(buyer.phone), findsOneWidget);
       // …but the notify action is hidden while searching, so a lookup
       // can never accidentally release a batch.
       expect(find.textContaining(Strings.notifyNextBatch(1)), findsNothing);
@@ -156,12 +148,12 @@ void main() {
       await tester.enterText(find.byType(TextField), '000');
       await tester.pumpAndSettle();
       expect(find.text(Strings.buyerSearchNoResults), findsOneWidget);
-      expect(find.textContaining(buyer.nationalId), findsNothing);
+      expect(find.textContaining(buyer.phone), findsNothing);
 
       // Clearing the search restores the full queue and the notify button.
       await tester.enterText(find.byType(TextField), '');
       await tester.pumpAndSettle();
-      expect(find.textContaining(buyer.nationalId), findsOneWidget);
+      expect(find.textContaining(buyer.phone), findsOneWidget);
       expect(find.textContaining(Strings.notifyNextBatch(1)), findsOneWidget);
 
       repo.dispose();

@@ -1,4 +1,5 @@
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_day_summary.dart';
 import '../../domain/models/store_model.dart';
 
 /// Pure queue logic, kept separate from widgets so it's unit-testable without
@@ -118,3 +119,81 @@ List<BatchProgress> batchProgressForQueue(List<PurchaseModel> queue) {
 int outstandingBefore(int batch, List<PurchaseModel> queue) => queue
     .where((p) => p.batchNumber < batch && p.status == PurchaseStatus.notified)
     .length;
+
+/// A nudge for the owner: the next batch is worth calling now.
+class NextBatchSuggestion {
+  const NextBatchSuggestion({required this.batch, required this.count});
+
+  final int batch;
+
+  /// Buyers in that batch who are still waiting to be called.
+  final int count;
+}
+
+/// When to suggest calling the next batch: someone is waiting, and the people
+/// already called are mostly gone (at most a quarter of the batch size, and
+/// never more than a handful, still on their way). It only suggests; the owner
+/// still opens the queue and confirms, because calling a batch notifies buyers.
+NextBatchSuggestion? suggestNextBatch(
+  List<PurchaseModel> queue, {
+  required int batchSize,
+}) {
+  final next = nextBatchToNotify(queue);
+  if (next == null) return null;
+  final stillOut = queue
+      .where((p) => p.status == PurchaseStatus.notified)
+      .length;
+  final allowed = (batchSize ~/ 4).clamp(0, 5);
+  if (stillOut > allowed) return null;
+  final count = queue
+      .where((p) => p.batchNumber == next && p.status == PurchaseStatus.waiting)
+      .length;
+  return NextBatchSuggestion(batch: next, count: count);
+}
+
+/// The last week at a glance, from the per-day summaries.
+class WeeklyStats {
+  const WeeklyStats({
+    required this.days,
+    required this.sold,
+    required this.collected,
+    required this.cash,
+    this.bestDate,
+    this.bestSold = 0,
+  });
+
+  /// Days that had any sales.
+  final int days;
+  final int sold;
+  final int collected;
+  final double cash;
+  final String? bestDate;
+  final int bestSold;
+
+  /// Share of sold bags that were handed over, 0..100.
+  int get collectedPercent => sold == 0 ? 0 : (collected * 100 / sold).round();
+  int get dailyAverage => days == 0 ? 0 : (sold / days).round();
+}
+
+/// Totals over the newest [windowDays] days in [summaries] (any order).
+WeeklyStats weeklyStats(List<StoreDaySummary> summaries, {int windowDays = 7}) {
+  final recent = [...summaries]..sort((a, b) => b.date.compareTo(a.date));
+  final week = recent.take(windowDays).where((d) => d.sold > 0).toList();
+  var sold = 0, collected = 0;
+  var cash = 0.0;
+  StoreDaySummary? best;
+  for (final d in week) {
+    sold += d.sold;
+    collected += d.collected;
+    cash += d.cashTotal;
+    if (best == null || d.sold > best.sold) best = d;
+  }
+  return WeeklyStats(
+    days: week.length,
+    sold: sold,
+    collected: collected,
+    cash: cash,
+    bestDate: best?.date,
+    bestSold: best?.sold ?? 0,
+  );
+}

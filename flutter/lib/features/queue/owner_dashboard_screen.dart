@@ -10,8 +10,8 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/store_model.dart';
-import 'owner_customers_screen.dart';
-import 'owner_history_screen.dart';
+import '../../domain/models/store_day_summary.dart';
+import 'owner_history_screen.dart' show weekdayNameFor;
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -241,7 +241,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   pin: '',
                   role: u.role,
                   name: u.name,
-                  jawwalPayNumber: u.jawwalPayNumber,
                 ),
                 sl.isRegistered<NotificationRepository>()
                     ? sl<NotificationRepository>()
@@ -270,88 +269,100 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 480),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              Strings.ownerDashboardTitle,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              'نظرة عامة على متجرك',
-                              style: Theme.of(context).textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _DailyStats(
-                              remaining: store?.bagsRemaining ?? 0,
-                              allocation: store?.dailyBagLimit ?? 0,
-                              pendingPickup: pendingPickupCount(
-                                widget.controller.todayQueue,
+                      child: RefreshIndicator(
+                        onRefresh: widget.controller.refreshAll,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                Strings.ownerDashboardTitle,
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
-                            ),
-                            _StockStatus(store: store),
-                            const SizedBox(height: AppSpacing.md),
-                            _StoreOpenCard(
-                              isOpen: store?.isOpen ?? false,
-                              busy: _togglingOpen,
-                              onChanged: (value) {
-                                // A gate change deserves tactile confirmation:
-                                // the owner's eyes are on the queue, not the
-                                // switch.
-                                HapticFeedback.selectionClick();
-                                _setStoreOpen(value);
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _SettingsCard(
-                              isDirty: _isDirty,
-                              saving: _saving,
-                              windowInverted: _windowInverted,
-                              allocation: _allocation,
-                              openTime: _openTime,
-                              closeTime: _closeTime,
-                              onAllocationChanged: (value) =>
-                                  setState(() => _allocation = value),
-                              onPickOpenTime: () => _pickTime(isOpenTime: true),
-                              onPickCloseTime: () =>
-                                  _pickTime(isOpenTime: false),
-                              onSave: store == null ? null : () => _save(store),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'إجراءات سريعة',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              onTap: () => _push(
-                                OwnerCustomersScreen(
-                                  controller: widget.controller,
-                                  storeId: widget.storeId,
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'نظرة عامة على متجرك',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              _DailyStats(
+                                remaining: store?.bagsRemaining ?? 0,
+                                allocation: store?.dailyBagLimit ?? 0,
+                                pendingPickup: pendingPickupCount(
+                                  widget.controller.todayQueue,
                                 ),
                               ),
-                              child: const _NavRow(
-                                icon: Icons.people_outline,
-                                label: Strings.customersButton,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              onTap: () => _push(
-                                OwnerHistoryScreen(
-                                  controller: widget.controller,
-                                  storeId: widget.storeId,
+                              _StockStatus(store: store),
+                              if (store != null)
+                                Builder(
+                                  builder: (context) {
+                                    final suggestion = suggestNextBatch(
+                                      widget.controller.todayQueue,
+                                      batchSize: store.batchSize,
+                                    );
+                                    if (suggestion == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: AppSpacing.md,
+                                      ),
+                                      child: _NextBatchCard(
+                                        suggestion: suggestion,
+                                        onOpen: () => _push(
+                                          OwnerQueueScreen(
+                                            controller: widget.controller,
+                                            storeId: widget.storeId,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
+                              const SizedBox(height: AppSpacing.md),
+                              _WeeklyStatsCard(
+                                load: () =>
+                                    widget.controller.dailySummariesForStore(
+                                      widget.storeId,
+                                      limit: 7,
+                                    ),
                               ),
-                              child: const _NavRow(
-                                icon: Icons.receipt_long_outlined,
-                                label: Strings.historyButton,
+                              const SizedBox(height: AppSpacing.md),
+                              _StoreOpenCard(
+                                isOpen: store?.isOpen ?? false,
+                                busy: _togglingOpen,
+                                onChanged: (value) {
+                                  // A gate change deserves tactile confirmation:
+                                  // the owner's eyes are on the queue, not the
+                                  // switch.
+                                  HapticFeedback.selectionClick();
+                                  _setStoreOpen(value);
+                                },
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: AppSpacing.md),
+                              _SettingsCard(
+                                isDirty: _isDirty,
+                                saving: _saving,
+                                windowInverted: _windowInverted,
+                                allocation: _allocation,
+                                openTime: _openTime,
+                                closeTime: _closeTime,
+                                onAllocationChanged: (value) =>
+                                    setState(() => _allocation = value),
+                                onPickOpenTime: () =>
+                                    _pickTime(isOpenTime: true),
+                                onPickCloseTime: () =>
+                                    _pickTime(isOpenTime: false),
+                                onSave: store == null
+                                    ? null
+                                    : () => _save(store),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -648,17 +659,25 @@ class _SettingsCard extends StatelessWidget {
         children: [
           Text(Strings.todaySettingsTitle, style: textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
-          Text(Strings.allocationLabel, style: textTheme.bodyLarge),
-          const SizedBox(height: AppSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: NumberStepper(
-              value: allocation,
-              onChanged: onAllocationChanged,
-              step: 10,
-              decrementLabel: Strings.decreaseValue,
-              incrementLabel: Strings.increaseValue,
-            ),
+          // The label and its stepper share one row, so the control sits right
+          // beside the words it changes.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Strings.allocationLabel,
+                  style: textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              NumberStepper(
+                value: allocation,
+                onChanged: onAllocationChanged,
+                step: 10,
+                decrementLabel: Strings.decreaseValue,
+                incrementLabel: Strings.increaseValue,
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1, thickness: 1, color: AppColors.border),
@@ -799,34 +818,109 @@ class _TimePickerField extends StatelessWidget {
   }
 }
 
-/// A read-only destination inside the scroll (customers, sales history): full
-/// label, a directional chevron and a 56dp row, so it stays as legible to an
-/// older user as the pinned button it replaced.
-class _NavRow extends StatelessWidget {
-  const _NavRow({required this.icon, required this.label});
+/// "Call the next batch" nudge. Opens the queue; the owner confirms there.
+class _NextBatchCard extends StatelessWidget {
+  const _NextBatchCard({required this.suggestion, required this.onOpen});
 
-  final IconData icon;
-  final String label;
+  final NextBatchSuggestion suggestion;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 56),
+    final textTheme = Theme.of(context).textTheme;
+    return AppCard(
+      onTap: onOpen,
       child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: AppColors.background,
             foregroundColor: AppColors.accent,
-            child: Icon(icon, size: 24),
+            child: Icon(Icons.notifications_active_outlined),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Strings.suggestBatchTitle(suggestion.batch),
+                  style: textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  Strings.suggestBatchBody(suggestion.count),
+                  style: textTheme.bodyMedium,
+                ),
+              ],
+            ),
           ),
-          // Forward, in a right-to-left layout.
-          const Icon(Icons.chevron_left, size: 24, color: AppColors.slate),
+          const Icon(Icons.chevron_left),
         ],
       ),
+    );
+  }
+}
+
+/// Sales over the last seven days, from the per-day summaries.
+class _WeeklyStatsCard extends StatefulWidget {
+  const _WeeklyStatsCard({required this.load});
+
+  final Future<List<StoreDaySummary>> Function() load;
+
+  @override
+  State<_WeeklyStatsCard> createState() => _WeeklyStatsCardState();
+}
+
+class _WeeklyStatsCardState extends State<_WeeklyStatsCard> {
+  late final Future<List<StoreDaySummary>> _days = widget.load();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return FutureBuilder<List<StoreDaySummary>>(
+      future: _days,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final stats = weeklyStats(snapshot.data!);
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Strings.weeklyTitle, style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              if (stats.sold == 0)
+                Text(Strings.weeklyEmpty, style: textTheme.bodyMedium)
+              else ...[
+                Text(
+                  Strings.weeklySold(stats.sold),
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${Strings.weeklyCollected(stats.collectedPercent)} · '
+                  '${Strings.weeklyAverage(stats.dailyAverage)}',
+                  style: textTheme.bodyMedium,
+                ),
+                if (stats.cash > 0)
+                  Text(
+                    Strings.weeklyCash(stats.cash.toStringAsFixed(0)),
+                    style: textTheme.bodyMedium,
+                  ),
+                if (stats.bestDate != null)
+                  Text(
+                    Strings.weeklyBest(
+                      weekdayNameFor(stats.bestDate!),
+                      stats.bestSold,
+                    ),
+                    style: textTheme.bodyMedium,
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

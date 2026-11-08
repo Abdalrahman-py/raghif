@@ -22,12 +22,12 @@ class FakeAuthRepository implements AuthRepository {
   /// (no connection), as opposed to a server that said no.
   final Object? failWith;
 
+  /// When set, [login] refuses (answers "no") any other PIN.
+  String? requiredPin;
+
   /// What [changePin] answers, and what it was last asked.
   ChangePinResult changePinResult = ChangePinResult.ok;
   ({String currentPin, String newPin})? lastPinChange;
-
-  UserModel? _byNationalId(String nationalId) =>
-      users.where((u) => u.nationalId == nationalId).firstOrNull;
 
   @override
   Future<ChangePinResult> changePin({
@@ -40,18 +40,10 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel?> login({
-    required String phone,
-    required String pin,
-  }) async => users.where((u) => u.phone == phone).firstOrNull;
-
-  @override
-  Future<UserModel?> loginWithPin({
-    required String nationalId,
-    required String pin,
-  }) async {
+  Future<UserModel?> login({required String phone, required String pin}) async {
     if (failWith != null) throw failWith!;
-    return _byNationalId(nationalId);
+    if (requiredPin != null && pin != requiredPin) return null;
+    return users.where((u) => u.phone == phone).firstOrNull;
   }
 
   @override
@@ -67,10 +59,6 @@ class FakeAuthRepository implements AuthRepository {
       : users.where((u) => u.id == id).firstOrNull;
 
   @override
-  Future<bool> nationalIdExists(String nationalId) async =>
-      _byNationalId(nationalId) != null;
-
-  @override
   Future<bool> phoneExists(String phone) async =>
       users.any((u) => u.phone == phone);
 
@@ -78,60 +66,30 @@ class FakeAuthRepository implements AuthRepository {
   String? validateRegistration({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
   }) => null;
 
   @override
   Future<UserModel> register({
     required String phone,
     required String pin,
-    required String nationalId,
     required String name,
-    String? jawwalPayNumber,
-  }) async => UserModel(
-    id: 'user-registered',
-    phone: phone,
-    nationalId: nationalId,
-    name: name,
-    jawwalPayNumber: jawwalPayNumber,
-  );
+  }) async => UserModel(id: 'user-registered', phone: phone, name: name);
 
   @override
-  Future<UserModel?> verifyWallet({
-    required String jawwalPayNumber,
-    required String code,
-  }) async {
+  Future<UserModel?> verifyWallet({required String code}) async {
     if (code != '1234') return null;
     final current = await restoreSession();
     if (current == null) return null;
-    return current.copyWith(
-      jawwalPayNumber: jawwalPayNumber,
-      verificationStatus: VerificationStatus.verified,
-    );
+    return current.copyWith(verificationStatus: VerificationStatus.verified);
   }
 
   @override
-  Future<UserModel> updateProfile({
-    required String name,
-    required String phone,
-    required String jawwalPayNumber,
-  }) async {
+  Future<UserModel> updateProfile({required String name}) async {
     if (failWith != null) throw failWith!;
     final current = await restoreSession();
     if (current == null) throw StateError('Not signed in');
-    final updated = UserModel(
-      id: current.id,
-      nationalId: current.nationalId,
-      role: current.role,
-      verificationStatus: current.verificationStatus,
-      name: name.trim(),
-      phone: phone.trim(),
-      jawwalPayNumber: jawwalPayNumber.trim().isEmpty
-          ? null
-          : jawwalPayNumber.trim(),
-    );
+    final updated = current.copyWith(name: name.trim());
     _updatedUser = updated;
     return updated;
   }
