@@ -434,30 +434,6 @@ class FakeQueueRepository implements QueueRepository {
   @override
   Future<List<StoreModel>> getStores() async => List.of(_stores);
 
-  /// Most-booked first (ties by name), from the purchases this fake holds.
-  @override
-  Future<List<String>> getPopularStoreIds({int limit = 5}) async {
-    final counts = <String, int>{
-      for (final s in _stores.where((s) => s.status == StoreStatus.active))
-        s.id: 0,
-    };
-    for (final p in _purchases) {
-      if (counts.containsKey(p.storeId)) {
-        counts[p.storeId] = counts[p.storeId]! + 1;
-      }
-    }
-    final ids = counts.keys.toList()
-      ..sort((a, b) {
-        final byCount = counts[b]!.compareTo(counts[a]!);
-        if (byCount != 0) return byCount;
-        return _stores
-            .firstWhere((s) => s.id == a)
-            .name
-            .compareTo(_stores.firstWhere((s) => s.id == b).name);
-      });
-    return ids.take(limit).toList();
-  }
-
   @override
   Future<StoreModel?> getStoreById(String storeId) async =>
       _stores.where((s) => s.id == storeId).firstOrNull;

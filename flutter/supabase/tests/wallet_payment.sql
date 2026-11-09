@@ -65,14 +65,16 @@ do $$ begin
     from public.payments where purchase_id = 'c3000000-0000-0000-0000-000000000001'), 'row shape');
 end $$;
 
--- Collecting a prepaid bag takes no cash: the wallet payment stays the only row.
+-- A simulated wallet payment moved no money (20261109120000): collecting the
+-- bag turns it into the cash row, still one row per bag.
 select pg_temp.as_user('c1000000-0000-0000-0000-000000000001');
 select public.collect_purchase('c3000000-0000-0000-0000-000000000001');
 -- The unpaid bag is paid in cash when collected.
 select public.collect_purchase('c3000000-0000-0000-0000-000000000002');
 reset role;
 do $$ begin
-  perform pg_temp.ok((select method = 'jawwal_pay' from public.payments where purchase_id = 'c3000000-0000-0000-0000-000000000001'), 'prepaid stays wallet');
+  perform pg_temp.ok((select count(*) = 2 from public.payments where store_id = 'c2000000-0000-0000-0000-000000000001'), 'one row per bag');
+  perform pg_temp.ok((select method = 'cash' and provider is null and amount = 4.50 from public.payments where purchase_id = 'c3000000-0000-0000-0000-000000000001'), 'simulated becomes cash');
   perform pg_temp.ok((select method = 'cash' and provider is null from public.payments where purchase_id = 'c3000000-0000-0000-0000-000000000002'), 'unpaid becomes cash');
 end $$;
 
@@ -80,13 +82,13 @@ end $$;
 select pg_temp.as_user('c1000000-0000-0000-0000-000000000003');
 select pg_temp.must_fail($$select public.record_wallet_payment('c3000000-0000-0000-0000-000000000002')$$, 'already collected');
 
--- "Cash taken" counts the cash bag only.
+-- "Cash taken" counts both bags: the simulated one was paid in cash.
 select pg_temp.as_user('c1000000-0000-0000-0000-000000000001');
 do $$
 declare r record;
 begin
   select * into r from public.store_daily_summaries('c2000000-0000-0000-0000-000000000001', 5) limit 1;
-  perform pg_temp.ok(r.sold = 2 and r.collected = 2 and r.cash_total = 4.50, 'cash total is cash only');
+  perform pg_temp.ok(r.sold = 2 and r.collected = 2 and r.cash_total = 9.00, 'cash total includes the simulated bag');
 end $$;
 
 -- Only the function path writes; the client never inserts a payment.

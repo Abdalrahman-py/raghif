@@ -42,37 +42,22 @@ class GuestHomeScreen extends StatefulWidget {
 class _GuestHomeScreenState extends State<GuestHomeScreen> {
   late Future<_GuestData> _stores = _load();
 
-  /// A visitor sees the five busiest bakeries (most bookings this week), not
-  /// the whole directory; the full list is for people with an account.
+  /// A visitor sees the five bakeries that sold most today, not the whole
+  /// directory; the full list is for people with an account. Ranked from
+  /// `stores` only: a signed-out visitor may read nothing else.
   static const topCount = 5;
 
   Future<_GuestData> _load() async {
     final stores = (await widget.repository.getStores())
         .where((s) => !s.isArchived)
         .toList();
-    var ranked = <String>[];
-    try {
-      ranked = await widget.repository.getPopularStoreIds(limit: topCount);
-    } catch (_) {
-      // Ranking is a nicety: fall back to today's sales below.
-    }
-    final byId = {for (final s in stores) s.id: s};
-    final top = [
-      for (final id in ranked)
-        if (byId[id] != null) byId[id]!,
-    ];
-    if (top.isEmpty) {
-      // No ranking (offline function, or no bookings yet): most sold today.
-      top.addAll(
-        ([...stores]..sort((a, b) {
-              final sold = (b.dailyBagLimit - b.bagsRemaining).compareTo(
-                a.dailyBagLimit - a.bagsRemaining,
-              );
-              return sold != 0 ? sold : a.name.compareTo(b.name);
-            }))
-            .take(topCount),
-      );
-    }
+    final top = [...stores]
+      ..sort((a, b) {
+        final sold = (b.dailyBagLimit - b.bagsRemaining).compareTo(
+          a.dailyBagLimit - a.bagsRemaining,
+        );
+        return sold != 0 ? sold : a.name.compareTo(b.name);
+      });
     return _GuestData(all: stores, top: top.take(topCount).toList());
   }
 

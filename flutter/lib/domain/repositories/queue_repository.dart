@@ -45,10 +45,6 @@ abstract class QueueRepository {
 
   Future<List<StoreModel>> getStores();
 
-  /// Ids of the bakeries with the most bookings this week, busiest first. Open
-  /// to signed-out visitors (ids only, no buyer data).
-  Future<List<String>> getPopularStoreIds({int limit = 5});
-
   Future<StoreModel?> getStoreById(String storeId);
 
   /// The store this user owns, or null if they own none.
