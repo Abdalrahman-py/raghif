@@ -18,6 +18,32 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Fixed — 2026-11-09 — server side of the PR 68 review: simulated payments, lock order, anon aggregate, search_path
+
+Migration `20261109120000_payment_and_grant_review_fixes` (**not applied live**;
+apply it, then record the version in `supabase_migrations.schema_migrations`):
+
+- **A simulated wallet payment never counts as money received.** Decision: the
+  smallest correct fix is at collection. When the owner collects a bag whose
+  only payment is `provider = 'simulated'`, `collect_purchase` turns that row
+  into the cash row (price at pickup). `store_daily_summaries` already counts
+  `method = 'cash'` only, so "cash taken" now includes these bags and never a
+  simulated one. A real `provider = 'jawwal_pay'` row is untouched. Rows
+  collected before the migration are not rewritten (unknown whether cash was
+  taken). `record_wallet_payment` still has no code check; with this change it
+  can no longer make a bag look paid on the server.
+- `record_wallet_payment` now locks the stores row first, then the purchase row
+  (it locked the purchase first).
+- **`popular_stores` is dropped.** It let `anon` aggregate `purchases`, against
+  "anon may read `stores` and nothing else". Its only caller was the signed-out
+  home, which now ranks the five bakeries that sold most today from `stores`
+  (its old fallback) and no longer calls the RPC. Older builds get an error and
+  use the same fallback. `QueueRepository.getPopularStoreIds` is removed.
+- `reserve_bag` and `record_scan` now run with `search_path = ''` (bodies were
+  already fully qualified; date check and lock order unchanged).
+- New rollback-only suite `supabase/tests/review_fixes.sql`;
+  `wallet_payment.sql` updated to the new collection rule.
+
 ### Fixed — 2026-11-09 — simulated wallet payment no longer tells the bakery "don't take cash"
 
 - Every booking made in the app records a stand-in wallet payment

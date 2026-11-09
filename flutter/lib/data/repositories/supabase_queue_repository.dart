@@ -590,21 +590,6 @@ class SupabaseQueueRepository
   // owner's numbers come from the same rows the queue does.
 
   @override
-  Future<List<String>> getPopularStoreIds({int limit = 5}) async {
-    try {
-      final rows =
-          await _client.rpc('popular_stores', params: {'p_limit': limit})
-              as List<dynamic>;
-      return [
-        for (final r in rows.cast<Map<String, dynamic>>())
-          r['store_id'] as String,
-      ];
-    } catch (e) {
-      throw BackendUnavailableException(e);
-    }
-  }
-
-  @override
   Stream<List<CustomerSummaryModel>> watchCustomersForStore(String storeId) =>
       _live(() => getCustomersForStore(storeId));
 

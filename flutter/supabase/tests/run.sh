@@ -28,4 +28,5 @@ psql < cash_payments.sql
 psql < wallet_payment.sql
 psql < housekeeping.sql
 psql < wallet_verification.sql
+psql < review_fixes.sql
 echo "SQL tests passed"
