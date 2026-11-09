@@ -12,6 +12,10 @@ cover product intent.
 - `flutter/supabase/migrations/` — the only source of truth for schema.
 - `flutter/supabase/tests/` — rollback-only SQL suites (`bash tests/run.sh`).
 - `docs/superpowers/` — redesign plans and specs.
+- The admin panel's frontend is **not** in this repo: it lives in and is
+  published (GitHub Pages) from ObaidaAlaff/raghif-admin. Only its backend is
+  here (`admin_*` migrations, `flutter/supabase/functions/admin-api`); do not
+  re-add a copy of the panel or a Pages workflow.
 
 ## The database is the only data source
 

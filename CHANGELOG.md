@@ -20,8 +20,10 @@ Workflow rules this changelog lives by:
 ## [Unreleased]
 ### Fixed — 2026-11-09 — server side of the PR 68 review: simulated payments, lock order, anon aggregate, search_path
 
-Migration `20261109120000_payment_and_grant_review_fixes` (**not applied live**;
-apply it, then record the version in `supabase_migrations.schema_migrations`):
+Migration `20261109120000_payment_and_grant_review_fixes` (applied live on
+2026-11-09 with `supabase db push --linked`, which recorded the version; checked
+afterwards: `popular_stores` gone, `reserve_bag`/`record_scan` on
+`search_path = ''`, `collect_purchase` converts simulated rows):
 
 - **A simulated wallet payment never counts as money received.** Decision: the
   smallest correct fix is at collection. When the owner collects a bag whose
@@ -44,6 +46,15 @@ apply it, then record the version in `supabase_migrations.schema_migrations`):
 - New rollback-only suite `supabase/tests/review_fixes.sql`;
   `wallet_payment.sql` updated to the new collection rule.
 
+### Removed — 2026-11-09 — stale in-repo copy of the admin panel
+
+- Deleted `admin/` and `.github/workflows/admin-pages.yml`. The folder was an
+  outdated copy of the panel (it still had the dropped national-ID field and
+  `announcementsReady: true`), and the Pages workflow failed on every master
+  push because GitHub Pages is not enabled on this repo. The live panel is
+  developed and published from ObaidaAlaff/raghif-admin; README and AGENTS.md
+  now point there. The panel's backend (`admin_*` migrations and the
+  `admin-api` edge function) stays here.
 ### Fixed — 2026-11-09 — simulated wallet payment no longer tells the bakery "don't take cash"
 
 - Every booking made in the app records a stand-in wallet payment
