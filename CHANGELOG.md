@@ -18,6 +18,15 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Removed — 2026-11-09 — stale in-repo copy of the admin panel
+
+- Deleted `admin/` and `.github/workflows/admin-pages.yml`. The folder was an
+  outdated copy of the panel (it still had the dropped national-ID field and
+  `announcementsReady: true`), and the Pages workflow failed on every master
+  push because GitHub Pages is not enabled on this repo. The live panel is
+  developed and published from ObaidaAlaff/raghif-admin; README and AGENTS.md
+  now point there. The panel's backend (`admin_*` migrations and the
+  `admin-api` edge function) stays here.
 ### Fixed — 2026-11-09 — simulated wallet payment no longer tells the bakery "don't take cash"
 
 - Every booking made in the app records a stand-in wallet payment
