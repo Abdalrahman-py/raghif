@@ -18,6 +18,22 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Fixed — 2026-11-09 — simulated wallet payment no longer tells the bakery "don't take cash"
+
+- Every booking made in the app records a stand-in wallet payment
+  (`provider = 'simulated'`, code 1234, no money moves). The app read any
+  `jawwal_pay` row as prepaid, so the owner's scanner and queue said
+  "مدفوع مسبقًا عبر المحفظة: لا تأخذ نقدًا" and the bag was handed over unpaid.
+  Purchases now read `payments(method, provider)` and a simulated payment maps
+  to `paymentMethod = 'simulated'`, which is not prepaid: the owner is told to
+  take cash and the buyer's receipt says cash is due. Only a real
+  `provider = 'jawwal_pay'` payment will count as prepaid.
+- Sign-in error, owner queue search hint and sign-out warning no longer mention
+  the national ID (removed on 2026-11-08); they say phone number.
+- Found in review of the `obaida` branch before merging it to `master`.
+  Server side unchanged: `store_daily_summaries` still counts simulated bags as
+  no cash, and `record_wallet_payment` still accepts a call without any code.
+
 ### Changed — 2026-11-08 — no live connection: data is read on demand
 
 - Realtime is gone. The app keeps no websocket and nothing downloads on its

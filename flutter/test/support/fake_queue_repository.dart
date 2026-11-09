@@ -184,7 +184,7 @@ class FakeQueueRepository implements QueueRepository {
     _requireOnline();
     final i = _purchases.indexWhere((p) => p.id == purchaseId);
     if (i < 0) throw StateError('purchase not found');
-    _purchases[i] = _purchases[i].copyWith(paymentMethod: 'jawwal_pay');
+    _purchases[i] = _purchases[i].copyWith(paymentMethod: 'simulated');
   }
 
   @override

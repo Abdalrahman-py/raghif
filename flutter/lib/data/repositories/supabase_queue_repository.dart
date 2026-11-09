@@ -77,7 +77,7 @@ class SupabaseQueueRepository
   static const _purchaseColumns =
       'id, store_id, user_id, purchase_date, batch_number, postponement_count, '
       'status, created_at, original_purchase_date, '
-      'profiles(name, phone), stores(name), payments(method)';
+      'profiles(name, phone), stores(name), payments(method, provider)';
 
   /// Only what [storeFromRow] reads. On a weak connection every byte counts.
   static const _storeColumns =
@@ -695,7 +695,11 @@ class SupabaseQueueRepository
     final row = embedded is List
         ? (embedded.isEmpty ? null : embedded.first)
         : embedded;
-    return row is Map ? row['method'] as String? : null;
+    if (row is! Map) return null;
+    // A simulated wallet payment moved no money: never show it as prepaid, or
+    // the bakery hands the bag over without taking cash.
+    if (row['provider'] == 'simulated') return 'simulated';
+    return row['method'] as String?;
   }
 
   static PurchaseStatus _status(Object? value) => switch (value) {

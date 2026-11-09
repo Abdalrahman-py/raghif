@@ -39,7 +39,8 @@ class PurchaseModel extends Equatable {
   /// The day this booking was first made for, when it was postponed.
   final String? originalPurchaseDate;
 
-  /// Paid through the wallet before pickup: the bakery takes no cash.
+  /// Paid through the real wallet before pickup: the bakery takes no cash.
+  /// `'simulated'` (the stand-in wallet) is not prepaid; cash is still due.
   bool get isPrepaid => paymentMethod == 'jawwal_pay';
 
   PurchaseModel copyWith({

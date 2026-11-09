@@ -54,6 +54,7 @@ void main() {
       expect(unpaid.isPrepaid, isFalse);
       expect(unpaid.copyWith(paymentMethod: 'jawwal_pay').isPrepaid, isTrue);
       expect(unpaid.copyWith(paymentMethod: 'cash').isPrepaid, isFalse);
+      expect(unpaid.copyWith(paymentMethod: 'simulated').isPrepaid, isFalse);
     });
   });
 }

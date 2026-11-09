@@ -8,7 +8,7 @@ class Strings {
   static const phoneLabel = 'رقم جوال باي';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
-  static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginError = 'رقم الهاتف أو الرمز السري غير صحيح';
   static const loginAccountDisabled =
       'تم تعطيل هذا الحساب. تواصل مع الدعم لمعرفة السبب.';
   static const loginStoreArchived =
@@ -359,7 +359,7 @@ class Strings {
 
   // Owner queue — pickup (search + QR redemption)
   static const phoneShortLabel = 'الهاتف';
-  static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
+  static const searchBuyerHint = 'ابحث بالاسم أو رقم الهاتف';
   static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';
   static const scanQrTitle = 'مسح رمز الاستلام';
   static const scanCameraHint =
@@ -426,7 +426,7 @@ class Strings {
   static const cancelLabel = 'إلغاء';
   static const logoutConfirmTitle = 'تسجيل الخروج؟';
   static const logoutConfirmBody =
-      'ستحتاج إلى رقم الهوية والرمز السري للدخول مرة أخرى.';
+      'ستحتاج إلى رقم الهاتف والرمز السري للدخول مرة أخرى.';
   static const closeStoreConfirmTitle = 'إغلاق المخبز؟';
   static const closeStoreConfirmBody =
       'لن يتمكن الزبائن من حجز أي كيس حتى تفتح المخبز مرة أخرى.';

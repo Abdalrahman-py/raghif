@@ -364,7 +364,7 @@ class QueueController extends ChangeNotifier {
     await _repository.recordWalletPayment(purchaseId);
     final cached = _purchaseCache[purchaseId];
     if (cached != null) {
-      _purchaseCache[purchaseId] = cached.copyWith(paymentMethod: 'jawwal_pay');
+      _purchaseCache[purchaseId] = cached.copyWith(paymentMethod: 'simulated');
       notifyListeners();
     }
   }

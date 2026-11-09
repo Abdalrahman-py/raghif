@@ -169,7 +169,8 @@ void main() {
           todayDateString(),
         );
         expect(booked, isNotNull);
-        expect(booked!.isPrepaid, isTrue);
+        expect(booked!.paymentMethod, 'simulated');
+        expect(booked.isPrepaid, isFalse);
 
         await tester.pumpWidget(const SizedBox());
         await tester.pumpAndSettle();
