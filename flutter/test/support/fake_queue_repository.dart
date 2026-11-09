@@ -23,7 +23,7 @@ import 'package:raghif/domain/repositories/queue_repository.dart';
 class FakeQueueRepository implements QueueRepository {
   FakeQueueRepository({
     List<StoreModel>? stores,
-    Map<String, ({String name, String phone, String nationalId})>? users,
+    Map<String, ({String name, String phone})>? users,
   }) : _stores = [...?stores],
        _users = {...?users};
 
@@ -64,22 +64,14 @@ class FakeQueueRepository implements QueueRepository {
         ),
       ],
       users: const {
-        'user-buyer': (
-          name: 'أحمد ناصر',
-          phone: '0599111111',
-          nationalId: '900111222',
-        ),
-        'user-owner': (
-          name: 'صاحب المخبز',
-          phone: '0599222222',
-          nationalId: '900333444',
-        ),
+        'user-buyer': (name: 'أحمد ناصر', phone: '0599111111'),
+        'user-owner': (name: 'صاحب المخبز', phone: '0599222222'),
       },
     );
   }
 
   final List<StoreModel> _stores;
-  final Map<String, ({String name, String phone, String nationalId})> _users;
+  final Map<String, ({String name, String phone})> _users;
   final List<PurchaseModel> _purchases = [];
   final List<ScanEventModel> _scans = [];
   final Set<String> _pins = {};
@@ -104,13 +96,8 @@ class FakeQueueRepository implements QueueRepository {
 
   // --- test helpers -------------------------------------------------------
 
-  void addUser(
-    String id, {
-    required String name,
-    required String phone,
-    required String nationalId,
-  }) {
-    _users[id] = (name: name, phone: phone, nationalId: nationalId);
+  void addUser(String id, {required String name, required String phone}) {
+    _users[id] = (name: name, phone: phone);
   }
 
   /// Inserts a purchase directly, bypassing the reserve rules — for setting
@@ -161,7 +148,6 @@ class FakeQueueRepository implements QueueRepository {
     return p.copyWith(
       userName: user?.name,
       userPhone: user?.phone,
-      userNationalId: user?.nationalId,
       storeName: store?.name,
     );
   }
@@ -192,6 +178,14 @@ class FakeQueueRepository implements QueueRepository {
   }
 
   // --- writes -------------------------------------------------------------
+
+  @override
+  Future<void> recordWalletPayment(String purchaseId) async {
+    _requireOnline();
+    final i = _purchases.indexWhere((p) => p.id == purchaseId);
+    if (i < 0) throw StateError('purchase not found');
+    _purchases[i] = _purchases[i].copyWith(paymentMethod: 'simulated');
+  }
 
   @override
   Future<PurchaseModel> reserveBag({
@@ -390,7 +384,6 @@ class FakeQueueRepository implements QueueRepository {
     required String outcome,
     String? purchaseId,
     String? scannedName,
-    String? scannedNationalId,
   }) async {
     _requireOnline();
     _scans.insert(
@@ -401,7 +394,6 @@ class FakeQueueRepository implements QueueRepository {
         purchaseId: purchaseId,
         outcome: outcome,
         scannedName: scannedName,
-        scannedNationalId: scannedNationalId,
         scannedAtMillis: DateTime.now().millisecondsSinceEpoch,
       ),
     );
@@ -442,13 +434,39 @@ class FakeQueueRepository implements QueueRepository {
   @override
   Future<List<StoreModel>> getStores() async => List.of(_stores);
 
+  /// Most-booked first (ties by name), from the purchases this fake holds.
+  @override
+  Future<List<String>> getPopularStoreIds({int limit = 5}) async {
+    final counts = <String, int>{
+      for (final s in _stores.where((s) => s.status == StoreStatus.active))
+        s.id: 0,
+    };
+    for (final p in _purchases) {
+      if (counts.containsKey(p.storeId)) {
+        counts[p.storeId] = counts[p.storeId]! + 1;
+      }
+    }
+    final ids = counts.keys.toList()
+      ..sort((a, b) {
+        final byCount = counts[b]!.compareTo(counts[a]!);
+        if (byCount != 0) return byCount;
+        return _stores
+            .firstWhere((s) => s.id == a)
+            .name
+            .compareTo(_stores.firstWhere((s) => s.id == b).name);
+      });
+    return ids.take(limit).toList();
+  }
+
   @override
   Future<StoreModel?> getStoreById(String storeId) async =>
       _stores.where((s) => s.id == storeId).firstOrNull;
 
   @override
-  Future<StoreModel?> getStoreForOwner(String ownerId) async =>
-      _stores.where((s) => s.ownerId == ownerId).firstOrNull;
+  Future<StoreModel?> getStoreForOwner(String ownerId) async {
+    _requireOnline();
+    return _stores.where((s) => s.ownerId == ownerId).firstOrNull;
+  }
 
   @override
   Stream<List<StoreListEntry>> watchStoreListForUser({

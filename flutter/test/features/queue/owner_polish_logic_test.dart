@@ -3,11 +3,7 @@ import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/domain/models/store_model.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
 
-PurchaseModel _p(
-  int id,
-  int batch,
-  PurchaseStatus status,
-) => PurchaseModel(
+PurchaseModel _p(int id, int batch, PurchaseStatus status) => PurchaseModel(
   id: 'purchase-$id',
   storeId: 'store-1',
   userId: 'user-$id',

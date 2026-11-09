@@ -122,7 +122,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         outcome: result.outcome.name,
         purchaseId: result.purchase?.id,
         scannedName: payload.userName,
-        scannedNationalId: payload.nationalId,
       ),
     );
     if (!mounted) return;
@@ -409,14 +408,6 @@ class _ResultView extends StatelessWidget {
                   '${payload.storeName} · ${payload.purchaseDate}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                if (payload.nationalId != null &&
-                    payload.nationalId!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    '${Strings.idShortLabel}: ${payload.nationalId}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   payload.purchaseId,
@@ -427,6 +418,20 @@ class _ResultView extends StatelessWidget {
               ],
             ),
           ),
+          if (result.outcome == QrRedemptionOutcome.checkedIn &&
+              result.purchase != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              result.purchase!.isPrepaid
+                  ? Strings.scanPaidAlready
+                  : Strings.scanTakeCash,
+              key: const Key('scan-payment'),
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(text: Strings.scanAgain, onPressed: onRescan),
           const SizedBox(height: AppSpacing.sm),

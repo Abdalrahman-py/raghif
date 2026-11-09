@@ -44,26 +44,11 @@ class AuthFailure extends AuthState {
   List<Object?> get props => [errorMessage];
 }
 
-class AuthOtpSent extends AuthState {
-  const AuthOtpSent({
-    required this.nationalId,
-    required this.phone,
-    required this.otpCode,
-  });
-
-  final String nationalId;
-  final String phone;
-  final String otpCode;
-
-  @override
-  List<Object?> get props => [nationalId, phone, otpCode];
-}
-
 class AuthSwitchToRegister extends AuthState {
-  const AuthSwitchToRegister({required this.nationalId});
+  const AuthSwitchToRegister({required this.phone});
 
-  final String nationalId;
+  final String phone;
 
   @override
-  List<Object?> get props => [nationalId];
+  List<Object?> get props => [phone];
 }

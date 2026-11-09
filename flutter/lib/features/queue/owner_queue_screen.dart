@@ -50,9 +50,8 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
     if (q.isEmpty) return true;
     final digitsOnly = q.replaceAll(RegExp(r'\D'), '');
     if (digitsOnly.isNotEmpty) {
-      final idDigits = (p.userNationalId ?? '').replaceAll(RegExp(r'\D'), '');
       final phoneDigits = (p.userPhone ?? '').replaceAll(RegExp(r'\D'), '');
-      if (idDigits.endsWith(digitsOnly) || phoneDigits.endsWith(digitsOnly)) {
+      if (phoneDigits.endsWith(digitsOnly)) {
         return true;
       }
     }
@@ -280,22 +279,26 @@ class _OwnerQueueScreenState extends State<OwnerQueueScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
-                          child: ListView.builder(
-                            keyboardDismissBehavior:
-                                ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            itemCount:
-                                entries.length +
-                                (compact && notify != null ? 1 : 0),
-                            itemBuilder: (context, index) =>
-                                index < entries.length
-                                ? entries[index]
-                                : Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: AppSpacing.md,
+                          child: RefreshIndicator(
+                            onRefresh: widget.controller.refreshAll,
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              itemCount:
+                                  entries.length +
+                                  (compact && notify != null ? 1 : 0),
+                              itemBuilder: (context, index) =>
+                                  index < entries.length
+                                  ? entries[index]
+                                  : Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: AppSpacing.md,
+                                      ),
+                                      child: notify,
                                     ),
-                                    child: notify,
-                                  ),
+                            ),
                           ),
                         ),
                         if (notify != null && !compact)
@@ -336,9 +339,6 @@ class _BuyerRow extends StatelessWidget {
     };
 
     final meta = [
-      if (purchase.userNationalId != null &&
-          purchase.userNationalId!.isNotEmpty)
-        '${Strings.idShortLabel}: ${purchase.userNationalId}',
       if (purchase.userPhone != null && purchase.userPhone!.isNotEmpty)
         '${Strings.phoneShortLabel}: ${purchase.userPhone}',
     ].join('  ·  ');
@@ -382,6 +382,14 @@ class _BuyerRow extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               StatusChip(text: statusText, tone: tone),
+              StatusChip(
+                text: purchase.isPrepaid
+                    ? Strings.ownerPaidBadge
+                    : Strings.ownerCashBadge,
+                tone: purchase.isPrepaid
+                    ? StatusTone.success
+                    : StatusTone.neutral,
+              ),
               Text(
                 formatReadyTime(purchase.createdAtMillis),
                 style: Theme.of(context).textTheme.bodyMedium,

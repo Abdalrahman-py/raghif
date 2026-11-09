@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/status_chip.dart';
-import 'bloc/auth_bloc.dart';
 import '../../core/widgets/labeled_field.dart';
+import '../../core/widgets/primary_button.dart';
+import 'bloc/auth_bloc.dart';
 
-/// Dedicated registration form — name, phone, national ID, PIN, and the
-/// Jawwal Pay number (saved once here, reused at purchase time). Reached
-/// from onboarding's "إنشاء حساب" or an unrecognized National ID at login.
+/// Account creation, one question per screen: name, phone, PIN. The phone is
+/// also the Jawwal Pay wallet number, so there is nothing else to ask.
 ///
-/// Grouped into what the account *is* and what it's used *for*, with one
-/// message per field: a blank form used to answer "يرجى تعبئة جميع الحقول",
-/// which tells the user nothing about which of five fields is missing. The PIN
-/// is asked for twice because it is the login credential and this pilot has no
-/// reset flow — mistyping it once would lock the account out for good.
+/// Nothing is sent until the last step. The server decides whether the phone is
+/// already registered; when it says so the form jumps back to the phone step
+/// instead of leaving the person on the last screen with an error about
+/// something they typed earlier.
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key, this.initialPhone});
+  const RegistrationScreen({super.key, this.initialPhone, this.storeName});
 
   final String? initialPhone;
+
+  /// The bakery the visitor was looking at when they decided to book; shown as
+  /// context above the steps.
+  final String? storeName;
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  static const _total = 3;
+  static const _nameStep = 0;
+  static const _phoneStep = 1;
+  static const _pinStep = 2;
+
+  final _formKeys = List.generate(_total, (_) => GlobalKey<FormState>());
 
   late final _phoneController = TextEditingController(
     text: widget.initialPhone,
@@ -37,56 +42,37 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   final _nameController = TextEditingController();
-  final _personalIdController = TextEditingController();
-  final _jawwalPayController = TextEditingController();
 
-  /// Set once the user types their own wallet number, so the phone-number
-  /// mirroring below stops overwriting their edit.
-  bool _jawwalEditedManually = false;
-
+  int _step = 0;
   bool _showPin = false;
   String? _formError;
 
-  static final _palestinianMobile = RegExp(r'^05\d{8}$');
-
-  @override
-  void initState() {
-    super.initState();
-    // Jawwal Pay is SIM-tied — default it to the phone number being
-    // registered, editable if the user's wallet number actually differs.
-    _jawwalPayController.text = _phoneController.text;
-    _phoneController.addListener(_mirrorPhoneIntoJawwal);
-  }
-
-  /// Copies the phone number into the wallet field until the user edits the
-  /// wallet field directly (then their value wins).
-  void _mirrorPhoneIntoJawwal() {
-    if (_jawwalEditedManually) return;
-    if (_jawwalPayController.text != _phoneController.text) {
-      _jawwalPayController.text = _phoneController.text;
-    }
-  }
-
-  /// Clearing the wallet field hands control back to the phone default;
-  /// typing anything else marks it as the user's own number.
-  void _onJawwalChanged(String value) {
-    if (value.trim().isEmpty) {
-      _jawwalEditedManually = false;
-      _mirrorPhoneIntoJawwal();
-    } else {
-      _jawwalEditedManually = true;
-    }
-  }
+  // Jawwal / Wataniya: this number is also the Jawwal Pay wallet number.
+  static final _palestinianMobile = RegExp(r'^05[69]\d{7}$');
+  static final _repeatedDigits = RegExp(r'^(\d)\1{3}$');
+  static const _sequentialPins = {
+    '0123',
+    '1234',
+    '2345',
+    '3456',
+    '4567',
+    '5678',
+    '6789',
+    '3210',
+    '4321',
+    '5432',
+    '6543',
+    '7654',
+    '8765',
+    '9876',
+  };
 
   @override
   void dispose() {
-    _phoneController.removeListener(_mirrorPhoneIntoJawwal);
     _phoneController.dispose();
     _pinController.dispose();
     _confirmPinController.dispose();
     _nameController.dispose();
-    _personalIdController.dispose();
-    _jawwalPayController.dispose();
     super.dispose();
   }
 
@@ -99,16 +85,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return _palestinianMobile.hasMatch(text) ? null : Strings.phoneInvalid;
   }
 
-  String? _validateNationalId(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) return Strings.nationalIdRequired;
-    return text.length == 9 ? null : Strings.nationalIdLengthError;
-  }
-
   String? _validatePin(String? value) {
     final text = (value ?? '').trim();
     if (text.isEmpty) return Strings.pinRequired;
-    return text.length == 4 ? null : Strings.pinLengthError;
+    if (text.length != 4) return Strings.pinLengthError;
+    // Same rule the server enforces: repeated or sequential PINs are guessed
+    // first.
+    if (_repeatedDigits.hasMatch(text) || _sequentialPins.contains(text)) {
+      return Strings.pinTooWeak;
+    }
+    return null;
   }
 
   String? _validateConfirmPin(String? value) {
@@ -117,27 +103,210 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return text == _pinController.text.trim() ? null : Strings.pinMismatch;
   }
 
-  String? _validateJawwalPay(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) return Strings.jawwalPayRequired;
-    return _palestinianMobile.hasMatch(text) ? null : Strings.jawwalPayInvalid;
+  void _goTo(int step) {
+    setState(() {
+      _step = step;
+      _formError = null;
+    });
+  }
+
+  void _back() {
+    if (_step == 0) {
+      Navigator.of(context).maybePop();
+    } else {
+      _goTo(_step - 1);
+    }
+  }
+
+  void _next() {
+    FocusScope.of(context).unfocus();
+    final form = _formKeys[_step].currentState;
+    if (form == null || !form.validate()) return;
+    if (_step < _total - 1) {
+      _goTo(_step + 1);
+    } else {
+      _submit();
+    }
   }
 
   void _submit() {
-    FocusScope.of(context).unfocus();
-    final form = _formKey.currentState;
-    if (form == null || !form.validate()) {
-      setState(() => _formError = null);
-      return;
-    }
     setState(() => _formError = null);
     context.read<AuthBloc>().add(
       RegisterRequestedEvent(
         phone: _phoneController.text.trim(),
         pin: _pinController.text.trim(),
-        nationalId: _personalIdController.text.trim(),
         name: _nameController.text.trim(),
-        jawwalPayNumber: _jawwalPayController.text.trim(),
+      ),
+    );
+  }
+
+  /// Where an error from the server belongs, so the person lands on the step
+  /// they can fix.
+  void _showFailure(String message) {
+    final target = switch (message) {
+      Strings.phoneAlreadyRegistered => _phoneStep,
+      _ => null,
+    };
+    setState(() {
+      if (target != null) _step = target;
+      _formError = message;
+    });
+  }
+
+  Widget _stepBody(bool isLoading) {
+    switch (_step) {
+      case _nameStep:
+        return _single(
+          title: Strings.stepNameTitle,
+          hint: Strings.stepNameHint,
+          label: Strings.nameLabel,
+          controller: _nameController,
+          validator: _validateName,
+          enabled: !isLoading,
+          keyboardType: TextInputType.name,
+          autofill: const [AutofillHints.name],
+          capitalization: TextCapitalization.words,
+        );
+      case _phoneStep:
+        return _single(
+          title: Strings.stepPhoneTitle,
+          hint: Strings.stepPhoneHint,
+          label: Strings.phoneLabel,
+          controller: _phoneController,
+          validator: _validatePhone,
+          enabled: !isLoading,
+          keyboardType: TextInputType.phone,
+          formatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          autofill: const [AutofillHints.telephoneNumber],
+        );
+      default:
+        return _pinFields(isLoading);
+    }
+  }
+
+  Widget _heading(String title, String? hint) {
+    final textTheme = Theme.of(context).textTheme;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (hint != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(hint, style: textTheme.bodyLarge?.copyWith(color: muted)),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+      ],
+    );
+  }
+
+  Widget _single({
+    required String title,
+    required String hint,
+    required String label,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    required bool enabled,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? formatters,
+    Iterable<String>? autofill,
+    TextCapitalization capitalization = TextCapitalization.none,
+    String? helper,
+  }) {
+    return Form(
+      key: _formKeys[_step],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading(title, hint),
+          LabeledField(
+            label: label,
+            child: TextFormField(
+              controller: controller,
+              enabled: enabled,
+              autofocus: true,
+              keyboardType: keyboardType,
+              inputFormatters: formatters,
+              autofillHints: autofill,
+              textCapitalization: capitalization,
+              textInputAction: TextInputAction.next,
+              validator: validator,
+              onChanged: (_) {
+                if (_formError != null) setState(() => _formError = null);
+              },
+              onFieldSubmitted: (_) => _next(),
+              decoration: InputDecoration(helperText: helper),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pinFields(bool isLoading) {
+    return Form(
+      key: _formKeys[_pinStep],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _heading(Strings.stepPinTitle, Strings.pinHelper),
+          LabeledField(
+            label: Strings.pinLabel,
+            child: TextFormField(
+              controller: _pinController,
+              enabled: !isLoading,
+              autofocus: true,
+              obscureText: !_showPin,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              validator: _validatePin,
+              onChanged: (_) {
+                if (_formError != null) setState(() => _formError = null);
+              },
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => _showPin = !_showPin),
+                  tooltip: _showPin ? Strings.hidePin : Strings.showPin,
+                  icon: Icon(
+                    _showPin ? Icons.visibility_off : Icons.visibility,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          LabeledField(
+            label: Strings.confirmPinLabel,
+            child: TextFormField(
+              controller: _confirmPinController,
+              enabled: !isLoading,
+              obscureText: !_showPin,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              validator: _validateConfirmPin,
+              onFieldSubmitted: (_) => _next(),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.lock_outline_rounded),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -149,266 +318,95 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthFailure) {
-          setState(() => _formError = state.errorMessage);
+          _showFailure(state.errorMessage);
         } else if (state is Authenticated) {
-          // This screen is a pushed route; the base route already swapped
-          // to the post-registration flow underneath, so pop back to it
-          // rather than leaving the form stuck on top.
+          // This screen is a pushed route; the base route already swapped to
+          // the post-registration flow underneath, so pop back to it rather
+          // than leaving the form stuck on top.
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              scrolledUnderElevation: 0,
-              title: const Text(Strings.registrationTitle),
-            ),
-            body: SafeArea(
-              child: AutofillGroup(
-                child: Form(
-                  key: _formKey,
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      0,
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: Container(
-                                width: 76,
-                                height: 76,
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentContainer,
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: SvgPicture.asset(
-                                  'assets/images/stitch_loaf.svg',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
+          final last = _step == _total - 1;
+          return PopScope(
+            canPop: _step == 0,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) _back();
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                scrolledUnderElevation: 0,
+                title: const Text(Strings.registrationTitle),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: Strings.back,
+                  onPressed: isLoading ? null : _back,
+                ),
+              ),
+              body: SafeArea(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    0,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (widget.storeName != null) ...[
                             Text(
-                              'رغيف',
-                              textAlign: TextAlign.center,
-                              style: textTheme.displayMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.lg),
-                            Text(
-                              Strings.registrationSubtitle,
-                              textAlign: TextAlign.center,
+                              Strings.registrationFor(widget.storeName!),
                               style: textTheme.bodyLarge?.copyWith(
                                 color: muted,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.lg),
-                            _sectionLabel(
-                              Strings.registrationAccountSection,
-                              textTheme,
-                              muted,
-                            ),
                             const SizedBox(height: AppSpacing.sm),
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  LabeledField(
-                                    label: Strings.nameLabel,
-                                    child: TextFormField(
-                                      controller: _nameController,
-                                      enabled: !isLoading,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      textInputAction: TextInputAction.next,
-                                      autofillHints: const [AutofillHints.name],
-                                      validator: _validateName,
-                                      decoration: const InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.person_outline_rounded,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                  LabeledField(
-                                    label: Strings.phoneLabel,
-                                    child: TextFormField(
-                                      controller: _phoneController,
-                                      enabled: !isLoading,
-                                      keyboardType: TextInputType.phone,
-                                      textInputAction: TextInputAction.next,
-                                      autofillHints: const [
-                                        AutofillHints.telephoneNumber,
-                                      ],
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(10),
-                                      ],
-                                      validator: _validatePhone,
-                                      decoration: const InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.phone_android_rounded,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                  LabeledField(
-                                    label: Strings.personalIdLabel,
-                                    child: TextFormField(
-                                      controller: _personalIdController,
-                                      enabled: !isLoading,
-                                      keyboardType: TextInputType.number,
-                                      textInputAction: TextInputAction.next,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(9),
-                                      ],
-                                      validator: _validateNationalId,
-                                      decoration: const InputDecoration(
-                                        prefixIcon: Icon(Icons.badge_outlined),
-                                        helperText: Strings.nationalIdHelper,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          ],
+                          Text(
+                            Strings.stepOf(_step + 1, _total),
+                            style: textTheme.bodyMedium?.copyWith(color: muted),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: LinearProgressIndicator(
+                              value: (_step + 1) / _total,
+                              minHeight: 8,
                             ),
-                            const SizedBox(height: AppSpacing.lg),
-                            _sectionLabel(
-                              Strings.registrationPaymentSection,
-                              textTheme,
-                              muted,
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(24),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _stepBody(isLoading),
+                          if (_formError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.md,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  LabeledField(
-                                    label: Strings.pinLabel,
-                                    child: TextFormField(
-                                      controller: _pinController,
-                                      enabled: !isLoading,
-                                      keyboardType: TextInputType.number,
-                                      textInputAction: TextInputAction.next,
-                                      obscureText: !_showPin,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(4),
-                                      ],
-                                      validator: _validatePin,
-                                      decoration: InputDecoration(
-                                        prefixIcon: const Icon(
-                                          Icons.lock_outline_rounded,
-                                        ),
-                                        helperText: Strings.pinHelper,
-                                        suffixIcon: IconButton(
-                                          onPressed: () => setState(
-                                            () => _showPin = !_showPin,
-                                          ),
-                                          tooltip: _showPin
-                                              ? Strings.hidePin
-                                              : Strings.showPin,
-                                          icon: Icon(
-                                            _showPin
-                                                ? Icons.visibility_off
-                                                : Icons.visibility,
-                                            color: muted,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                  LabeledField(
-                                    label: Strings.confirmPinLabel,
-                                    child: TextFormField(
-                                      controller: _confirmPinController,
-                                      enabled: !isLoading,
-                                      keyboardType: TextInputType.number,
-                                      textInputAction: TextInputAction.next,
-                                      obscureText: !_showPin,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(4),
-                                      ],
-                                      validator: _validateConfirmPin,
-                                      decoration: const InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.lock_outline_rounded,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                  LabeledField(
-                                    label: Strings.jawwalPayNumberLabel,
-                                    child: TextFormField(
-                                      controller: _jawwalPayController,
-                                      enabled: !isLoading,
-                                      onChanged: _onJawwalChanged,
-                                      keyboardType: TextInputType.phone,
-                                      textInputAction: TextInputAction.done,
-                                      onFieldSubmitted: (_) => _submit(),
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(10),
-                                      ],
-                                      validator: _validateJawwalPay,
-                                      decoration: const InputDecoration(
-                                        prefixIcon: Icon(
-                                          Icons.account_balance_wallet_outlined,
-                                        ),
-                                        helperText: Strings.jawwalPayNumberHint,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_formError != null) ...[
-                              const SizedBox(height: AppSpacing.md),
-                              Semantics(
-                                liveRegion: true,
-                                child: StatusChip(
-                                  text: _formError!,
-                                  tone: StatusTone.danger,
+                              child: Text(
+                                _formError!,
+                                key: const Key('registration-error'),
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.danger,
                                 ),
                               ),
-                            ],
-                            const SizedBox(height: AppSpacing.lg),
-                            PrimaryButton(
-                              text: Strings.registerButton,
-                              loading: isLoading,
-                              onPressed: _submit,
                             ),
-                          ],
-                        ),
+                          const SizedBox(height: AppSpacing.lg),
+                          PrimaryButton(
+                            text: last
+                                ? Strings.registerButton
+                                : Strings.stepsNext,
+                            loading: isLoading,
+                            onPressed: _next,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -419,9 +417,5 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         },
       ),
     );
-  }
-
-  Widget _sectionLabel(String text, TextTheme textTheme, Color muted) {
-    return Text(text, style: textTheme.labelMedium?.copyWith(color: muted));
   }
 }

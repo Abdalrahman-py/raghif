@@ -21,7 +21,7 @@ import 'package:raghif/features/queue/owner_dashboard_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
 import 'package:raghif/features/queue/receipt_card.dart';
 import 'package:raghif/features/queue/store_details_screen.dart';
-import 'package:raghif/features/queue/store_list_screen.dart';
+import 'package:raghif/features/queue/buyer_stores_home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../goldens/test_fonts.dart';
@@ -34,7 +34,6 @@ const _buyer = DemoUser(
   pin: '1234',
   role: UserRole.buyer,
   name: 'أحمد ناصر',
-  jawwalPayNumber: '0599111111',
 );
 
 /// Optional local inspection artifacts from production widgets and fake data.
@@ -112,7 +111,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.runAsync(() async {
           await precacheImage(
-            const AssetImage('assets/images/stitch_bread.png'),
+            const AssetImage('assets/images/stitch_bread.webp'),
             boundaryKey.currentContext!,
           );
         });
@@ -183,31 +182,25 @@ void main() {
         expect(preferences.getKeys(), isEmpty);
 
         await show(const LoginScreen());
-        expect(find.text(Strings.personalIdLabel), findsOneWidget);
+        expect(find.text(Strings.phoneLabel), findsOneWidget);
         expect(find.text(Strings.continueButton), findsOneWidget);
         expect(find.byType(TextField), findsOneWidget);
         await inspect('login');
 
         await show(const RegistrationScreen());
-        for (final label in [
-          Strings.nameLabel,
-          Strings.phoneLabel,
-          Strings.personalIdLabel,
-          Strings.pinLabel,
-          Strings.confirmPinLabel,
-          Strings.jawwalPayNumberLabel,
-        ]) {
-          expect(find.text(label), findsOneWidget);
-        }
-        expect(find.byType(TextFormField), findsNWidgets(6));
-        expect(find.text(Strings.registerButton), findsOneWidget);
+        // Account creation asks one question at a time: only the first step
+        // (the name) is on screen, with the progress label.
+        expect(find.text(Strings.stepOf(1, 3)), findsOneWidget);
+        expect(find.text(Strings.nameLabel), findsOneWidget);
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.text(Strings.stepsNext), findsOneWidget);
         await inspect('registration');
 
         await show(
-          StoreListScreen(controller: harness.controller, currentUser: _buyer),
+          BuyerStoresHome(controller: harness.controller, currentUser: _buyer),
         );
+        await tester.pumpAndSettle();
         expect(find.text('مخبز الرمال'), findsWidgets);
-        expect(find.byType(TextField), findsOneWidget);
         await inspect('store_list');
 
         final store = harness.controller.storeById(seededStoreId)!;
@@ -233,7 +226,7 @@ void main() {
           BuyerHomeScreen(controller: harness.controller, currentUser: _buyer),
         );
         expect(find.text(store.name), findsWidgets);
-        expect(find.text(Strings.statusWaiting), findsWidgets);
+        expect(find.text(Strings.waitingReassurance), findsWidgets);
         await tester.scrollUntilVisible(
           find.text(Strings.showReceiptButton),
           150,

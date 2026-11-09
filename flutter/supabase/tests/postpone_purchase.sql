@@ -10,10 +10,10 @@ exception when others then
 end $$;
 insert into auth.users(id) values
  ('90000000-0000-0000-0000-000000000001'), ('90000000-0000-0000-0000-000000000002'), ('90000000-0000-0000-0000-000000000003');
-insert into public.profiles(id,phone,national_id,pin_hash,name,role) values
- ('90000000-0000-0000-0000-000000000001','p-owner','p-owner','x','Owner','owner'),
- ('90000000-0000-0000-0000-000000000002','p-buyer','p-buyer','x','Buyer','buyer'),
- ('90000000-0000-0000-0000-000000000003','p-other','p-other','x','Other','buyer');
+insert into public.profiles(id, phone,pin_hash,name,role) values
+ ('90000000-0000-0000-0000-000000000001','p-owner','x','Owner','owner'),
+ ('90000000-0000-0000-0000-000000000002','p-buyer','x','Buyer','buyer'),
+ ('90000000-0000-0000-0000-000000000003','p-other','x','Other','buyer');
 insert into public.stores(id,name,owner_id,is_open,daily_bag_limit,bags_remaining,batch_size) values
  ('91000000-0000-0000-0000-000000000001','Postpone','90000000-0000-0000-0000-000000000001',true,2,2,1),
  ('91000000-0000-0000-0000-000000000002','Other bakery','90000000-0000-0000-0000-000000000001',true,2,2,1);

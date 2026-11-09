@@ -25,7 +25,6 @@ void main() {
     String id,
     PurchaseStatus status, {
     String name = 'أحمد ناصر',
-    String? nationalId = '900111222',
     String? phone = '0599111111',
   }) => PurchaseModel(
     id: id,
@@ -37,7 +36,6 @@ void main() {
     createdAtMillis: 1,
     userName: name,
     userPhone: phone,
-    userNationalId: nationalId,
   );
 
   Future<void> pumpHistory(WidgetTester tester) async {
@@ -105,6 +103,8 @@ void main() {
         120,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.ensureVisible(find.text('2026-08-02'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('2026-08-02'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
@@ -142,12 +142,48 @@ void main() {
 
     await pumpHistory(tester);
 
+    // Table: weekday + date, then bare counts under column headings.
     expect(find.text('2026-08-02'), findsOneWidget);
-    expect(find.text(Strings.historySold(120)), findsOneWidget);
-    expect(find.text(Strings.historyCollected(117)), findsOneWidget);
-    expect(find.text(Strings.historyNotCollected(3)), findsOneWidget);
-    // A fully collected day doesn't warn about leftovers.
-    expect(find.text(Strings.historyNotCollected(0)), findsNothing);
+    expect(find.text('الأحد'), findsOneWidget); // 2026-08-02 is a Sunday
+    expect(find.text('الأحد 2026-08-02'), findsNothing);
+    expect(find.text(Strings.historyColSold), findsOneWidget);
+    expect(find.text(Strings.historyColLeft), findsOneWidget);
+    expect(find.text('120'), findsOneWidget);
+    expect(find.text('117'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+  });
+
+  testWidgets('filtering by month narrows the table', (tester) async {
+    when(
+      () => repo.getDailySummaries('store-1', limit: any(named: 'limit')),
+    ).thenAnswer(
+      (_) async => const [
+        StoreDaySummary(
+          date: '2026-09-01',
+          sold: 5,
+          collected: 5,
+          notCollected: 0,
+        ),
+        StoreDaySummary(
+          date: '2026-08-02',
+          sold: 120,
+          collected: 117,
+          notCollected: 3,
+        ),
+      ],
+    );
+
+    await pumpHistory(tester);
+    expect(find.text('2026-09-01'), findsOneWidget);
+    expect(find.text('2026-08-02'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('آب 2026').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026-08-02'), findsOneWidget);
+    expect(find.text('2026-09-01'), findsNothing);
   });
 
   testWidgets('empty history shows the placeholder', (tester) async {
@@ -184,7 +220,10 @@ void main() {
     await tester.tap(find.text('2026-08-02'));
     await tester.pumpAndSettle();
 
-    expect(find.text(Strings.historyDayTitle('2026-08-02')), findsOneWidget);
+    expect(
+      find.text(Strings.historyDayTitle('الأحد 2026-08-02')),
+      findsOneWidget,
+    );
     expect(find.text('أحمد ناصر'), findsOneWidget);
     expect(find.text('محمود سعيد'), findsOneWidget);
     expect(find.text(Strings.statusCollectedShort), findsWidgets);

@@ -15,7 +15,6 @@ import 'package:raghif/features/queue/queue_controller.dart';
 import 'package:raghif/core/widgets/primary_button.dart';
 import 'package:raghif/features/queue/store_details_screen.dart';
 
-
 class MockQueueRepository extends Mock implements QueueRepository {}
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
@@ -33,10 +32,7 @@ void main() {
     name: 'أحمد ناصر',
   );
 
-  StoreModel store({
-    bool isOpen = true,
-    int bagsRemaining = 10,
-  }) => StoreModel(
+  StoreModel store({bool isOpen = true, int bagsRemaining = 10}) => StoreModel(
     id: 'store-1',
     name: 'مخبز الرمال',
     isOpen: isOpen,
@@ -53,25 +49,26 @@ void main() {
     authBloc = MockAuthBloc();
     when(() => authBloc.state).thenReturn(const AuthInitial());
     when(() => repo.watchStores()).thenAnswer((_) => const Stream.empty());
-    when(() => repo.setStorePinned(
-          userId: any(named: 'userId'),
-          storeId: any(named: 'storeId'),
-          pinned: any(named: 'pinned'),
-        )).thenAnswer((_) async {});
+    when(
+      () => repo.setStorePinned(
+        userId: any(named: 'userId'),
+        storeId: any(named: 'storeId'),
+        pinned: any(named: 'pinned'),
+      ),
+    ).thenAnswer((_) async {});
     controller = QueueController(repo);
   });
 
   void stubEntries(List<StoreListEntry> entries) {
-    when(() => repo.watchStoreListForUser(
-          userId: any(named: 'userId'),
-          today: any(named: 'today'),
-        )).thenAnswer((_) => Stream.value(entries));
+    when(
+      () => repo.watchStoreListForUser(
+        userId: any(named: 'userId'),
+        today: any(named: 'today'),
+      ),
+    ).thenAnswer((_) => Stream.value(entries));
   }
 
-  Future<void> pumpDetails(
-    WidgetTester tester,
-    StoreListEntry entry,
-  ) async {
+  Future<void> pumpDetails(WidgetTester tester, StoreListEntry entry) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -101,16 +98,16 @@ void main() {
     expect(find.text('مخبز الرمال'), findsOneWidget);
     expect(find.text('الرمال'), findsOneWidget);
     expect(find.text(Strings.available), findsOneWidget);
+    expect(find.text(Strings.bagsRemaining(10, 300)), findsOneWidget);
     expect(
-      find.text(Strings.bagsRemaining(10, 300)),
+      find.text(Strings.purchaseWindowRange('08:00', '10:00')),
       findsOneWidget,
     );
-    expect(find.text(Strings.purchaseWindowRange('08:00', '10:00')),
-        findsOneWidget);
   });
 
-  testWidgets('explains a sold-out store instead of showing bags',
-      (tester) async {
+  testWidgets('explains a sold-out store instead of showing bags', (
+    tester,
+  ) async {
     final entry = StoreListEntry(store: store(bagsRemaining: 0));
     stubEntries([entry]);
     await pumpDetails(tester, entry);
@@ -131,13 +128,14 @@ void main() {
     await pumpDetails(tester, entry);
 
     expect(find.text(Strings.myOrderTodayTitle), findsOneWidget);
-    expect(find.text(Strings.orderReady), findsOneWidget);
+    expect(find.text(Strings.orderReady), findsNothing);
     expect(find.text(Strings.paidBadge), findsOneWidget);
     expect(find.text(Strings.showReceiptButton), findsOneWidget);
   });
 
-  testWidgets('no order section for a store the buyer is not using today',
-      (tester) async {
+  testWidgets('no order section for a store the buyer is not using today', (
+    tester,
+  ) async {
     final entry = StoreListEntry(
       store: store(),
       lastPurchaseDate: '2026-01-01',
@@ -146,10 +144,7 @@ void main() {
     await pumpDetails(tester, entry);
 
     expect(find.text(Strings.myOrderTodayTitle), findsNothing);
-    expect(
-      find.text(Strings.lastPurchaseFrom('2026-01-01')),
-      findsOneWidget,
-    );
+    expect(find.text(Strings.lastPurchaseFrom('2026-01-01')), findsOneWidget);
   });
 
   testWidgets('pin toggle pins the store', (tester) async {

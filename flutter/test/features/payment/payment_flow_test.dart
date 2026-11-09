@@ -5,7 +5,7 @@ import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
 import 'package:raghif/features/payment/payment_number_screen.dart';
 import 'package:raghif/features/queue/confirmation_screen.dart';
-import 'package:raghif/features/queue/purchase_screen.dart';
+import 'package:raghif/features/queue/purchase_flow.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
 
 import '../../support/queue_test_harness.dart';
@@ -94,144 +94,124 @@ void main() {
     });
   });
 
-  group('PurchaseScreen Jawwal Pay integration', () {
+  group('Buying a bag goes straight to payment', () {
     const testUser = DemoUser(
       id: seededBuyerId,
       phone: '0599111111',
       pin: '1234',
       role: UserRole.buyer,
       name: 'أحمد ناصر',
-      jawwalPayNumber: '0599111111',
+    );
+
+    Widget launcher(controller, String storeId) => wrapWithMaterial(
+      Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => startPurchase(
+                context,
+                controller: controller,
+                currentUser: testUser,
+                storeId: storeId,
+              ),
+              child: const Text('buy'),
+            ),
+          ),
+        ),
+      ),
     );
 
     testWidgets(
-      'tapping buy pushes payment flow; completing payment creates reservation',
+      'the first screen is payment (no review screen); completing it books a '
+      'prepaid bag and shows the receipt',
       (tester) async {
-        // Built inside the test body, not setUp() — setUp() runs outside
-        // testWidgets' own FakeAsync zone, and a database built there can't
-        // reliably deliver .watch() stream data inside the test body.
-        // Not explicitly closed: this database is fresh and short-lived,
-        // and unmounting the widget below already cancels its .watch()
-        // subscriptions cleanly — an extra explicit controller
-        // .dispose()/db.close() afterward re-touches an already-settled
-        // stream and reliably hangs.
         final harness = buildQueueHarness();
-        final repo = harness.repo;
         final controller = harness.controller;
-        final store = (await repo.getStoreById(seededStoreId))!;
 
-        await tester.pumpWidget(
-          wrapWithMaterial(
-            PurchaseScreen(
-              controller: controller,
-              storeId: store.id,
-              currentUser: testUser,
-            ),
-          ),
-        );
-
-        // Verify on PurchaseScreen
-        expect(find.text(Strings.purchaseTitle), findsOneWidget);
-        expect(find.text(Strings.payButton), findsOneWidget);
-
-        // Tap "ادفع 3 شيكل"
-        await tester.ensureVisible(find.text(Strings.payButton));
-        await tester.tap(find.text(Strings.payButton));
+        await tester.pumpWidget(launcher(controller, seededStoreId));
+        await tester.tap(find.text('buy'));
         await tester.pumpAndSettle();
 
-        // Pushed number confirm screen
+        // Straight to the Jawwal Pay number screen.
         expect(find.text(Strings.paymentTitle), findsOneWidget);
-        expect(find.text(Strings.proceedToOtp), findsOneWidget);
+        expect(find.text('راجع حجزك'), findsNothing);
 
-        // Tap proceed to OTP
         await tester.ensureVisible(find.text(Strings.proceedToOtp));
         await tester.tap(find.text(Strings.proceedToOtp));
         await tester.pumpAndSettle();
-
         expect(find.text(Strings.paymentOtpTitle), findsOneWidget);
 
-        // Find the generated OTP from the notification banner text
         final bannerFinder = find.byWidgetPredicate(
           (widget) =>
               widget is Text &&
               (widget.data?.contains('رمز التحقق (رسالة تجريبية): ') ?? false),
         );
-        expect(bannerFinder, findsOneWidget);
-        final bannerText = (tester.widget(bannerFinder) as Text).data!;
-        final otp = bannerText.split(': ').last.trim();
-
-        // Enter OTP and confirm
+        final otp = (tester.widget(bannerFinder) as Text).data!
+            .split(': ')
+            .last
+            .trim();
         await tester.enterText(find.byType(TextField), otp);
         await tester.ensureVisible(find.text(Strings.confirmPaymentButton));
         await tester.tap(find.text(Strings.confirmPaymentButton));
         await tester.pumpAndSettle();
 
-        // Landed on PaymentSuccessScreen
-        expect(find.text(Strings.completeReservationButton), findsOneWidget);
-
-        // Tap complete reservation
         await tester.ensureVisible(
           find.text(Strings.completeReservationButton),
         );
         await tester.tap(find.text(Strings.completeReservationButton));
-        // Pump to trigger pop cascade and the _pay() delayed future
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
         await tester.pumpAndSettle();
 
-        // Verify that the reservation was created and we are now on ConfirmationScreen
         expect(find.byType(ConfirmationScreen), findsOneWidget);
-        expect(find.text(Strings.confirmationTitle), findsOneWidget);
-
-        // Verify reservation exists in QueueController
-        final blocker = await controller.blockingPurchaseFor(
+        final booked = await controller.blockingPurchaseFor(
           testUser.id,
           todayDateString(),
         );
-        expect(blocker, isNotNull);
+        expect(booked, isNotNull);
+        expect(booked!.paymentMethod, 'simulated');
+        expect(booked.isPrepaid, isFalse);
 
         await tester.pumpWidget(const SizedBox());
         await tester.pumpAndSettle();
       },
     );
 
-    testWidgets('canceling payment flow does not create reservation', (
-      tester,
-    ) async {
+    testWidgets('backing out of payment books nothing', (tester) async {
       final harness = buildQueueHarness();
-      final repo = harness.repo;
       final controller = harness.controller;
-      final store = (await repo.getStoreById(seededStoreId))!;
 
-      await tester.pumpWidget(
-        wrapWithMaterial(
-          PurchaseScreen(
-            controller: controller,
-            storeId: store.id,
-            currentUser: testUser,
-          ),
-        ),
-      );
-
-      // Tap "ادفع 3 شيكل"
-      await tester.ensureVisible(find.text(Strings.payButton));
-      await tester.tap(find.text(Strings.payButton));
+      await tester.pumpWidget(launcher(controller, seededStoreId));
+      await tester.tap(find.text('buy'));
       await tester.pumpAndSettle();
 
-      // On number screen, tap back
       await tester.ensureVisible(find.text(Strings.back));
       await tester.tap(find.text(Strings.back));
       await tester.pumpAndSettle();
 
-      // Back on PurchaseScreen
-      expect(find.text(Strings.purchaseTitle), findsOneWidget);
-
-      // Verify NO purchase was made
-      final blocker = await controller.blockingPurchaseFor(
-        testUser.id,
-        todayDateString(),
+      expect(find.text('buy'), findsOneWidget);
+      expect(
+        await controller.blockingPurchaseFor(testUser.id, todayDateString()),
+        isNull,
       );
-      expect(blocker, isNull);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a buyer who already booked today is sent to that receipt', (
+      tester,
+    ) async {
+      final harness = buildQueueHarness();
+      final controller = harness.controller;
+      await controller.buy(storeId: seededStoreId, date: todayDateString());
+
+      await tester.pumpWidget(launcher(controller, 'store-shati'));
+      await tester.tap(find.text('buy'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.paymentTitle), findsNothing);
+      expect(find.byType(ConfirmationScreen), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

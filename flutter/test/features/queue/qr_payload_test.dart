@@ -16,7 +16,6 @@ void main() {
       userName: 'سارة',
       storeName: 'مخبز السلام',
       purchaseDate: '2026-09-04',
-      nationalId: '900111222',
       storeId: 'store-2',
     );
 
@@ -37,7 +36,6 @@ void main() {
         'user_name': 'سارة',
         'store_name': 'مخبز السلام',
         'purchase_date': '2026-09-04',
-        'national_id': '900111222',
         'store_id': 'store-2',
       });
     });
@@ -59,7 +57,6 @@ void main() {
         'user_name': 'سارة',
         'store_name': 'مخبز السلام',
         'purchase_date': '2026-09-04',
-        'national_id': '900111222',
         'store_id': 'store-3',
       });
       final decoded = QrPayload.decode(jsonStr);
@@ -67,7 +64,6 @@ void main() {
       expect(decoded.userName, 'سارة');
       expect(decoded.storeName, 'مخبز السلام');
       expect(decoded.purchaseDate, '2026-09-04');
-      expect(decoded.nationalId, '900111222');
       expect(decoded.storeId, 'store-3');
     });
 

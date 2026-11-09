@@ -46,9 +46,12 @@ class NotificationService {
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
 
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    await android?.requestNotificationsPermission();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    // The permission prompt is NOT shown here: it waits for the user, and
+    // start-up must not. FcmService.init() asks once the app is on screen.
     // Created up front, not lazily on first show: a push that arrives while
     // the app is backgrounded is rendered by the OS, which needs the channel
     // to already exist or it falls back to "Miscellaneous".

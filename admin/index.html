@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>لوحة تحكم رغيف</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath d='M16 46C16 31.6 27.6 20 42 20s26 11.6 26 26c0 7.7-6.3 14-14 14H30c-7.7 0-14-6.3-14-14z' fill='%23B8742A'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- ======================================================== sign in -->
+  <main v-if="view === 'login'" class="login">
+    <form class="card login-card" @submit.prevent="signIn">
+      <h1>لوحة تحكم رغيف</h1>
+      <p class="muted">للمبرمج فقط. سجّل الدخول بحساب المسؤول.</p>
+      <label>البريد الإلكتروني
+        <input type="email" v-model.trim="loginForm.email" autocomplete="username" dir="ltr" required>
+      </label>
+      <label>كلمة المرور
+        <input type="password" v-model="loginForm.password" autocomplete="current-password" dir="ltr" required>
+      </label>
+      <p v-if="loginError" class="error" role="alert">{{ loginError }}</p>
+      <button class="btn primary" :disabled="loginBusy">{{ loginBusy ? 'جارٍ الدخول…' : 'دخول' }}</button>
+    </form>
+  </main>
+
+  <!-- ===================================================== boot splash -->
+  <main v-else-if="view === 'boot'" class="login"><p class="muted">جارٍ التحميل…</p></main>
+
+  <!-- ============================================================ app -->
+  <div v-else class="shell">
+    <header class="top">
+      <div class="brand">
+        <svg viewBox="0 0 80 80" width="30" height="30" aria-hidden="true"><path d="M16 46C16 31.6 27.6 20 42 20s26 11.6 26 26c0 7.7-6.3 14-14 14H30c-7.7 0-14-6.3-14-14z" fill="#B8742A"/><path d="M32 28c3.5 5 5 12 4 19M44 26c4 6 5 13 4 21M56 29c2.5 5 3 11 2 17" stroke="#EEF2F6" stroke-width="3" stroke-linecap="round" fill="none"/></svg>
+        <strong>رغيف</strong><span class="muted">لوحة التحكم</span>
+      </div>
+      <nav class="tabs" aria-label="الأقسام">
+        <button v-for="t in tabs" :key="t.id" :class="{ active: tab === t.id }" @click="go(t.id)">{{ t.label }}</button>
+      </nav>
+      <div class="who">
+        <span class="muted" dir="ltr">{{ userEmail }}</span>
+        <button class="btn ghost" @click="signOut">خروج</button>
+      </div>
+    </header>
+
+    <div v-if="banner" class="banner" :class="banner.type" role="alert">
+      <span>{{ banner.text }}</span>
+      <button class="btn ghost small" @click="banner = null" aria-label="إغلاق">✕</button>
+    </div>
+
+    <main class="content">
+
+      <!-- ================================================= overview -->
+      <section v-if="tab === 'overview'">
+        <div class="section-head">
+          <h2>نظرة عامة</h2>
+          <button class="btn ghost" @click="loadOverview" :disabled="loading.overview">تحديث</button>
+        </div>
+        <p v-if="loading.overview && !overview" class="muted">جارٍ التحميل…</p>
+        <template v-if="overview">
+          <div class="grid cards">
+            <div class="card stat"><span class="label">المشترون</span><b>{{ num(overview.buyers_total) }}</b>
+              <small>جدد: اليوم {{ num(overview.buyers_new_today) }} · الأسبوع {{ num(overview.buyers_new_week) }} · الشهر {{ num(overview.buyers_new_month) }}</small></div>
+            <div class="card stat"><span class="label">المخابز</span><b>{{ num(overview.stores_total) }}</b>
+              <small>فعّال {{ num(overview.stores_active) }} · متوقف {{ num(overview.stores_paused) }} · مؤرشف {{ num(overview.stores_archived) }}</small></div>
+            <div class="card stat"><span class="label">حجوزات اليوم</span><b>{{ num(overview.bookings_today) }}</b>
+              <small>مستلم {{ num(overview.collected_today) }} · لم يُستلم {{ num(overview.not_collected_today) }}</small></div>
+            <div class="card stat"><span class="label">الأكياس المباعة</span><b>{{ num(overview.bags_sold_total) }}</b>
+              <small>المستلم منها {{ num(overview.bags_collected_total) }}</small></div>
+            <div class="card stat"><span class="label">الإيراد التقديري</span><b>{{ money(overview.revenue_estimate_total) }}</b>
+              <small>اليوم {{ money(overview.revenue_estimate_today) }} · المستلم × سعر الربطة</small></div>
+            <div class="card stat"><span class="label">حالة المشترين</span><b>{{ num(overview.buyers_verified) }}</b>
+              <small>موثّق · بانتظار التوثيق {{ num(overview.buyers_pending) }} · معطّل {{ num(overview.buyers_disabled) }}</small></div>
+          </div>
+
+          <div class="card chart-card">
+            <div class="section-head">
+              <h3>الحجوزات آخر 30 يومًا</h3>
+              <div class="legend"><span><i class="dot booked"></i>حجوزات</span><span><i class="dot got"></i>مستلمة</span></div>
+            </div>
+            <div class="chart" dir="ltr" role="img" :aria-label="'رسم بياني للحجوزات اليومية، المجموع ' + num(chart.total)">
+              <!-- viewBox is camel-cased; an in-DOM template would lowercase it, so it goes in an object -->
+              <svg v-bind="{ viewBox: '0 0 ' + chart.w + ' ' + chart.h }">
+                <g v-for="t in chart.ticks" :key="t.v">
+                  <line :x1="chart.left" :x2="chart.w" :y1="t.y" :y2="t.y" class="grid-line"/>
+                  <text :x="chart.left - 6" :y="t.y + 4" text-anchor="end" class="axis">{{ t.v }}</text>
+                </g>
+                <g v-for="b in chart.bars" :key="b.date">
+                  <title>{{ b.date }}: {{ b.bookings }} حجز، {{ b.collected }} مستلم</title>
+                  <rect :x="b.x" :y="b.y" :width="b.w" :height="b.hb" class="bar booked"/>
+                  <rect :x="b.x" :y="b.yc" :width="b.w" :height="b.hc" class="bar got"/>
+                </g>
+                <text v-for="l in chart.labels" :key="l.x" :x="l.x" :y="chart.h - 6" text-anchor="middle" class="axis">{{ l.text }}</text>
+              </svg>
+            </div>
+          </div>
+        </template>
+      </section>
+
+      <!-- ================================================= bakeries -->
+      <section v-if="tab === 'bakeries'">
+        <div class="section-head">
+          <h2>المخابز</h2>
+          <div class="row">
+            <button class="btn ghost" @click="loadStores" :disabled="loading.stores">تحديث</button>
+            <button class="btn primary" @click="openCreate">+ مخبز جديد</button>
+          </div>
+        </div>
+        <p v-if="loading.stores && !stores.length" class="muted">جارٍ التحميل…</p>
+        <p v-else-if="!stores.length" class="card muted">لا توجد مخابز بعد.</p>
+        <div v-else class="table-wrap card">
+          <table>
+            <thead><tr>
+              <th>المخبز</th><th>الحالة</th><th>الكمية</th><th>السعر</th>
+              <th>الحجوزات</th><th>الاستلام</th><th>آخر حجز</th><th>الصاحب</th><th>إجراءات</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="s in stores" :key="s.store_id">
+                <td><b>{{ s.name }}</b><div class="muted small">{{ [s.area, s.governorate].filter(Boolean).join(' · ') }}</div></td>
+                <td>
+                  <span class="badge" :class="s.status">{{ statusLabel(s.status) }}</span>
+                  <div v-if="s.status === 'active'" class="muted small">{{ s.is_open ? 'البيع مفتوح' : 'البيع مغلق' }}</div>
+                </td>
+                <td>{{ num(s.bags_remaining) }} / {{ num(s.daily_bag_limit) }}</td>
+                <td>{{ money(s.bag_price) }}</td>
+                <td>{{ num(s.total_bookings) }}<div class="muted small">اليوم {{ num(s.bookings_today) }}</div></td>
+                <td>{{ pct(s.collect_rate) }}</td>
+                <td>{{ s.last_booking_date ? dayName(s.last_booking_date) : '—' }} <bdi dir="ltr" v-if="s.last_booking_date">{{ s.last_booking_date }}</bdi>
+                  <div v-if="s.idle && s.status === 'active'" class="badge warn small">راكد</div></td>
+                <td>{{ s.owner_name || '—' }}<div class="muted small" dir="ltr">{{ s.owner_phone || '' }}</div>
+                  <div v-if="s.owner_account_status === 'disabled'" class="badge archived small">حساب معطّل</div></td>
+                <td class="actions">
+                  <button class="btn small" @click="openEdit(s)">تعديل</button>
+                  <select class="small" :value="s.status" @change="askStoreStatus(s, $event)" :aria-label="'حالة ' + s.name">
+                    <option value="active">فعّال</option>
+                    <option value="paused">متوقف مؤقتًا</option>
+                    <option value="archived">مؤرشف</option>
+                  </select>
+                  <button class="btn small" :disabled="!s.owner_id" @click="askResetPin(s)">رمز PIN جديد</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================================================== buyers -->
+      <section v-if="tab === 'buyers'">
+        <div class="section-head">
+          <h2>المشترون</h2>
+          <input class="search" type="search" placeholder="بحث بالاسم أو الجوال أو الهوية" v-model.trim="buyerSearch" @input="onBuyerSearch" aria-label="بحث">
+        </div>
+        <p v-if="loading.buyers && !buyers.rows.length" class="muted">جارٍ التحميل…</p>
+        <p v-else-if="!buyers.rows.length" class="card muted">لا توجد نتائج.</p>
+        <div v-else class="table-wrap card">
+          <table>
+            <thead><tr><th>#</th><th>الاسم</th><th>الجوال</th><th>الهوية</th><th>التوثيق</th><th>الحجوزات</th><th>لم يستلم</th><th>الحساب</th><th>إجراءات</th></tr></thead>
+            <tbody>
+              <tr v-for="(b, i) in buyers.rows" :key="b.id">
+                <td class="muted">{{ buyers.offset + i + 1 }}</td>
+                <td><b>{{ b.name || '—' }}</b><div class="muted small"><bdi dir="ltr">{{ dateOnly(b.created_at) }}</bdi></div></td>
+                <td dir="ltr">{{ b.phone }}</td>
+                <td dir="ltr">{{ b.national_id }}</td>
+                <td><span class="badge" :class="b.verification_status === 'verified' ? 'active' : 'paused'">{{ b.verification_status === 'verified' ? 'موثّق' : 'بانتظار' }}</span></td>
+                <td>{{ num(b.bookings) }} <span class="muted small">({{ num(b.collected) }} مستلم)</span></td>
+                <td :class="{ bad: Number(b.missed) >= 2 }">{{ num(b.missed) }}</td>
+                <td><span class="badge" :class="b.account_status === 'active' ? 'active' : 'archived'">{{ b.account_status === 'active' ? 'فعّال' : 'معطّل' }}</span></td>
+                <td class="actions">
+                  <button class="btn small" @click="toggleVerification(b)">{{ b.verification_status === 'verified' ? 'إلغاء التوثيق' : 'توثيق' }}</button>
+                  <button class="btn small" @click="askResetPinBuyer(b)">رمز PIN جديد</button>
+                  <button class="btn small" :class="{ danger: b.account_status === 'active' }" @click="askAccountStatus(b)">{{ b.account_status === 'active' ? 'تعطيل' : 'تفعيل' }}</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="buyers.total > buyers.limit" class="pager">
+          <button class="btn" :disabled="buyers.offset === 0" @click="pageBuyers(-1)">السابق</button>
+          <span class="muted">{{ buyers.offset + 1 }}–{{ Math.min(buyers.offset + buyers.limit, buyers.total) }} من {{ num(buyers.total) }}</span>
+          <button class="btn" :disabled="buyers.offset + buyers.limit >= buyers.total" @click="pageBuyers(1)">التالي</button>
+        </div>
+      </section>
+
+      <!-- ================================================== stats -->
+      <section v-if="tab === 'stats'">
+        <div class="section-head">
+          <h2>الإحصائيات</h2>
+          <button class="btn ghost" @click="loadStats" :disabled="loading.stats">تحديث</button>
+        </div>
+        <p v-if="loading.stats && !statsLoaded" class="muted">جارٍ التحميل…</p>
+        <div v-if="statsLoaded" class="grid two">
+          <div class="card">
+            <h3>الأكثر مبيعًا</h3>
+            <p v-if="!topStores.length" class="muted">لا توجد مبيعات بعد.</p>
+            <ol class="rank">
+              <li v-for="s in topStores" :key="s.store_id">
+                <span class="rank-name">{{ s.name }}</span>
+                <span class="bar-track"><i :style="{ width: topWidth(s) + '%' }"></i></span>
+                <b>{{ num(s.total_bookings) }}</b>
+              </li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>نسبة الاستلام لكل مخبز</h3>
+            <p v-if="!stores.length" class="muted">لا توجد بيانات.</p>
+            <ul class="rank">
+              <li v-for="s in stores" :key="s.store_id">
+                <span class="rank-name">{{ s.name }}</span>
+                <span class="bar-track"><i class="good" :style="{ width: Math.round(Number(s.collect_rate) * 100) + '%' }"></i></span>
+                <b>{{ pct(s.collect_rate) }}</b>
+              </li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>مخابز راكدة <span class="muted small">(فعّالة بلا حجز منذ 7 أيام)</span></h3>
+            <p v-if="!idleStores.length" class="muted">لا يوجد.</p>
+            <ul class="plain"><li v-for="s in idleStores" :key="s.store_id"><b>{{ s.name }}</b>
+              <span class="muted small">آخر حجز: <bdi dir="ltr">{{ s.last_booking_date || 'لا يوجد' }}</bdi></span></li></ul>
+          </div>
+          <div class="card">
+            <h3>من لم يستلموا حجوزاتهم مرارًا</h3>
+            <p class="muted small">من بين أول {{ num(missedBuyers.scanned) }} مشترٍ، مرتّبين بعدد الحجوزات الفائتة.</p>
+            <p v-if="!missedBuyers.rows.length" class="muted">لا يوجد.</p>
+            <ul class="plain"><li v-for="b in missedBuyers.rows" :key="b.id"><b>{{ b.name || b.phone }}</b>
+              <span class="bad">{{ num(b.missed) }} فائتة</span> <span class="muted small">من {{ num(b.bookings) }}</span></li></ul>
+          </div>
+          <div class="card">
+            <h3>نتائج المسح <span class="muted small">(آخر 30 يومًا)</span></h3>
+            <p v-if="!scans.length" class="muted">لا توجد عمليات مسح.</p>
+            <ul class="plain"><li v-for="s in scans" :key="s.outcome"><span>{{ s.outcome }}</span><b>{{ num(s.total) }}</b></li></ul>
+          </div>
+          <div class="card" v-if="notifStats">
+            <h3>الإشعارات <span class="muted small">(آخر 30 يومًا)</span></h3>
+            <ul class="plain">
+              <li><span>المرسلة إلى صناديق المستخدمين</span><b>{{ num(notifStats.inbox_total) }}</b></li>
+              <li><span>غير المقروءة</span><b>{{ num(notifStats.inbox_unread) }}</b></li>
+              <li><span>أجهزة مسجّلة للإشعارات</span><b>{{ num(notifStats.devices_registered) }}</b></li>
+              <li><span>مستخدمون لديهم جهاز</span><b>{{ num(notifStats.users_with_device) }}</b></li>
+              <li v-for="k in notifStats.by_kind" :key="k.kind"><span class="muted">نوع: {{ k.kind }}</span><b>{{ num(k.total) }}</b></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== notifications -->
+      <section v-if="tab === 'notifications'">
+        <div class="section-head"><h2>إرسال إشعار</h2></div>
+        <form class="card form" @submit.prevent="askSend">
+          <p v-if="!config.announcementsReady" class="notice" role="note">
+            الإرسال متوقف: نسخة التطبيق الحالية لا تستطيع عرض الإعلانات. فعّله من
+            <code>admin/config.js</code> (<code>announcementsReady</code>) بعد إصدار التطبيق المحدّث.
+          </p>
+          <label>إلى
+            <select v-model="notice.target">
+              <option value="all">الجميع</option>
+              <option value="buyers">كل المشترين</option>
+              <option value="owners">كل أصحاب المخابز</option>
+              <option value="store">صاحب مخبز محدد</option>
+            </select>
+          </label>
+          <label v-if="notice.target === 'store'">المخبز
+            <select v-model="notice.storeId" required>
+              <option value="" disabled>اختر مخبزًا</option>
+              <option v-for="s in storesWithOwner" :key="s.store_id" :value="s.store_id">{{ s.name }} — {{ s.owner_name }}</option>
+            </select>
+          </label>
+          <label>العنوان <span class="muted small">({{ notice.title.length }}/80)</span>
+            <input v-model.trim="notice.title" maxlength="80" required>
+          </label>
+          <label>النص <span class="muted small">({{ notice.body.length }}/400)</span>
+            <textarea v-model.trim="notice.body" maxlength="400" rows="4" required></textarea>
+          </label>
+          <button class="btn primary" :disabled="!config.announcementsReady || busy">إرسال</button>
+        </form>
+      </section>
+
+    </main>
+
+    <!-- ======================================================= toast -->
+    <div v-if="toast" class="toast" role="status">{{ toast }}</div>
+  </div>
+
+  <!-- ================================================ create bakery -->
+  <div v-if="createOpen" class="overlay" @click.self="createOpen = false">
+    <form class="card modal" @submit.prevent="submitCreate" role="dialog" aria-modal="true" aria-label="مخبز جديد">
+      <h3>مخبز جديد</h3>
+      <p class="muted small">يُنشأ حساب صاحب المخبز والمخبز معًا. سيظهر رمز الدخول (PIN) مرة واحدة فقط.</p>
+      <div class="form-grid">
+        <label>اسم المخبز<input v-model.trim="form.storeName" required></label>
+        <label>المنطقة<input v-model.trim="form.area"></label>
+        <label>المحافظة
+          <select v-model="form.governorate" required>
+            <option v-for="g in governorates" :key="g" :value="g">{{ g }}</option>
+          </select>
+        </label>
+        <label>اسم صاحب المخبز<input v-model.trim="form.ownerName" required></label>
+        <label>رقم الجوال<input v-model.trim="form.phone" dir="ltr" inputmode="numeric" maxlength="10" placeholder="05XXXXXXXX" required></label>
+        <label>رقم الهوية<input v-model.trim="form.nationalId" dir="ltr" inputmode="numeric" maxlength="9" required></label>
+        <label>الكمية اليومية<input type="number" min="0" step="1" v-model.number="form.dailyBagLimit" required></label>
+        <label>سعر الربطة (₪)<input type="number" min="0" step="0.25" v-model.number="form.bagPrice" required></label>
+        <label>حجم الدفعة<input type="number" min="1" step="1" v-model.number="form.batchSize" required></label>
+      </div>
+      <p v-if="modalError" class="error" role="alert">{{ modalError }}</p>
+      <div class="row end">
+        <button type="button" class="btn ghost" @click="createOpen = false">إلغاء</button>
+        <button class="btn primary" :disabled="busy">{{ busy ? 'جارٍ الإنشاء…' : 'إنشاء' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===================================================== edit bakery -->
+  <div v-if="editing" class="overlay" @click.self="editing = null">
+    <form class="card modal" @submit.prevent="submitEdit" role="dialog" aria-modal="true" aria-label="تعديل المخبز">
+      <h3>تعديل: {{ editing.name }}</h3>
+      <div class="form-grid">
+        <label>اسم المخبز<input v-model.trim="editForm.name" required></label>
+        <label>المنطقة<input v-model.trim="editForm.area"></label>
+        <label>المحافظة
+          <select v-model="editForm.governorate"><option v-for="g in governorates" :key="g" :value="g">{{ g }}</option></select>
+        </label>
+        <label>الكمية اليومية<input type="number" min="0" step="1" v-model.number="editForm.dailyBagLimit" required></label>
+        <label>سعر الربطة (₪)<input type="number" min="0" step="0.25" v-model.number="editForm.bagPrice" required></label>
+        <label>حجم الدفعة<input type="number" min="1" step="1" v-model.number="editForm.batchSize" required></label>
+        <label>يفتح البيع<input type="time" v-model="editForm.openTime"></label>
+        <label>يغلق البيع<input type="time" v-model="editForm.closeTime"></label>
+      </div>
+      <p class="muted small">تغيير الكمية يعيد حساب المتبقي لليوم، ولا يمكن أن تقل عن حجوزات الغد.</p>
+      <p v-if="modalError" class="error" role="alert">{{ modalError }}</p>
+      <div class="row end">
+        <button type="button" class="btn ghost" @click="editing = null">إلغاء</button>
+        <button class="btn primary" :disabled="busy">{{ busy ? 'جارٍ الحفظ…' : 'حفظ' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ============================================== one-time PIN reveal -->
+  <div v-if="reveal" class="overlay">
+    <div class="card modal narrow" role="dialog" aria-modal="true" aria-label="رمز الدخول">
+      <h3>{{ reveal.title }}</h3>
+      <p>{{ reveal.who }}</p>
+      <div class="pin" dir="ltr" aria-label="الرمز السري">{{ reveal.pin }}</div>
+      <p class="notice" role="note">يظهر هذا الرمز <b>مرة واحدة فقط</b>. انسخه وأرسله لصاحب الحساب الآن؛ لن تستطيع رؤيته لاحقًا (يمكنك فقط توليد رمز جديد).</p>
+      <div class="row end">
+        <button class="btn" @click="copyPin">{{ copied ? 'تم النسخ ✓' : 'نسخ الرمز' }}</button>
+        <a v-if="waUrl()" class="btn" :href="waUrl()" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a>
+        <button class="btn primary" @click="closeReveal">تم، أغلق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================== confirm -->
+  <div v-if="confirm" class="overlay" @click.self="confirm = null">
+    <div class="card modal narrow" role="alertdialog" aria-modal="true" :aria-label="confirm.title">
+      <h3>{{ confirm.title }}</h3>
+      <p>{{ confirm.body }}</p>
+      <p v-if="modalError" class="error" role="alert">{{ modalError }}</p>
+      <div class="row end">
+        <button class="btn ghost" @click="confirm = null">إلغاء</button>
+        <button class="btn" :class="confirm.danger ? 'danger' : 'primary'" :disabled="busy" @click="runConfirm">{{ confirm.label }}</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.4.38/dist/vue.global.prod.js"
+        integrity="sha384-Z9a2xA0EIaURxthVmeQmPrgSC05eG8Lch8X4Y2+lXpTg9wcxPj2m3QNurDl5hLiS" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"
+        integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

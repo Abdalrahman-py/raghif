@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/account/account_screen.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
@@ -14,11 +15,8 @@ class _FailingProfileRepository extends FakeAuthRepository {
     : super(users: [user], sessionUserId: user.id);
 
   @override
-  Future<UserModel> updateProfile({
-    required String name,
-    required String phone,
-    required String jawwalPayNumber,
-  }) async => throw Exception('offline');
+  Future<UserModel> updateProfile({required String name}) async =>
+      throw Exception('offline');
 }
 
 class _PendingProfileRepository extends FakeAuthRepository {
@@ -28,20 +26,14 @@ class _PendingProfileRepository extends FakeAuthRepository {
   final pending = Completer<UserModel>();
 
   @override
-  Future<UserModel> updateProfile({
-    required String name,
-    required String phone,
-    required String jawwalPayNumber,
-  }) => pending.future;
+  Future<UserModel> updateProfile({required String name}) => pending.future;
 }
 
 void main() {
   const user = UserModel(
     id: 'account-a',
     phone: '0599111111',
-    nationalId: '900111222',
     name: 'أحمد ناصر',
-    jawwalPayNumber: '0599333333',
   );
   testWidgets(
     'drag cannot dismiss pending save or lose edits after delayed failure',
@@ -109,17 +101,20 @@ void main() {
     await tester.tap(find.text('تعديل البيانات'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('profile-name')), 'اسم جديد');
-    await tester.enterText(
-      find.byKey(const Key('profile-phone')),
-      '0599444444',
+    // The phone is support-only: the field is there but cannot be edited.
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const Key('profile-phone')))
+          .enabled,
+      isFalse,
     );
+    expect(find.byKey(const Key('phone-support-note')), findsOneWidget);
     await tester.ensureVisible(find.text('حفظ التغييرات'));
     await tester.tap(find.text('حفظ التغييرات'));
     await tester.pumpAndSettle();
     expect(find.byType(TextFormField), findsNothing);
     expect(find.text('اسم جديد'), findsOneWidget);
-    expect(find.text('0599444444'), findsOneWidget);
-    expect((bloc.state as Authenticated).user.nationalId, '900111222');
+    expect(find.text('0599111111'), findsWidgets);
   });
   testWidgets(
     'account displays signed-in data and validates edits without changing identity',
@@ -140,12 +135,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('أحمد ناصر'), findsOneWidget);
-      expect(find.text('900111222'), findsOneWidget);
-      expect(find.text('0599333333'), findsOneWidget);
+      expect(find.text('0599111111'), findsOneWidget);
       await tester.ensureVisible(find.text('تعديل البيانات'));
       await tester.tap(find.text('تعديل البيانات'));
       await tester.pumpAndSettle();
-      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(find.byType(TextFormField), findsNWidgets(2));
       await tester.enterText(find.byKey(const Key('profile-name')), '');
       await tester.ensureVisible(find.text('حفظ التغييرات'));
       await tester.tap(find.text('حفظ التغييرات'));
@@ -182,4 +176,46 @@ void main() {
     );
     expect(bloc.state, isA<Authenticated>());
   });
+
+  testWidgets(
+    'privacy, terms and delete-account live in the three-dots menu, not the page',
+    (tester) async {
+      final bloc = AuthBloc(
+        authRepository: FakeAuthRepository(
+          users: const [user],
+          sessionUserId: 'account-a',
+        ),
+      );
+      addTearDown(bloc.close);
+      bloc.add(const CheckAuthSessionEvent());
+      await tester.pumpWidget(
+        BlocProvider.value(
+          value: bloc,
+          child: const MaterialApp(home: AccountScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.privacyTitle), findsNothing);
+      expect(find.text(Strings.termsTitle), findsNothing);
+      expect(find.text(Strings.deleteAccountTitle), findsNothing);
+
+      await tester.tap(find.byKey(const Key('account-menu')));
+      await tester.pumpAndSettle();
+      expect(find.text(Strings.privacyTitle), findsOneWidget);
+      expect(find.text(Strings.termsTitle), findsOneWidget);
+      expect(find.text(Strings.deleteAccountTitle), findsOneWidget);
+
+      await tester.tap(find.text(Strings.deleteAccountTitle));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(Strings.contactSupportWhatsapp),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

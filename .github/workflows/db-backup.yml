@@ -1,0 +1,58 @@
+name: Database backup
+
+# Nightly encrypted dump of the Supabase database, for projects on a plan with
+# no built-in backups (Supabase Free has none).
+#
+# Setup, once, in Settings > Secrets and variables > Actions:
+#   SUPABASE_DB_URL   the direct connection string of the project
+#                     (Project settings > Database > Connection string, with the
+#                     database password filled in)
+#   BACKUP_PASSPHRASE a long random passphrase; keep a copy in a password
+#                     manager: without it a backup cannot be opened
+#
+# The dump contains personal data, so it is encrypted with the passphrase before
+# it is stored, and the artifact is kept only 14 days. Restore with:
+#   openssl enc -d -aes-256-cbc -pbkdf2 -in raghif.sql.gz.enc -pass env:BACKUP_PASSPHRASE | gunzip | psql "$DB_URL"
+# The nightly schedule is switched off until the project moves to a plan with
+# backups (or the secrets above are set). Re-add under `on:`:
+#   schedule:
+#     - cron: "45 21 * * *"
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check the secrets exist
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$PASS" ]; then
+            echo "SUPABASE_DB_URL and BACKUP_PASSPHRASE must be set" >&2
+            exit 1
+          fi
+
+      - name: Dump and encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
+          pg_dump "$DB_URL" --no-owner --no-privileges --schema=public --schema=auth \
+            | gzip \
+            | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE \
+            > raghif.sql.gz.enc
+          ls -la raghif.sql.gz.enc
+          test -s raghif.sql.gz.enc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raghif-db-${{ github.run_id }}
+          path: raghif.sql.gz.enc
+          retention-days: 14

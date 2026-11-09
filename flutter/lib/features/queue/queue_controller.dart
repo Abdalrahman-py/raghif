@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../../core/cache/offline_cache.dart';
 import '../../core/di/injection.dart';
 import '../../domain/models/customer_summary_model.dart';
 import '../../domain/models/purchase_model.dart';
@@ -19,12 +20,18 @@ import 'queue_logic.dart';
 /// "1" on one device, "store_1" in a QR code and a different row on the
 /// server.
 class QueueController extends ChangeNotifier {
-  QueueController([QueueRepository? repository])
-    : _repository = repository ?? sl<QueueRepository>() {
+  QueueController([QueueRepository? repository, OfflineCache? cache])
+    : _repository = repository ?? sl<QueueRepository>(),
+      _cache = cache {
     _init();
   }
 
   final QueueRepository _repository;
+
+  /// What the buyer last saw, for when the server cannot be reached. Null in
+  /// tests and anywhere offline reading is not wanted.
+  final OfflineCache? _cache;
+  bool _storeListStale = false;
   StreamSubscription<List<StoreModel>>? _storesSub;
   List<StoreModel> _stores = [];
   bool _storesLoaded = false;
@@ -53,6 +60,10 @@ class QueueController extends ChangeNotifier {
   bool get storeListLoaded => _storeListLoaded;
   bool get storeListFailed => _storeListFailed;
 
+  /// The bakery list on screen is the saved copy from the last time the
+  /// server answered, because it cannot be reached now.
+  bool get storeListStale => _storeListStale;
+
   Future<void> refreshStores() async {
     final request = ++_storesRequest;
     _storesFailed = false;
@@ -70,7 +81,18 @@ class QueueController extends ChangeNotifier {
     await _repository.refresh();
   }
 
-  void resetForSession() {
+  /// Pull-to-refresh: asks every watching screen to read again. Nothing else
+  /// downloads on its own (there is no live connection), so this, the retry
+  /// buttons, coming back to the app and a push are how data is renewed.
+  Future<void> refreshAll() async {
+    await _repository.refresh();
+    // The reads run in the background; give the spinner a moment to show.
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+  }
+
+  /// [clearCache] is false when a session is merely being restored (app
+  /// start): the saved copy is exactly what an offline start needs.
+  void resetForSession({bool clearCache = true}) {
     _sessionGeneration++;
     _storeListGeneration++;
     _queueGeneration++;
@@ -80,8 +102,10 @@ class QueueController extends ChangeNotifier {
     _storeList = [];
     _storeListLoaded = false;
     _storeListFailed = false;
+    _storeListStale = false;
     _todayQueue = [];
     _purchaseCache.clear();
+    if (clearCache) _cache?.clear();
     if (!_disposed) notifyListeners();
   }
 
@@ -112,8 +136,20 @@ class QueueController extends ChangeNotifier {
 
   /// The store this owner manages, straight from the server. Replaces the
   /// hardcoded "store #1" the local seed used to guarantee.
-  Future<StoreModel?> storeForOwner(String ownerId) =>
-      _repository.getStoreForOwner(ownerId);
+  ///
+  /// The last answer is saved; with no signal the saved bakery opens the
+  /// dashboard instead of an error page (every write still needs the server).
+  Future<StoreModel?> storeForOwner(String ownerId) async {
+    try {
+      final store = await _repository.getStoreForOwner(ownerId);
+      if (store != null) _cache?.saveOwnerStore(ownerId, store);
+      return store;
+    } catch (_) {
+      final saved = await _cache?.loadOwnerStore(ownerId);
+      if (saved != null) return saved;
+      rethrow;
+    }
+  }
 
   PurchaseModel? cachedPurchase(String id) => _purchaseCache[id];
 
@@ -142,10 +178,26 @@ class QueueController extends ChangeNotifier {
             _storeList = entries;
             _storeListLoaded = true;
             _storeListFailed = false;
+            _storeListStale = false;
+            _cache?.saveStoreList(userId, entries);
             notifyListeners();
           },
-          onError: (_) {
+          onError: (_) async {
             if (_disposed || generation != _storeListGeneration) return;
+            // Nothing on screen yet and no server: show the saved list, marked
+            // as old, instead of an empty error page.
+            if (_storeList.isEmpty && _cache != null) {
+              final saved = await _cache.loadStoreList(userId);
+              if (_disposed || generation != _storeListGeneration) return;
+              if (saved.isNotEmpty) {
+                _storeList = saved;
+                _storeListLoaded = true;
+                _storeListFailed = false;
+                _storeListStale = true;
+                notifyListeners();
+                return;
+              }
+            }
             _storeListFailed = true;
             notifyListeners();
           },
@@ -171,14 +223,12 @@ class QueueController extends ChangeNotifier {
     required String outcome,
     String? purchaseId,
     String? scannedName,
-    String? scannedNationalId,
   }) async {
     await _repository.recordScan(
       storeId: storeId,
       outcome: outcome,
       purchaseId: purchaseId,
       scannedName: scannedName,
-      scannedNationalId: scannedNationalId,
     );
     notifyListeners();
   }
@@ -188,8 +238,30 @@ class QueueController extends ChangeNotifier {
     int limit = 100,
   }) => _repository.getScansForStore(storeId, limit: limit);
 
-  Stream<PurchaseModel?> watchPurchase(String id) =>
-      _repository.watchPurchaseById(id);
+  /// A booking's live state. The last copy is saved on the phone: opened with
+  /// no signal, the receipt (with its QR) still shows what was last seen, and
+  /// the live updates simply resume when the connection returns.
+  Stream<PurchaseModel?> watchPurchase(String id) async* {
+    final cache = _cache;
+    if (cache != null && _purchaseCache[id] == null) {
+      final saved = await cache.loadPurchase(id);
+      if (saved != null && _purchaseCache[id] == null) {
+        _purchaseCache[id] = saved;
+        yield saved;
+      }
+    }
+    yield* _repository
+        .watchPurchaseById(id)
+        // Offline with a saved copy: keep it on screen, no error page.
+        .handleError((_) {}, test: (_) => _purchaseCache[id] != null)
+        .map((purchase) {
+          if (purchase != null) {
+            _purchaseCache[id] = purchase;
+            cache?.savePurchase(purchase);
+          }
+          return purchase;
+        });
+  }
 
   Future<PurchaseModel?> purchaseById(String id) =>
       _repository.getPurchaseById(id);
@@ -202,15 +274,51 @@ class QueueController extends ChangeNotifier {
     _todayQueueSub?.cancel();
     _todayQueueSub = _repository
         .watchQueueForStore(storeId, todayDateString())
-        .listen((queue) {
-          if (_disposed || generation != _queueGeneration) return;
-          _todayQueue = queue;
-          notifyListeners();
-        }, onError: (_) {});
+        .listen(
+          (queue) {
+            if (_disposed || generation != _queueGeneration) return;
+            _todayQueue = queue;
+            _cache?.saveQueue(storeId, todayDateString(), queue);
+            notifyListeners();
+          },
+          onError: (_) async {
+            // No signal: show the last queue seen today.
+            if (_todayQueue.isNotEmpty || _cache == null) return;
+            final saved = await _cache.loadQueue(storeId, todayDateString());
+            if (_disposed || generation != _queueGeneration) return;
+            if (saved != null && _todayQueue.isEmpty) {
+              _todayQueue = saved;
+              notifyListeners();
+            }
+          },
+        );
   }
 
-  Stream<List<PurchaseModel>> watchQueueForStore(String storeId, String date) =>
-      _repository.watchQueueForStore(storeId, date);
+  /// A bakery's queue for [date], live. The last copy is saved: with no signal
+  /// the owner still sees the queue as it last was (and the stream resumes on
+  /// its own when the connection returns).
+  Stream<List<PurchaseModel>> watchQueueForStore(
+    String storeId,
+    String date,
+  ) async* {
+    final cache = _cache;
+    var shown = false;
+    if (cache != null) {
+      final saved = await cache.loadQueue(storeId, date);
+      if (saved != null) {
+        shown = true;
+        yield saved;
+      }
+    }
+    yield* _repository
+        .watchQueueForStore(storeId, date)
+        .handleError((_) {}, test: (_) => shown)
+        .map((queue) {
+          shown = true;
+          cache?.saveQueue(storeId, date, queue);
+          return queue;
+        });
+  }
 
   Future<List<PurchaseModel>> queueForStore(String storeId, String date) =>
       _repository.getQueueForStore(storeId, date);
@@ -248,6 +356,17 @@ class QueueController extends ChangeNotifier {
     notifyListeners();
     // The "purchase confirmed" push is sent by the backend (notify-batch).
     return purchase;
+  }
+
+  /// Records the (simulated) wallet payment for a booking just made. A failure
+  /// is not fatal: the booking stands and the bakery will ask for cash.
+  Future<void> recordWalletPayment(String purchaseId) async {
+    await _repository.recordWalletPayment(purchaseId);
+    final cached = _purchaseCache[purchaseId];
+    if (cached != null) {
+      _purchaseCache[purchaseId] = cached.copyWith(paymentMethod: 'simulated');
+      notifyListeners();
+    }
   }
 
   /// Owner action: release the next un-notified batch. The push to those

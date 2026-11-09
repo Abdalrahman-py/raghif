@@ -19,6 +19,19 @@ every screen reads the server.
 | [constitution.md](constitution.md) | Non-negotiable project rules — read before changing anything |
 | [TASKS.md](TASKS.md) | Flutter build backlog |
 | `flutter/` | Flutter app |
+| `admin/` | Developer-only admin panel (Vue via CDN, no build) — [admin/README.md](admin/README.md) |
+
+## Admin panel
+
+A programmer-only web panel manages bakeries, buyers, statistics and announcements.
+It is plain HTML/CSS/Vue and talks to Supabase with the public key; every action is
+checked server-side (`is_admin()` in the `admin_*` functions and the `admin-api` edge function).
+
+- Live site: https://obaidaalaff.github.io/raghif-admin/ (published from the public repo
+  [ObaidaAlaff/raghif-admin](https://github.com/ObaidaAlaff/raghif-admin)).
+- Administrators are rows in `public.admins`; create the Auth user in the Supabase dashboard first.
+- Plan, phases and rollback: `docs/superpowers/plans/2026-11-04-admin-panel.md`,
+  `flutter/supabase/rollback/20261104_admin_panel_rollback.sql`.
 
 ## Stack
 
@@ -43,12 +56,12 @@ by the `seed-demo` Edge Function action, not by the app.
 |---|---|
 | App | Flutter |
 | Backend | Supabase (Postgres + realtime) |
-| Auth | Phone + national ID + local 4-digit PIN |
+| Auth | Jawwal Pay phone number + 4-digit PIN (no national ID) |
 | Push | FCM |
 
 ## Business rules
 
-- One bag per national ID per day across all stores, no cancellations
+- One bag per account (phone number) per day across all stores, no cancellations
 - Owner-set daily batch size
 - Bilingual AR/EN
 

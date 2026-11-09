@@ -10,40 +10,27 @@ import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 class _Repository extends Mock implements AuthRepository {}
 
 void main() {
-  const user = UserModel(
-    id: 'a',
-    phone: '0599111111',
-    nationalId: '900111222',
-    name: 'أحمد',
-  );
-  const event = UpdateProfileRequestedEvent(
-    name: 'محمد',
-    phone: '0599222222',
-    jawwalPayNumber: '',
-  );
+  const user = UserModel(id: 'a', phone: '0599111111', name: 'أحمد');
+  const event = UpdateProfileRequestedEvent(name: 'محمد');
   late _Repository repository;
   setUp(() => repository = _Repository());
   void stub(Future<UserModel> Function() response) {
     when(
-      () => repository.updateProfile(
-        name: 'محمد',
-        phone: '0599222222',
-        jawwalPayNumber: '',
-      ),
+      () => repository.updateProfile(name: 'محمد'),
     ).thenAnswer((_) => response());
   }
 
   blocTest<AuthBloc, AuthState>(
     'profile save remains authenticated and uses the server profile',
     build: () {
-      stub(() async => user.copyWith(name: 'محمد', phone: '0599222222'));
+      stub(() async => user.copyWith(name: 'محمد'));
       return AuthBloc(authRepository: repository);
     },
     seed: () => const Authenticated(user),
     act: (bloc) => bloc.add(event),
     expect: () => [
       const Authenticated(user, profileSaving: true),
-      Authenticated(user.copyWith(name: 'محمد', phone: '0599222222')),
+      Authenticated(user.copyWith(name: 'محمد')),
     ],
   );
 

@@ -10,8 +10,8 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/store_model.dart';
-import 'owner_customers_screen.dart';
-import 'owner_history_screen.dart';
+import '../../domain/models/store_day_summary.dart';
+import 'owner_history_screen.dart' show weekdayNameFor;
 import 'owner_queue_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -52,6 +52,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   String? _savedOpenTime;
   String? _savedCloseTime;
   bool _settingsLoaded = false;
+
+  /// True while the allocation write is in flight; blocks repeat taps.
+  bool _saving = false;
+
+  /// True while an open/close write is in flight.
+  bool _togglingOpen = false;
 
   @override
   void initState() {
@@ -109,6 +115,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   /// Opening is immediate; closing asks first, since it stops every buyer
   /// and the switch is a whole-card tap target.
   Future<void> _setStoreOpen(bool open) async {
+    if (_togglingOpen) return;
     if (!open) {
       final confirmed = await confirmAction(
         context,
@@ -117,25 +124,40 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         confirmLabel: Strings.closeStoreConfirmAction,
       );
       if (!confirmed || !mounted) return;
+      // The dialog is modal, so a second tap can't arrive while it is up; the
+      // guard only has to cover the write itself.
+      if (_togglingOpen) return;
     }
-    await guardWrite(
-      context,
-      () => widget.controller.setStoreOpen(widget.storeId, open),
-    );
+    setState(() => _togglingOpen = true);
+    try {
+      await guardWrite(
+        context,
+        () => widget.controller.setStoreOpen(widget.storeId, open),
+      );
+    } finally {
+      if (mounted) setState(() => _togglingOpen = false);
+    }
   }
 
   Future<void> _save(StoreModel store) async {
-    final saved = await guardWrite(
-      context,
-      () => widget.controller.saveAllocation(
-        widget.storeId,
-        dailyBagLimit: _allocation,
-        batchSize: store.batchSize,
-        today: todayDateString(),
-        openTime: _openTime,
-        closeTime: _closeTime,
-      ),
-    );
+    if (_saving) return;
+    setState(() => _saving = true);
+    final bool saved;
+    try {
+      saved = await guardWrite(
+        context,
+        () => widget.controller.saveAllocation(
+          widget.storeId,
+          dailyBagLimit: _allocation,
+          batchSize: store.batchSize,
+          today: todayDateString(),
+          openTime: _openTime,
+          closeTime: _closeTime,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
     // Unsaved stays dirty, so the save button is still there to retry.
     if (!saved || !mounted) return;
     setState(() {
@@ -161,10 +183,33 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           listenable: widget.controller,
           builder: (context, _) => Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
-                child: Icon(Icons.storefront_outlined),
+              // The profile button sits where the bakery logo used to: the
+              // owner knows which bakery this is, but needs a way to the
+              // account (which also holds sign-out).
+              Semantics(
+                button: true,
+                label: 'حسابي',
+                child: Tooltip(
+                  message: 'حسابي',
+                  child: InkResponse(
+                    radius: 28,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AccountScreen()),
+                    ),
+                    // 48dp tap target around the 40dp avatar.
+                    child: const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: CircleAvatar(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: Colors.white,
+                          child: Icon(Icons.person_outline),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -181,13 +226,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'حسابي',
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
-          ),
-          IconButton(
             tooltip: 'الإشعارات',
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
@@ -203,18 +241,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   pin: '',
                   role: u.role,
                   name: u.name,
-                  jawwalPayNumber: u.jawwalPayNumber,
                 ),
                 sl.isRegistered<NotificationRepository>()
                     ? sl<NotificationRepository>()
                     : null,
               );
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: Strings.logout,
-            onPressed: () => confirmLogout(context),
           ),
         ],
       ),
@@ -237,87 +269,100 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 480),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              Strings.ownerDashboardTitle,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              'نظرة عامة على متجرك',
-                              style: Theme.of(context).textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _HeroCard(store: store),
-                            const SizedBox(height: AppSpacing.md),
-                            _DailyStats(
-                              remaining: store?.bagsRemaining ?? 0,
-                              allocation: store?.dailyBagLimit ?? 0,
-                              pendingPickup: pendingPickupCount(
-                                widget.controller.todayQueue,
+                      child: RefreshIndicator(
+                        onRefresh: widget.controller.refreshAll,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                Strings.ownerDashboardTitle,
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _StoreOpenCard(
-                              isOpen: store?.isOpen ?? false,
-                              onChanged: (value) {
-                                // A gate change deserves tactile confirmation:
-                                // the owner's eyes are on the queue, not the
-                                // switch.
-                                HapticFeedback.selectionClick();
-                                _setStoreOpen(value);
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            _SettingsCard(
-                              isDirty: _isDirty,
-                              windowInverted: _windowInverted,
-                              allocation: _allocation,
-                              openTime: _openTime,
-                              closeTime: _closeTime,
-                              onAllocationChanged: (value) =>
-                                  setState(() => _allocation = value),
-                              onPickOpenTime: () => _pickTime(isOpenTime: true),
-                              onPickCloseTime: () =>
-                                  _pickTime(isOpenTime: false),
-                              onSave: store == null ? null : () => _save(store),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'إجراءات سريعة',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              onTap: () => _push(
-                                OwnerCustomersScreen(
-                                  controller: widget.controller,
-                                  storeId: widget.storeId,
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'نظرة عامة على متجرك',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              _DailyStats(
+                                remaining: store?.bagsRemaining ?? 0,
+                                allocation: store?.dailyBagLimit ?? 0,
+                                pendingPickup: pendingPickupCount(
+                                  widget.controller.todayQueue,
                                 ),
                               ),
-                              child: const _NavRow(
-                                icon: Icons.people_outline,
-                                label: Strings.customersButton,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            AppCard(
-                              onTap: () => _push(
-                                OwnerHistoryScreen(
-                                  controller: widget.controller,
-                                  storeId: widget.storeId,
+                              _StockStatus(store: store),
+                              if (store != null)
+                                Builder(
+                                  builder: (context) {
+                                    final suggestion = suggestNextBatch(
+                                      widget.controller.todayQueue,
+                                      batchSize: store.batchSize,
+                                    );
+                                    if (suggestion == null) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: AppSpacing.md,
+                                      ),
+                                      child: _NextBatchCard(
+                                        suggestion: suggestion,
+                                        onOpen: () => _push(
+                                          OwnerQueueScreen(
+                                            controller: widget.controller,
+                                            storeId: widget.storeId,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
+                              const SizedBox(height: AppSpacing.md),
+                              _WeeklyStatsCard(
+                                load: () =>
+                                    widget.controller.dailySummariesForStore(
+                                      widget.storeId,
+                                      limit: 7,
+                                    ),
                               ),
-                              child: const _NavRow(
-                                icon: Icons.receipt_long_outlined,
-                                label: Strings.historyButton,
+                              const SizedBox(height: AppSpacing.md),
+                              _StoreOpenCard(
+                                isOpen: store?.isOpen ?? false,
+                                busy: _togglingOpen,
+                                onChanged: (value) {
+                                  // A gate change deserves tactile confirmation:
+                                  // the owner's eyes are on the queue, not the
+                                  // switch.
+                                  HapticFeedback.selectionClick();
+                                  _setStoreOpen(value);
+                                },
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: AppSpacing.md),
+                              _SettingsCard(
+                                isDirty: _isDirty,
+                                saving: _saving,
+                                windowInverted: _windowInverted,
+                                allocation: _allocation,
+                                openTime: _openTime,
+                                closeTime: _closeTime,
+                                onAllocationChanged: (value) =>
+                                    setState(() => _allocation = value),
+                                onPickOpenTime: () =>
+                                    _pickTime(isOpenTime: true),
+                                onPickCloseTime: () =>
+                                    _pickTime(isOpenTime: false),
+                                onSave: store == null
+                                    ? null
+                                    : () => _save(store),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -474,132 +519,36 @@ class _SmallStat extends StatelessWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.store});
+/// Out-of-stock / low-stock notice. The numbers themselves live in
+/// [_DailyStats]; this only adds the sentence that says what to do about them
+/// (icon + text, never color alone — UI_SPEC.md). Sold out supersedes low
+/// stock: the two need different actions.
+class _StockStatus extends StatelessWidget {
+  const _StockStatus({required this.store});
 
   final StoreModel? store;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final remaining = store?.bagsRemaining ?? 0;
-    final limit = store?.dailyBagLimit ?? 0;
-
-    // Sold out supersedes low stock: the two need different actions, and two
-    // stacked warnings read as noise. Both stay icon + sentence, never color
-    // alone (UI_SPEC.md).
-    final Widget? statusLine;
+    final Widget chip;
     if (remaining <= 0) {
-      statusLine = const StatusChip(
+      chip = const StatusChip(
         text: Strings.outOfStockNotice,
         tone: StatusTone.danger,
       );
     } else if (store != null && isLowStock(store!)) {
-      statusLine = StatusChip(
+      chip = StatusChip(
         text: Strings.lowStockWarning(remaining),
         tone: StatusTone.warning,
         icon: Icons.warning_amber_rounded,
       );
     } else {
-      statusLine = null;
+      return const SizedBox.shrink();
     }
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                backgroundColor: AppColors.background,
-                foregroundColor: AppColors.accent,
-                child: Icon(Icons.bakery_dining_outlined),
-              ),
-              const Spacer(),
-              const SizedBox(width: AppSpacing.sm),
-              const StatusChip(
-                text: Strings.todayLabel,
-                tone: StatusTone.neutral,
-                icon: Icons.today,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(Strings.remainingLabel, style: textTheme.bodyLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Semantics(
-            label: Strings.bagsRemaining(remaining, limit),
-            child: Text(
-              Strings.remainingValue(remaining, limit),
-              style: textTheme.displaySmall?.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _StockBar(remaining: remaining, limit: limit),
-          if (statusLine != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: statusLine,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Depletion of today's allocation. The counter above carries the same
-/// information as text, so the bar is faster-to-read redundancy — and it
-/// carries a semantics label so the number is still announced as words.
-class _StockBar extends StatelessWidget {
-  const _StockBar({required this.remaining, required this.limit});
-
-  final int remaining;
-  final int limit;
-
-  @override
-  Widget build(BuildContext context) {
-    final fraction = limit <= 0 ? 0.0 : (remaining / limit).clamp(0.0, 1.0);
-    final soldOut = remaining <= 0;
-    final low = !soldOut && remaining <= lowStockThreshold;
-    final fill = soldOut
-        ? AppColors.danger
-        : low
-        ? AppColors.warning
-        : AppColors.accent;
-    // An empty track is all a sold-out bar would show, so the track itself
-    // carries the state tint instead of staying neutral while nothing is left.
-    final track = soldOut
-        ? AppColors.dangerContainer
-        : low
-        ? AppColors.warningContainer
-        : AppColors.border;
-    return Semantics(
-      label: Strings.bagsRemaining(remaining, limit),
-      child: Container(
-        height: 10,
-        decoration: BoxDecoration(color: track, borderRadius: AppShapes.small),
-        // Directional: the bar fills from the start edge, which is the right
-        // edge in this RTL-only app.
-        child: Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: FractionallySizedBox(
-            widthFactor: fraction,
-            heightFactor: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: fill,
-                borderRadius: AppShapes.small,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Align(alignment: AlignmentDirectional.centerStart, child: chip),
     );
   }
 }
@@ -608,16 +557,23 @@ class _StockBar extends StatelessWidget {
 /// is the tap target; the switch writes immediately (a gate, not a setting to
 /// remember to save) and buyer-side `canPurchase` reads the same flag.
 class _StoreOpenCard extends StatelessWidget {
-  const _StoreOpenCard({required this.isOpen, required this.onChanged});
+  const _StoreOpenCard({
+    required this.isOpen,
+    required this.busy,
+    required this.onChanged,
+  });
 
   final bool isOpen;
+
+  /// A write is in flight: the card ignores taps and shows a spinner.
+  final bool busy;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return AppCard(
-      onTap: () => onChanged(!isOpen),
+      onTap: busy ? null : () => onChanged(!isOpen),
       child: Semantics(
         label: Strings.storeOpenSwitchLabel,
         toggled: isOpen,
@@ -654,7 +610,13 @@ class _StoreOpenCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Switch(value: isOpen, onChanged: onChanged),
+            busy
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : Switch(value: isOpen, onChanged: onChanged),
           ],
         ),
       ),
@@ -666,6 +628,7 @@ class _StoreOpenCard extends StatelessWidget {
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
     required this.isDirty,
+    required this.saving,
     required this.windowInverted,
     required this.allocation,
     required this.openTime,
@@ -677,6 +640,7 @@ class _SettingsCard extends StatelessWidget {
   });
 
   final bool isDirty;
+  final bool saving;
   final bool windowInverted;
   final int allocation;
   final String? openTime;
@@ -695,17 +659,25 @@ class _SettingsCard extends StatelessWidget {
         children: [
           Text(Strings.todaySettingsTitle, style: textTheme.titleMedium),
           const SizedBox(height: AppSpacing.md),
-          Text(Strings.allocationLabel, style: textTheme.bodyLarge),
-          const SizedBox(height: AppSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: NumberStepper(
-              value: allocation,
-              onChanged: onAllocationChanged,
-              step: 10,
-              decrementLabel: Strings.decreaseValue,
-              incrementLabel: Strings.increaseValue,
-            ),
+          // The label and its stepper share one row, so the control sits right
+          // beside the words it changes.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Strings.allocationLabel,
+                  style: textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              NumberStepper(
+                value: allocation,
+                onChanged: onAllocationChanged,
+                step: 10,
+                decrementLabel: Strings.decreaseValue,
+                incrementLabel: Strings.increaseValue,
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1, thickness: 1, color: AppColors.border),
@@ -773,6 +745,7 @@ class _SettingsCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             SecondaryButton(
               text: Strings.saveTodaySettings,
+              loading: saving,
               onPressed: windowInverted ? null : onSave,
             ),
           ] else
@@ -845,34 +818,109 @@ class _TimePickerField extends StatelessWidget {
   }
 }
 
-/// A read-only destination inside the scroll (customers, sales history): full
-/// label, a directional chevron and a 56dp row, so it stays as legible to an
-/// older user as the pinned button it replaced.
-class _NavRow extends StatelessWidget {
-  const _NavRow({required this.icon, required this.label});
+/// "Call the next batch" nudge. Opens the queue; the owner confirms there.
+class _NextBatchCard extends StatelessWidget {
+  const _NextBatchCard({required this.suggestion, required this.onOpen});
 
-  final IconData icon;
-  final String label;
+  final NextBatchSuggestion suggestion;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 56),
+    final textTheme = Theme.of(context).textTheme;
+    return AppCard(
+      onTap: onOpen,
       child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: AppColors.background,
             foregroundColor: AppColors.accent,
-            child: Icon(icon, size: 24),
+            child: Icon(Icons.notifications_active_outlined),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Strings.suggestBatchTitle(suggestion.batch),
+                  style: textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  Strings.suggestBatchBody(suggestion.count),
+                  style: textTheme.bodyMedium,
+                ),
+              ],
+            ),
           ),
-          // Forward, in a right-to-left layout.
-          const Icon(Icons.chevron_left, size: 24, color: AppColors.slate),
+          const Icon(Icons.chevron_left),
         ],
       ),
+    );
+  }
+}
+
+/// Sales over the last seven days, from the per-day summaries.
+class _WeeklyStatsCard extends StatefulWidget {
+  const _WeeklyStatsCard({required this.load});
+
+  final Future<List<StoreDaySummary>> Function() load;
+
+  @override
+  State<_WeeklyStatsCard> createState() => _WeeklyStatsCardState();
+}
+
+class _WeeklyStatsCardState extends State<_WeeklyStatsCard> {
+  late final Future<List<StoreDaySummary>> _days = widget.load();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return FutureBuilder<List<StoreDaySummary>>(
+      future: _days,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final stats = weeklyStats(snapshot.data!);
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Strings.weeklyTitle, style: textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.sm),
+              if (stats.sold == 0)
+                Text(Strings.weeklyEmpty, style: textTheme.bodyMedium)
+              else ...[
+                Text(
+                  Strings.weeklySold(stats.sold),
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${Strings.weeklyCollected(stats.collectedPercent)} · '
+                  '${Strings.weeklyAverage(stats.dailyAverage)}',
+                  style: textTheme.bodyMedium,
+                ),
+                if (stats.cash > 0)
+                  Text(
+                    Strings.weeklyCash(stats.cash.toStringAsFixed(0)),
+                    style: textTheme.bodyMedium,
+                  ),
+                if (stats.bestDate != null)
+                  Text(
+                    Strings.weeklyBest(
+                      weekdayNameFor(stats.bestDate!),
+                      stats.bestSold,
+                    ),
+                    style: textTheme.bodyMedium,
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -102,12 +102,17 @@ class _PaymentNumberScreenState extends State<PaymentNumberScreen> {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: AppColors.accentContainer,
-                              borderRadius: BorderRadius.all(Radius.circular(16)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(16),
+                              ),
                             ),
                             child: Padding(
                               padding: EdgeInsets.all(12),
-                              child: Icon(Icons.account_balance_wallet_outlined,
-                                  color: AppColors.accent, size: 28),
+                              child: Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: AppColors.accent,
+                                size: 28,
+                              ),
                             ),
                           ),
                         ),

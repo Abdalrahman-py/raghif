@@ -40,7 +40,6 @@ class ReceiptStore {
         'createdAt': p.createdAtMillis,
         'userName': p.userName,
         'userPhone': p.userPhone,
-        'userNationalId': p.userNationalId,
         'storeName': p.storeName,
         'postponementCount': p.postponementCount,
       }),
@@ -63,7 +62,6 @@ class ReceiptStore {
         createdAtMillis: j['createdAt'] as int,
         userName: j['userName'] as String?,
         userPhone: j['userPhone'] as String?,
-        userNationalId: j['userNationalId'] as String?,
         storeName: j['storeName'] as String?,
         postponementCount: (j['postponementCount'] as int?) ?? 0,
       );

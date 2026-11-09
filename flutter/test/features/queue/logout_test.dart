@@ -7,11 +7,8 @@ import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/user_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
-import 'package:raghif/features/auth/demo_accounts.dart';
 import 'package:raghif/features/queue/owner_dashboard_screen.dart';
 import 'package:raghif/features/queue/queue_controller.dart';
-import 'package:raghif/features/queue/store_list_screen.dart';
-import '../../goldens/test_fonts.dart';
 
 import '../../support/queue_test_harness.dart';
 
@@ -24,115 +21,39 @@ void main() {
   setUp(() {
     mockAuthBloc = MockAuthBloc();
     controller = buildQueueHarness().controller;
-    when(() => mockAuthBloc.state).thenReturn(const Authenticated(
-      UserModel(
-        id: 'user-1',
-        phone: '0599111111',
-        nationalId: '900111222',
-        name: 'أحمد ناصر',
-        role: UserRole.buyer,
-        verificationStatus: VerificationStatus.verified,
-      ),
-    ));
-  });
-
-  testWidgets('StoreListScreen logout button dispatches LogoutRequestedEvent',
-      (tester) async {
-    await loadAppFonts(tester);
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
-
-    const demoUser = DemoUser(
-      id: seededBuyerId,
-      phone: '0599111111',
-      pin: '1234',
-      role: UserRole.buyer,
-      name: 'أحمد ناصر',
-    );
-
-    await tester.pumpWidget(
-      BlocProvider<AuthBloc>.value(
-        value: mockAuthBloc,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          builder: (context, child) =>
-              Directionality(textDirection: TextDirection.rtl, child: child!),
-          home: StoreListScreen(
-            controller: controller,
-            currentUser: demoUser,
-          ),
+    when(() => mockAuthBloc.state).thenReturn(
+      const Authenticated(
+        UserModel(
+          id: 'user-1',
+          phone: '0599111111',
+          name: 'أحمد ناصر',
+          role: UserRole.buyer,
+          verificationStatus: VerificationStatus.verified,
         ),
       ),
     );
-
-    final logoutButton = find.byTooltip(Strings.logout);
-    expect(logoutButton, findsOneWidget);
-
-    await tester.tap(logoutButton);
-    await tester.pumpAndSettle();
-
-    // Asked first: signing back in means recalling an ID and PIN.
-    expect(find.text(Strings.logoutConfirmTitle), findsOneWidget);
-    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
-
-    await tester.tap(find.text(Strings.logout).last);
-    await tester.pumpAndSettle();
-
-    verify(() => mockAuthBloc.add(const LogoutRequestedEvent())).called(1);
   });
 
-  testWidgets('cancelling the logout confirmation keeps the session',
-      (tester) async {
-    await tester.pumpWidget(
-      BlocProvider<AuthBloc>.value(
-        value: mockAuthBloc,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          home: OwnerDashboardScreen(
-            controller: controller,
-            storeId: seededStoreId,
+  testWidgets(
+    'OwnerDashboardScreen has no logout button; the profile avatar replaces '
+    'the bakery logo',
+    (tester) async {
+      await tester.pumpWidget(
+        BlocProvider<AuthBloc>.value(
+          value: mockAuthBloc,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: OwnerDashboardScreen(
+              controller: controller,
+              storeId: seededStoreId,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.byTooltip(Strings.logout));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(Strings.cancelLabel));
-    await tester.pumpAndSettle();
-
-    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
-  });
-
-  testWidgets('OwnerDashboardScreen logout button dispatches LogoutRequestedEvent',
-      (tester) async {
-    await tester.pumpWidget(
-      BlocProvider<AuthBloc>.value(
-        value: mockAuthBloc,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          home: OwnerDashboardScreen(
-            controller: controller,
-            storeId: seededStoreId,
-          ),
-        ),
-      ),
-    );
-
-    final logoutButton = find.byTooltip(Strings.logout);
-    expect(logoutButton, findsOneWidget);
-
-    await tester.tap(logoutButton);
-    await tester.pumpAndSettle();
-
-    // Asked first: signing back in means recalling an ID and PIN.
-    expect(find.text(Strings.logoutConfirmTitle), findsOneWidget);
-    verifyNever(() => mockAuthBloc.add(const LogoutRequestedEvent()));
-
-    await tester.tap(find.text(Strings.logout).last);
-    await tester.pumpAndSettle();
-
-    verify(() => mockAuthBloc.add(const LogoutRequestedEvent())).called(1);
-  });
+      expect(find.byTooltip(Strings.logout), findsNothing);
+      expect(find.byTooltip('حسابي'), findsOneWidget);
+      expect(find.byIcon(Icons.storefront_outlined), findsNothing);
+    },
+  );
 }

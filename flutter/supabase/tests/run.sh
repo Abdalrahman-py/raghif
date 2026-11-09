@@ -22,4 +22,10 @@ psql < notify_purchase.sql
 psql < notification_inbox.sql
 psql < update_my_profile.sql
 psql < postpone_purchase.sql
+psql < admin_panel.sql
+psql < login_lockout.sql
+psql < cash_payments.sql
+psql < wallet_payment.sql
+psql < housekeeping.sql
+psql < wallet_verification.sql
 echo "SQL tests passed"

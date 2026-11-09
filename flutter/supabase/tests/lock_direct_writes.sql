@@ -26,11 +26,11 @@ insert into auth.users (id) values
   ('00000000-0000-0000-0000-00000000000b'), -- buyer 1
   ('00000000-0000-0000-0000-00000000000c'), -- buyer 2
   ('00000000-0000-0000-0000-00000000000d'); -- other owner
-insert into public.profiles (id, phone, national_id, pin_hash, name, role) values
-  ('00000000-0000-0000-0000-00000000000a', '1', '1', 'secret-hash-a', 'owner', 'owner'),
-  ('00000000-0000-0000-0000-00000000000b', '2', '2', 'secret-hash-b', 'buyer1', 'buyer'),
-  ('00000000-0000-0000-0000-00000000000c', '3', '3', 'secret-hash-c', 'buyer2', 'buyer'),
-  ('00000000-0000-0000-0000-00000000000d', '4', '4', 'secret-hash-d', 'owner2', 'owner');
+insert into public.profiles (id, phone, pin_hash, name, role) values
+  ('00000000-0000-0000-0000-00000000000a', '1', 'secret-hash-a', 'owner', 'owner'),
+  ('00000000-0000-0000-0000-00000000000b', '2', 'secret-hash-b', 'buyer1', 'buyer'),
+  ('00000000-0000-0000-0000-00000000000c', '3', 'secret-hash-c', 'buyer2', 'buyer'),
+  ('00000000-0000-0000-0000-00000000000d', '4', 'secret-hash-d', 'owner2', 'owner');
 insert into public.stores (id, name, owner_id, is_open, daily_bag_limit, bags_remaining, batch_size) values
   ('10000000-0000-0000-0000-000000000001', 'mine',  '00000000-0000-0000-0000-00000000000a', true, 5, 5, 2),
   ('10000000-0000-0000-0000-000000000002', 'other', '00000000-0000-0000-0000-00000000000d', true, 5, 5, 2);

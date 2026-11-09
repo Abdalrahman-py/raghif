@@ -21,9 +21,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(
         // The sign-up handoff pushes RegistrationScreen, which reads AuthBloc.
-        value: AuthBloc(
-          authRepository: FakeAuthRepository(),
-        ),
+        value: AuthBloc(authRepository: FakeAuthRepository()),
         child: MaterialApp(
           theme: AppTheme.light,
           // main.dart forces RTL; the slides have to be measured that way.

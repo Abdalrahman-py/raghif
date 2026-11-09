@@ -9,6 +9,13 @@ void main() {
       service = MockJawwalPayService();
     });
 
+    test('every simulated payment uses the one test code, 1234', () {
+      expect(MockJawwalPayService.simulatedCode, '1234');
+      expect(service.generateCode(), '1234');
+      expect(service.verifyCode('1234'), isTrue);
+      expect(service.verifyCode('4821'), isFalse);
+    });
+
     test('generates a 4-digit code', () {
       final code = service.generateCode();
       expect(code.length, equals(4));

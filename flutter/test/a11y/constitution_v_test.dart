@@ -58,7 +58,8 @@ void main() {
       if (render.size.isEmpty) continue;
       render.text.visitChildren((span) {
         if (span is! TextSpan || (span.text ?? '').trim().isEmpty) return true;
-        final size = span.style?.fontSize ??
+        final size =
+            span.style?.fontSize ??
             render.text.style?.fontSize ??
             14.0; // Flutter's default when nothing sets one
         if (size < minSp) found.add('${size}sp "${span.text}"');
@@ -76,31 +77,25 @@ void main() {
   final screens = <String, Future<void> Function(WidgetTester)>{
     'onboarding': (t) => pump(t, OnboardingScreen(onDone: () {})),
     'login': (t) => pump(
-          t,
-          const LoginScreen(),
-          bloc: AuthBloc(
-            authRepository: FakeAuthRepository(),
-          ),
-        ),
+      t,
+      const LoginScreen(),
+      bloc: AuthBloc(authRepository: FakeAuthRepository()),
+    ),
     'login PIN step': (t) async {
       await pump(
         t,
         const LoginScreen(),
-        bloc: AuthBloc(
-          authRepository: FakeAuthRepository(),
-        ),
+        bloc: AuthBloc(authRepository: FakeAuthRepository()),
       );
-      await t.enterText(fieldByLabel(Strings.personalIdLabel), '900111222');
+      await t.enterText(fieldByLabel(Strings.phoneLabel), '0599111111');
       await t.tap(find.text(Strings.continueButton));
       await t.pumpAndSettle();
     },
     'registration': (t) => pump(
-          t,
-          const RegistrationScreen(),
-          bloc: AuthBloc(
-            authRepository: FakeAuthRepository(),
-          ),
-        ),
+      t,
+      const RegistrationScreen(),
+      bloc: AuthBloc(authRepository: FakeAuthRepository()),
+    ),
     'owner dashboard': (t) async {
       final harness = buildQueueHarness();
       addTearDown(harness.controller.dispose);
@@ -112,7 +107,6 @@ void main() {
           UserModel(
             id: seededOwnerId,
             phone: '0599000002',
-            nationalId: '900333444',
             name: 'صاحب المخبز',
             role: UserRole.owner,
             verificationStatus: VerificationStatus.verified,
@@ -169,7 +163,10 @@ void main() {
     }
 
     final pairs = <String, (Color, Color)>{
-      'textPrimary on background': (AppColors.textPrimary, AppColors.background),
+      'textPrimary on background': (
+        AppColors.textPrimary,
+        AppColors.background,
+      ),
       'textSecondary on background': (
         AppColors.textSecondary,
         AppColors.background,
@@ -181,7 +178,10 @@ void main() {
         AppColors.onAccent,
         AppColors.accent,
       ),
-      'onAccent on accentPressed': (AppColors.onAccent, AppColors.accentPressed),
+      'onAccent on accentPressed': (
+        AppColors.onAccent,
+        AppColors.accentPressed,
+      ),
       'statusOn on success': (AppColors.statusOn, AppColors.success),
       'statusOn on warning': (AppColors.statusOn, AppColors.warning),
       'statusOn on danger': (AppColors.statusOn, AppColors.danger),

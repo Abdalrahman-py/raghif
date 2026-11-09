@@ -40,7 +40,12 @@ void main() {
 
       final sorted = sortStoreEntries([fresh, history, today, pinned]);
 
-      expect(sorted.map((e) => e.store.id).toList(), ['store-1', 'store-2', 'store-3', 'store-4']);
+      expect(sorted.map((e) => e.store.id).toList(), [
+        'store-1',
+        'store-2',
+        'store-3',
+        'store-4',
+      ]);
     });
 
     test('within a group, the most recent purchase wins', () {
@@ -83,7 +88,9 @@ void main() {
     final entries = [
       StoreListEntry(store: _store('store-1', 'مخبز الرمال', area: 'الرمال')),
       StoreListEntry(store: _store('store-2', 'مخبز الشاطئ', area: 'الشاطئ')),
-      StoreListEntry(store: _store('store-3', 'مخبز النصيرات', area: 'النصيرات')),
+      StoreListEntry(
+        store: _store('store-3', 'مخبز النصيرات', area: 'النصيرات'),
+      ),
     ];
 
     test('filters by store name', () {

@@ -13,7 +13,6 @@ class DemoUser {
     required this.pin,
     required this.role,
     required this.name,
-    this.jawwalPayNumber,
   });
 
   /// Supabase profiles UUID.
@@ -22,5 +21,4 @@ class DemoUser {
   final String pin;
   final UserRole role;
   final String name;
-  final String? jawwalPayNumber;
 }

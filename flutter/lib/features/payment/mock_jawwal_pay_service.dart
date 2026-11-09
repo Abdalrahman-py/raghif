@@ -1,41 +1,38 @@
-import 'dart:math';
-
-/// Mock service for simulating Jawwal Pay payment authorization.
+/// Simulated Jawwal Pay authorization, until the real provider is connected
+/// (launch plan, phase 5).
 ///
-/// In this prototype, there is no real SMS gateway or Jawwal Pay business API.
-/// This service generates a 4-digit OTP client-side, displays it on-screen,
-/// and validates user input.
+/// There is no SMS and no Jawwal Pay merchant API yet, so the "message" with the
+/// verification code is faked on screen and the code is always [simulatedCode].
+/// This only gates the *simulated* payment: it never signs anybody in, and the
+/// payment it leads to is recorded server-side as `provider = 'simulated'`, not
+/// as money received. Replace this class with the real gateway behind the same
+/// four calls (`generateCode`, `resendCode`, `verifyCode`, `reset`).
 class MockJawwalPayService {
-  MockJawwalPayService({Random? random, String? initialCode})
-    : _random = random ?? Random(),
-      _currentCode = initialCode;
+  MockJawwalPayService({String? initialCode}) : _currentCode = initialCode;
 
-  final Random _random;
+  /// The one code every simulated payment accepts.
+  static const simulatedCode = '1234';
+
   String? _currentCode;
 
-  /// Returns the existing generated code, or generates a new 4-digit code
-  /// if none has been created yet.
+  /// The code "sent" to the wallet's phone.
   String generateCode() {
-    _currentCode ??= (_random.nextInt(9000) + 1000).toString();
+    _currentCode ??= simulatedCode;
     return _currentCode!;
   }
 
-  /// The active OTP code, or null if not yet generated.
+  /// The active code, or null if none was "sent" yet.
   String? get code => _currentCode;
 
-  /// Resend re-displays the same generated code rather than issuing a new one.
-  String resendCode() {
-    return generateCode();
-  }
+  /// Resending shows the same code again.
+  String resendCode() => generateCode();
 
-  /// Verifies the entered code.
-  /// Returns `true` if the entered code matches the generated code, `false` otherwise.
+  /// Whether [entered] is the code that was "sent".
   bool verifyCode(String entered) {
     if (_currentCode == null) return false;
     return entered.trim() == _currentCode;
   }
 
-  /// Reset the service state if needed.
   void reset() {
     _currentCode = null;
   }

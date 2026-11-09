@@ -5,10 +5,14 @@ class Strings {
   Strings._();
 
   static const appTitle = 'توزيع الخبز';
-  static const phoneLabel = 'رقم الهاتف';
+  static const phoneLabel = 'رقم جوال باي';
   static const pinLabel = 'الرمز السري المكون من 4 أرقام';
   static const loginButton = 'تسجيل الدخول';
-  static const loginError = 'رقم الهوية أو الرمز السري غير صحيح';
+  static const loginError = 'رقم الهاتف أو الرمز السري غير صحيح';
+  static const loginAccountDisabled =
+      'تم تعطيل هذا الحساب. تواصل مع الدعم لمعرفة السبب.';
+  static const loginStoreArchived =
+      'هذا المخبز غير متاح حاليًا. تواصل مع الدعم.';
   static const loginOffline =
       'تعذّر الاتصال بالخادم. تحقق من الاتصال وحاول مرة أخرى.';
   static const loginIdTitle = 'تسجيل الدخول';
@@ -16,24 +20,46 @@ class Strings {
   static const loginOtpTitle = 'أدخل رمز التحقق';
   static const continueButton = 'متابعة';
   static const forgotPin = 'نسيت الرمز السري؟';
+  static const privacyTitle = 'سياسة الخصوصية';
+  static const termsTitle = 'شروط الاستخدام';
+  static const phoneChangeViaSupport =
+      'لتغيير رقم الجوال راسل الدعم على واتساب: $supportWhatsapp';
+  static const deleteAccountTitle = 'طلب حذف الحساب';
+  static const deleteAccountBody =
+      'لحذف حسابك أو تعطيله راسل الدعم على واتساب: $supportWhatsapp مع ذكر اسمك ورقم هويتك، وسنتحقق منك ثم ننفّذ الطلب.';
+  static const ownerViaSupport =
+      'هل أنت صاحب مخبز؟ راسل الدعم على واتساب: $supportWhatsapp لإضافة مخبزك.';
+  static const contactSupportWhatsapp = 'تواصل مع الدعم على واتساب';
+  static const ownerRequestMessage =
+      'مرحبًا، أنا صاحب مخبز وأرغب بإضافة مخبزي إلى تطبيق رغيف.';
+  static const supportMessage = 'مرحبًا، أحتاج مساعدة في تطبيق رغيف.';
+  static const forgotPinTitle = 'استعادة الرمز السري';
+
+  /// Support's WhatsApp number (the only support channel for now).
+  static const supportWhatsapp = '+972597816403';
+  static const forgotPinBody =
+      'لا يمكن استعادة الرمز تلقائيًا حاليًا. راسل الدعم على واتساب: +972597816403 وسيعيدون تعيينه لك بعد التحقق من هويتك.';
+  static const ok = 'حسنًا';
+  static const loginLocked =
+      'تم إيقاف الدخول مؤقتًا بسبب محاولات خاطئة كثيرة. حاول بعد 15 دقيقة أو راسل الدعم على واتساب: +972597816403';
+  static const pinTooWeak =
+      'الرمز سهل التخمين. تجنب الأرقام المتكررة أو المتسلسلة.';
   static String loginForId(String id) => 'لحساب رقم $id';
   static const otpLabel = 'رمز التحقق';
   static const verifyOtpButton = 'تأكيد الرمز والدخول';
   static const resendOtp = 'إعادة إرسال الرمز';
   static const otpError = 'رمز التحقق غير صحيح';
-  static const nationalIdNotFound = 'رقم الهوية غير مسجل، يرجى إنشاء حساب جديد';
   static String demoOtpBanner(String code) =>
       'رمز تجريبي (لم يتم إرسال رسالة نصية): $code';
   static const demoAccountsTitle = 'حسابات تجريبية';
   static const demoBuyerLabel = 'مشتري';
   static const demoOwnerLabel = 'صاحب المخبز';
 
-  static const personalIdLabel = 'رقم الهوية';
   static const nameLabel = 'الاسم';
   static const registerButton = 'تسجيل حساب جديد';
   static const registerError = 'يرجى تعبئة جميع الحقول';
+  static const phoneNotFound = 'رقم الجوال غير مسجل، يرجى إنشاء حساب جديد';
   static const phoneAlreadyRegistered = 'رقم الهاتف مسجل مسبقاً';
-  static const nationalIdAlreadyRegistered = 'رقم الهوية مسجل مسبقاً';
   static const logout = 'تسجيل الخروج';
   static const back = 'رجوع';
   static const createAccountLink = 'إنشاء حساب جديد';
@@ -44,14 +70,11 @@ class Strings {
   static const onboardingGetStarted = 'إنشاء حساب';
   static const onboardingHaveAccount = 'لدي حساب بالفعل';
   static const onboardingTitle1 = 'خبزك أقرب إلك';
-  static const onboardingBody1 =
-      'اعرف نقاط توزيع الخبز القريبة منك.';
+  static const onboardingBody1 = 'اعرف نقاط توزيع الخبز القريبة منك.';
   static const onboardingTitle2 = 'احجز ربطتك';
-  static const onboardingBody2 =
-      'اختار نقطة التوزيع واحجز بسهولة.';
+  static const onboardingBody2 = 'اختار نقطة التوزيع واحجز بسهولة.';
   static const onboardingTitle3 = 'استلم بوقتك';
-  static const onboardingBody3 =
-      'بنبلغك أول ما ييجي دورك.';
+  static const onboardingBody3 = 'بنبلغك أول ما ييجي دورك.';
 
   /// "الصفحة 2 من 3" — the counter above the intro, so how many steps are left
   /// is readable without counting dots. Western digits, like the rest of the
@@ -62,9 +85,6 @@ class Strings {
   // Login — the old screen reused `registerError` ("يرجى تعبئة جميع الحقول")
   // for an empty National ID: it names the wrong problem, and it appeared under
   // the button instead of on the field that was empty.
-  static const nationalIdRequired = 'أدخل رقم الهوية';
-  static const nationalIdLengthError = 'رقم الهوية 9 أرقام';
-  static const nationalIdHelper = '9 أرقام كما في بطاقة الهوية';
   static const pinRequired = 'أدخل الرمز السري';
   static const pinLengthError = 'الرمز السري 4 أرقام';
   static const showPin = 'إظهار الرمز';
@@ -84,12 +104,11 @@ class Strings {
   static const registrationPaymentSection = 'الدخول والدفع';
   static const nameRequired = 'أدخل الاسم';
   static const phoneRequired = 'أدخل رقم الهاتف';
-  static const phoneInvalid = 'رقم الهاتف 10 أرقام ويبدأ بـ 05';
+  static const phoneInvalid = 'أدخل رقم جوال باي: 10 أرقام يبدأ بـ 059 أو 056';
   static const confirmPinLabel = 'تأكيد الرمز السري';
   static const pinMismatch = 'الرمزان السريان غير متطابقين';
   static const pinHelper = 'ستحتاجه للدخول في كل مرة — لا يمكن استعادته';
   static const jawwalPayRequired = 'أدخل رقم جوال باي';
-  static const jawwalPayInvalid = 'رقم جوال باي 10 أرقام';
 
   // Registration
   static const registrationTitle = 'إنشاء حساب جديد';
@@ -97,26 +116,45 @@ class Strings {
       'المعلومات التالية مطلوبة للتحقق من هويتك وحجز الخبز';
   static const jawwalPayNumberLabel = 'رقم جوال باي';
   static const jawwalPayNumberHint = 'سيُستخدم للدفع عند الشراء';
+  static const stepsNext = 'التالي';
+  static String stepOf(int step, int total) => 'الخطوة $step من $total';
+  static const stepNameTitle = 'ما اسمك؟';
+  static const stepNameHint = 'الاسم كما في بطاقة الهوية';
+  static const stepPhoneTitle = 'ما رقم جوال باي؟';
+  static const stepPhoneHint = 'رقمك للدخول وللدفع ولتأكيد الحساب برسالة';
+  static const stepPinTitle = 'اختر رمزًا سريًا';
+  static String registrationFor(String store) => 'لحجز رغيف من $store';
+  static const guestTagline = 'احجز رغيفك من البيت بدل الازدحام';
+  static const guestCreateAccount = 'ابدأ بإنشاء حساب';
+  static const guestHaveAccount = 'لدي حساب؟ تسجيل الدخول';
+  static const guestBook = 'احجز رغيفك';
+  static const guestStoresTitle = 'الأكثر طلبًا هذا الأسبوع';
+  static const guestLoadError =
+      'تعذّر تحميل المخابز. تحقق من الاتصال وحاول مرة أخرى.';
+  static const guestRetry = 'إعادة المحاولة';
+  static const guestNoStores = 'لا توجد مخابز معروضة الآن';
+  static String guestSummary(int stores, int bags) =>
+      '$stores مخبز متاح اليوم · $bags رغيف متبقٍ';
+  static const guestSummaryNone = 'لا توجد أرغفة متاحة الآن';
+  static const guestHowTitle = 'كيف يعمل رغيف؟';
+  static const guestHow1 = 'اختر المخبز الأقرب لك';
+  static const guestHow2 = 'احجز دورك من البيت';
+  static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
-  // Identity verification
-  static const idPhotoTitle = 'صورة بطاقة الهوية';
-  static const idPhotoInstructions =
-      'التقط صورة واضحة للوجه الأمامي لبطاقة هويتك. تأكد من وضوح الأرقام والصورة.';
-  static const selfiePhotoTitle = 'صورة شخصية';
-  static const selfiePhotoInstructions =
-      'التقط صورة واضحة لوجهك للتأكد من مطابقتها مع بطاقة الهوية.';
-  static const capturePrompt = 'اضغط لالتقاط صورة';
-  static const retakePhoto = 'إعادة الالتقاط';
-  static const captureError =
-      'تعذر فتح الكاميرا — تأكد من منح إذن الكاميرا للتطبيق ثم أعد المحاولة';
-  static const continueLabel = 'متابعة';
-  static const verifyingTitle = 'جاري التحقق من حسابك';
-  static const verifyingBody =
-      'يرجى الانتظار بينما نتحقق من بياناتك. هذا قد يستغرق لحظات.';
-  static const verifiedTitle = 'تم التحقق من حسابك!';
-  static const verifiedBody =
-      'يمكنك الآن حجز كيس الخبز اليومي من أي مخبز متاح.';
-  static const continueToApp = 'الانتقال إلى التطبيق';
+  static String postponedFrom(String date) => 'تم تأجيله من يوم $date';
+
+  // Wallet verification (the buyer's proof of account)
+  static const walletVerifyTitle = 'تحقق من رقم جوال باي';
+  static const walletVerifyBody =
+      'سنرسل رمز تحقق إلى رقم محفظتك للتأكد من أنه رقمك، ثم تبدأ الحجز.';
+  static String walletVerifySent(String number) =>
+      'أرسلنا رمز التحقق إلى \u2066$number\u2069. أدخله لإكمال التحقق.';
+  static const walletVerifySend = 'إرسال رمز التحقق';
+  static const walletVerifyCodeLabel = 'رمز التحقق';
+  static const walletVerifyConfirm = 'تأكيد والمتابعة';
+  static const walletVerifyChangeNumber = 'تغيير الرقم';
+  static const walletVerifyFailed =
+      'تعذر التحقق. تأكد من الاتصال وحاول مجدداً.';
 
   // Store list
   static const storeListTitle = 'المخابز المتاحة';
@@ -140,8 +178,18 @@ class Strings {
   static const offlineRead = loginOffline;
   static const retryButton = 'إعادة المحاولة';
 
+  /// The bar across the top of the app (see ConnectivityBanner).
+  static const connectionOffline =
+      'لا يوجد اتصال بالإنترنت — تظهر آخر بيانات محفوظة';
+  static const connectionRestored = 'عاد الاتصال بالإنترنت';
+
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
   static const storeClosedBadge = 'مغلق';
+
+  /// Set by the administrator (not the owner's own open/closed switch).
+  static const storePausedBadge = 'متوقف مؤقتًا';
+  static const storePausedLabel = 'المخبز متوقف مؤقتًا، حاول لاحقًا';
+  static const storeArchivedBadge = 'غير متاح';
   static String bagsRemaining(int remaining, int total) =>
       'المتبقي: $remaining من $total';
   static String purchaseWindowRange(String openTime, String closeTime) =>
@@ -182,7 +230,27 @@ class Strings {
   }
 
   static const viewOrder = 'عرض الطلب';
-  static const payButton = 'ادفع 3 شيكل';
+  static String payWalletButton(double price) => 'ادفع ${shekels(price)} شيكل';
+  static const walletPaymentTitle = 'الدفع عبر جوال باي';
+  static const walletPaymentBody =
+      'ستؤكد رقم المحفظة ورمز الدفع في الخطوة التالية. الدفع تجريبي حاليًا ولا يُخصم أي مبلغ.';
+  static const paidAlready = 'تم الدفع عبر جوال باي';
+  static const ownerPaidBadge = 'مدفوع مسبقًا';
+  static const ownerCashBadge = 'يدفع نقدًا';
+  static const scanPaidAlready = 'مدفوع مسبقًا عبر المحفظة: لا تأخذ نقدًا';
+  static const scanTakeCash = 'غير مدفوع: خذ ثمن الرغيف نقدًا';
+  static const cashOnPickupTitle = 'الدفع عند الاستلام';
+
+  /// A whole price reads "3", not "3.00".
+  static String shekels(double amount) => amount == amount.roundToDouble()
+      ? amount.toInt().toString()
+      : amount.toStringAsFixed(2);
+  static String cashOnPickupBody(double price) =>
+      'ادفع ${shekels(price)} شيكل نقدًا للمخبز عند استلام رغيفك. لا يُطلب منك أي دفع الآن.';
+  static String cashCollected(double amount) =>
+      'المحصَّل نقدًا: ${shekels(amount)} شيكل';
+  static String amountDueAtPickup(double price) =>
+      'المطلوب عند الاستلام: ${shekels(price)} شيكل نقدًا';
 
   // Confirmation
   static const confirmationTitle = 'تأكيد الحجز';
@@ -194,12 +262,12 @@ class Strings {
   static const statusNotified = 'خبزك جاهز!';
   static const batchReadyNotificationBody =
       'حان دورك، توجه إلى المخبز لاستلام طلبك';
-  static const returnToStores = 'العودة إلى المخابز';
+  static const returnToStores = 'الرئيسية';
   static const receiptQrTitle = 'رمز استلام الطلب';
   static const receiptQrSubtitle =
       'أظهر هذا الرمز لصاحب المخبز لتأكيد الاستلام';
-  static const shareQrButton = 'مشاركة رمز الاستلام';
-  static const saveQrButton = 'حفظ في المعرض';
+  static const shareQrButton = 'مشاركة';
+  static const saveQrButton = 'حفظ';
   static const shareQrText = 'رمز استلام الخبز';
   static const qrSavedSuccess = 'تم حفظ رمز الاستلام في المعرض';
   static const qrSaveFailed = 'تعذر حفظ رمز الاستلام في المعرض';
@@ -212,6 +280,15 @@ class Strings {
   static const historyTitle = 'سجل المبيعات';
   static const historyButton = 'سجل المبيعات';
   static const historyEmpty = 'لا يوجد سجل بعد';
+  static const historyNoMatch = 'لا توجد مبيعات في هذه الفترة';
+  static const historyFilterMonth = 'الشهر';
+  static const historyAllMonths = 'كل الأشهر';
+  static const historyFilterDay = 'اختيار يوم';
+  static const historyClearFilter = 'إزالة الفلتر';
+  static const historyColDate = 'اليوم';
+  static const historyColSold = 'المبيعات';
+  static const historyColCollected = 'مستلم';
+  static const historyColLeft = 'لم يستلم';
   static String historyDayTitle(String date) => 'مبيعات $date';
   static String historySold(int count) => 'المبيعات: $count';
   static String historyCollected(int count) => 'مستلم: $count';
@@ -263,6 +340,17 @@ class Strings {
   static const buyerQueueTitle = 'طابور المشترين';
   static const queueEmpty = 'لا يوجد مشترون بعد اليوم';
   static String notifyNextBatch(int batch) => 'إشعار الدفعة رقم $batch';
+  static String suggestBatchTitle(int batch) => 'حان وقت الدفعة رقم $batch';
+  static String suggestBatchBody(int count) =>
+      'الزبائن السابقون استلموا تقريبًا، وبانتظارك $count زبون. افتح الطابور لدعوتهم.';
+  static const suggestBatchAction = 'افتح الطابور';
+  static const weeklyTitle = 'آخر 7 أيام';
+  static const weeklyEmpty = 'لا مبيعات خلال آخر أسبوع بعد.';
+  static String weeklySold(int n) => 'مبيعات: $n ربطة';
+  static String weeklyCollected(int percent) => 'تم استلام $percent%';
+  static String weeklyAverage(int n) => 'المعدل اليومي: $n';
+  static String weeklyCash(String amount) => 'المقبوض: $amount ₪';
+  static String weeklyBest(String day, int n) => 'أفضل يوم: $day ($n)';
   static const statusWaitingShort = 'قيد الانتظار';
   static const statusNotifiedShort = 'تم الإشعار';
   static const statusCollectedShort = 'تم الاستلام';
@@ -270,9 +358,8 @@ class Strings {
   static const undoReceived = 'تراجع عن الاستلام';
 
   // Owner queue — pickup (search + QR redemption)
-  static const idShortLabel = 'الهوية';
   static const phoneShortLabel = 'الهاتف';
-  static const searchBuyerHint = 'ابحث برقم الهوية أو الهاتف';
+  static const searchBuyerHint = 'ابحث بالاسم أو رقم الهاتف';
   static const buyerSearchNoResults = 'لا يوجد مشترٍ مطابق';
   static const scanQrTitle = 'مسح رمز الاستلام';
   static const scanCameraHint =
@@ -339,7 +426,7 @@ class Strings {
   static const cancelLabel = 'إلغاء';
   static const logoutConfirmTitle = 'تسجيل الخروج؟';
   static const logoutConfirmBody =
-      'ستحتاج إلى رقم الهوية والرمز السري للدخول مرة أخرى.';
+      'ستحتاج إلى رقم الهاتف والرمز السري للدخول مرة أخرى.';
   static const closeStoreConfirmTitle = 'إغلاق المخبز؟';
   static const closeStoreConfirmBody =
       'لن يتمكن الزبائن من حجز أي كيس حتى تفتح المخبز مرة أخرى.';

@@ -86,7 +86,6 @@ void main() {
       'profiles': {
         'name': 'أحمد',
         'phone': '0599111111',
-        'national_id': '900111222',
       },
       'stores': {'name': 'مخبز الرمال'},
     };
@@ -136,7 +135,6 @@ void main() {
         expect(order?.batchNumber, 2);
         expect(order?.status, PurchaseStatus.notified);
         expect(order?.userName, 'أحمد');
-        expect(order?.userNationalId, '900111222');
         expect(order?.storeName, 'مخبز الرمال');
         expect(await ReceiptStore().load(), order);
       },

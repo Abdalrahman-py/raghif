@@ -17,10 +17,10 @@ class CustomerSummaryModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        userId,
-        name,
-        phone,
-        totalPurchases,
-        lastPurchaseDate,
-      ];
+    userId,
+    name,
+    phone,
+    totalPurchases,
+    lastPurchaseDate,
+  ];
 }

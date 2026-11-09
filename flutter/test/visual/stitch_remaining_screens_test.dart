@@ -9,35 +9,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
-import 'package:raghif/core/widgets/primary_button.dart';
 import 'package:raghif/domain/models/purchase_model.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
-import 'package:raghif/features/auth/demo_accounts.dart';
-import 'package:raghif/features/payment/mock_jawwal_pay_service.dart';
-import 'package:raghif/features/payment/payment_number_screen.dart';
-import 'package:raghif/features/payment/payment_otp_screen.dart';
-import 'package:raghif/features/payment/payment_success_screen.dart';
 import 'package:raghif/features/queue/owner_customers_screen.dart';
 import 'package:raghif/features/queue/owner_history_screen.dart';
 import 'package:raghif/features/queue/owner_queue_screen.dart';
-import 'package:raghif/features/queue/purchase_screen.dart';
 import 'package:raghif/features/queue/qr_scanner_screen.dart';
 import 'package:raghif/features/queue/queue_logic.dart';
-import 'package:raghif/features/verification/photo_capture_screen.dart';
-import 'package:raghif/features/verification/waiting_for_verification_screen.dart';
+import 'package:raghif/features/verification/wallet_verification_screen.dart';
 
 import '../goldens/test_fonts.dart';
 import '../support/fake_auth_repository.dart';
 import '../support/queue_test_harness.dart';
-
-const _buyer = DemoUser(
-  id: seededBuyerId,
-  phone: '0599111111',
-  pin: '1234',
-  role: UserRole.buyer,
-  name: 'أحمد ناصر',
-  jawwalPayNumber: '0599111111',
-);
 
 /// Exercise the production scanner's error handling without a camera or
 /// permission dialog. This fixture represents camera unavailable, not a camera
@@ -232,104 +215,21 @@ void main() {
       }
 
       try {
-        var photoCompletions = 0;
-        for (final kind in PhotoCaptureKind.values) {
-          await show(
-            PhotoCaptureScreen(
-              kind: kind,
-              onContinue: () => photoCompletions++,
-            ),
-          );
-          expect(
-            find.text(
-              kind == PhotoCaptureKind.id
-                  ? Strings.idPhotoTitle
-                  : Strings.selfiePhotoTitle,
-            ),
-            findsOneWidget,
-          );
-          await capture('photo_capture_${kind.name}');
-          await reach(find.text(Strings.capturePrompt), 'capture ${kind.name}');
-          await reach(
-            find.text(Strings.continueLabel),
-            'continue ${kind.name}',
-          );
-          expect(
-            tester.widget<PrimaryButton>(find.byType(PrimaryButton)).onPressed,
-            isNull,
-          );
-        }
-        expect(photoCompletions, 0);
-
-        await show(const WaitingForVerificationScreen());
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        expect(find.text(Strings.continueToApp), findsNothing);
-        await capture('verification_waiting');
-        // This advances only the production mock's local approval timer.
-        await tester.pump(const Duration(seconds: 3));
-        await paint();
-        expect(find.byType(CircularProgressIndicator), findsNothing);
-        expect(find.text('حسابك جاهز للتجربة'), findsOneWidget);
-        await capture('verification_approved');
-        await reach(find.text(Strings.continueToApp), 'approved continue');
-
         await show(
-          PurchaseScreen(
-            controller: harness.controller,
-            storeId: seededStoreId,
-            currentUser: _buyer,
+          WalletVerificationScreen(
+            number: '0599123456',
+            onVerify: (_) {},
+            onLogout: () {},
           ),
         );
-        await tester.runAsync(() async {
-          await precacheImage(
-            const AssetImage('assets/images/stitch_bread.png'),
-            boundaryKey.currentContext!,
-          );
-        });
+        expect(find.text(Strings.walletVerifyTitle), findsOneWidget);
+        await capture('wallet_verification_number');
+        await tester.ensureVisible(find.text(Strings.walletVerifySend));
+        await tester.tap(find.text(Strings.walletVerifySend));
         await paint();
-        expect(find.text('مخبز الرمال'), findsOneWidget);
-        await capture('purchase');
-        await reach(find.text(Strings.payButton), 'purchase payment');
-        await tester.tap(find.text(Strings.payButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentNumberScreen), findsOneWidget);
-        check('purchase opens payment');
-
-        final payment = MockJawwalPayService(initialCode: '1234');
-        await show(
-          PaymentNumberScreen(initialNumber: _buyer.phone, service: payment),
-        );
-        expect(find.text(_buyer.phone), findsOneWidget);
-        await capture('payment_number');
-        await reach(find.text(Strings.proceedToOtp), 'proceed to OTP');
-        await tester.tap(find.text(Strings.proceedToOtp));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentOtpScreen), findsOneWidget);
-        expect(find.text(Strings.demoOtpNotification('1234')), findsOneWidget);
-        await capture('payment_otp');
-        await reach(find.text(Strings.resendCodeButton), 'resend OTP');
-        await tester.tap(find.text(Strings.resendCodeButton));
-        await paint();
-        expect(payment.code, '1234');
-        await reach(find.byType(TextField), 'OTP field');
-        await tester.enterText(find.byType(TextField), '1234');
-        tester.testTextInput.hide();
-        await paint();
-        await reach(find.text(Strings.confirmPaymentButton), 'confirm OTP');
-        await tester.tap(find.text(Strings.confirmPaymentButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 400));
-        await paint();
-        expect(find.byType(PaymentSuccessScreen), findsOneWidget);
-        await capture('payment_success');
-        await reach(
-          find.text(Strings.completeReservationButton),
-          'complete reservation',
-        );
+        expect(find.text(Strings.walletVerifyConfirm), findsOneWidget);
+        await capture('wallet_verification_code');
+        await reach(find.text(Strings.walletVerifyConfirm), 'verify confirm');
 
         // Seed all queue statuses and another day through the fake repository.
         // No purchase or owner action in this fixture reaches a remote backend.
@@ -338,12 +238,7 @@ void main() {
         final names = ['أحمد ناصر', 'محمود سعيد', 'ليلى منصور', 'سارة خليل'];
         for (var i = 0; i < names.length; i++) {
           final userId = i == 0 ? seededBuyerId : 'visual-buyer-$i';
-          harness.repo.addUser(
-            userId,
-            name: names[i],
-            phone: '059911111$i',
-            nationalId: '90011122$i',
-          );
+          harness.repo.addUser(userId, name: names[i], phone: '059911111$i');
           harness.repo.givenPurchase(
             userId: userId,
             storeId: seededStoreId,

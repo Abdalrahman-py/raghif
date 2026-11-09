@@ -64,6 +64,33 @@ void main() {
     expect(opened, ['p1']);
     expect(find.text('غير مقروء'), findsNothing);
   });
+  testWidgets(
+    'an announcement has no booking: it can be marked read, never opened',
+    (tester) async {
+      repo.items = [
+        AppNotification(
+          id: 'a1',
+          purchaseId: null,
+          kind: 'announcement',
+          title: 'صيانة مجدولة',
+          body: 'سيتوقف التطبيق قليلًا الليلة',
+          createdAt: DateTime.utc(2026, 11, 4),
+        ),
+      ];
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      expect(find.text('صيانة مجدولة'), findsOneWidget);
+      expect(find.text('عرض الحجز'), findsNothing);
+
+      await tester.tap(find.text('تعليم كمقروء'));
+      await tester.pumpAndSettle();
+
+      expect(repo.marked, ['a1']);
+      expect(opened, isEmpty);
+      expect(find.text('غير مقروء'), findsNothing);
+      expect(find.text('تعليم كمقروء'), findsNothing);
+    },
+  );
   testWidgets('pull refresh fetches updated server state', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();

@@ -9,6 +9,11 @@ create schema extensions;
 create extension pgcrypto schema extensions;
 create schema auth;
 create table auth.users (id uuid primary key);
+-- Deleting a row here is how the admin panel signs someone out everywhere.
+create table auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade
+);
 create function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 

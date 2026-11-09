@@ -90,8 +90,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-    if (mounted && item != null && repository == widget.repository) {
-      widget.onOpenPurchase(item.purchaseId);
+    final purchaseId = item?.purchaseId;
+    // An announcement has no booking to open: tapping it only marks it read.
+    if (mounted && purchaseId != null && repository == widget.repository) {
+      widget.onOpenPurchase(purchaseId);
     }
   }
 
@@ -210,10 +212,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           _date(item.createdAt),
                           style: AppTypography.bodyMedium,
                         ),
-                        _button(
-                          'عرض الحجز',
-                          _saving ? null : () => _read(item: item),
-                        ),
+                        // An announcement has no booking to show: all it can
+                        // need is to be marked read.
+                        if (item.purchaseId != null)
+                          _button(
+                            'عرض الحجز',
+                            _saving ? null : () => _read(item: item),
+                          )
+                        else if (!item.isRead)
+                          _button(
+                            'تعليم كمقروء',
+                            _saving ? null : () => _read(item: item),
+                          ),
                       ],
                     ),
                   ),

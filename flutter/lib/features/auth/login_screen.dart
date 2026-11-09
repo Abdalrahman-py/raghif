@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/i18n/strings.dart';
+import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/labeled_field.dart';
@@ -15,50 +14,50 @@ import 'bloc/auth_bloc.dart';
 import 'demo_accounts.dart';
 import 'registration_screen.dart';
 
-enum _Step { id, pin, otp }
+enum _Step { id, pin }
 
-/// One question per screen: who are you (national ID), then your PIN. The
-/// code by "SMS" is the way back in when the PIN is forgotten, not a second
-/// front door — a returning user should meet two fields in total, never a
-/// choice between login methods.
+/// The demo-account shortcut (PIN 1234, in the repository) exists for local
+/// work and demos only. Release builds leave it out; opt in with
+/// `--dart-define=SHOW_DEMO_ACCOUNTS=true`.
+const bool kShowDemoAccounts = bool.fromEnvironment('SHOW_DEMO_ACCOUNTS');
+
+/// One question per screen: who are you (national ID), then your PIN. A
+/// forgotten PIN is reset by support (there is no SMS gateway, and a code shown
+/// on screen would let anyone in), so the screen only points to them.
 ///
 /// Errors sit on the field they belong to, with the recovery next to them.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.showDemoAccounts = kShowDemoAccounts});
+
+  /// Whether the demo-account shortcut is offered ([kShowDemoAccounts] by
+  /// default; tests pass it explicitly).
+  final bool showDemoAccounts;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const _resendCooldownSeconds = 30;
-
   final _idController = TextEditingController();
   final _pinController = TextEditingController();
-  final _otpController = TextEditingController();
+  final _pinFocus = FocusNode();
 
   _Step _step = _Step.id;
   bool _showPin = false;
-  String? _demoOtpCode;
 
   String? _idError;
   String? _pinError;
-  String? _otpError;
   String? _formError;
 
-  /// The server said this ID has no account: offer registration right where
+  /// The server said this number has no account: offer registration right where
   /// the message appears instead of making the user hunt for it.
   bool _notRegistered = false;
 
-  int _resendIn = 0;
-  Timer? _cooldown;
-
   @override
   void dispose() {
-    _cooldown?.cancel();
     _idController.dispose();
     _pinController.dispose();
-    _otpController.dispose();
+    _pinFocus.dispose();
     super.dispose();
   }
 
@@ -66,8 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validateId() {
     final value = _idController.text.trim();
-    if (value.isEmpty) return Strings.nationalIdRequired;
-    if (value.length != 9) return Strings.nationalIdLengthError;
+    if (value.isEmpty) return Strings.phoneRequired;
+    if (!RegExp(r'^05\d{8}$').hasMatch(value)) return Strings.phoneInvalid;
     return null;
   }
 
@@ -78,25 +77,14 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  String? _validateOtp() {
-    final value = _otpController.text.trim();
-    if (value.isEmpty) return Strings.otpRequired;
-    if (value.length != 4) return Strings.otpLengthError;
-    return null;
-  }
-
   void _clearErrors() {
-    if (_idError == null &&
-        _pinError == null &&
-        _otpError == null &&
-        _formError == null) {
+    if (_idError == null && _pinError == null && _formError == null) {
       return;
     }
     setState(() {
       _notRegistered = false;
       _idError = null;
       _pinError = null;
-      _otpError = null;
       _formError = null;
     });
   }
@@ -113,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _submitPin() {
+    if (context.read<AuthBloc>().state is AuthLoading) return;
     final error = _validatePin();
     setState(() {
       _pinError = error;
@@ -120,77 +109,60 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     if (error != null) return;
     context.read<AuthBloc>().add(
-      PinLoginRequestedEvent(
-        nationalId: _idController.text.trim(),
+      LoginRequestedEvent(
+        phone: _idController.text.trim(),
         pin: _pinController.text.trim(),
       ),
     );
   }
 
-  void _requestOtp() {
-    setState(() => _formError = null);
-    context.read<AuthBloc>().add(
-      RequestOtpEvent(nationalId: _idController.text.trim()),
-    );
-  }
-
-  void _resendOtp() {
-    if (_resendIn > 0) return;
-    _requestOtp();
-  }
-
-  void _verifyOtp() {
-    final error = _validateOtp();
-    setState(() {
-      _otpError = error;
-      _formError = null;
-    });
-    if (error != null) return;
-    context.read<AuthBloc>().add(
-      VerifyOtpEvent(
-        nationalId: _idController.text.trim(),
-        otp: _otpController.text.trim(),
+  /// There is no automatic reset: the person contacts support, who reset the PIN
+  /// from the admin panel.
+  void _forgotPin() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Strings.forgotPinTitle),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(Strings.forgotPinBody),
+            SizedBox(height: 16),
+            SupportWhatsAppButton(
+              message: 'مرحبًا، نسيت الرمز السري لحسابي في تطبيق رغيف.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(Strings.ok),
+          ),
+        ],
       ),
     );
   }
 
-  /// The pilot has no SMS, so the code is on screen anyway — retyping four
-  /// digits adds nothing but typos.
-  void _fillDemoOtp() {
-    final code = _demoOtpCode;
-    if (code == null) return;
-    _otpController.text = code;
-    _verifyOtp();
+  /// After a refused PIN the field is emptied and focused again, so the next
+  /// attempt is just typing. (Before, the field was disabled while the request
+  /// ran, lost focus for good, and kept the wrong digits that had to be
+  /// deleted one by one.)
+  void _retryPin() {
+    if (_step != _Step.pin) return;
+    _pinController.clear();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _pinFocus.requestFocus();
+    });
   }
 
   void _back() {
-    _cooldown?.cancel();
     setState(() {
       _formError = null;
       _idError = null;
       _pinError = null;
-      _otpError = null;
-      _resendIn = 0;
-      if (_step == _Step.otp) {
-        _otpController.clear();
-        _step = _Step.pin;
-      } else {
-        _pinController.clear();
-        _step = _Step.id;
-      }
-    });
-  }
-
-  void _startResendCooldown() {
-    _cooldown?.cancel();
-    _resendIn = _resendCooldownSeconds;
-    _cooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _resendIn = _resendIn - 1);
-      if (_resendIn <= 0) timer.cancel();
+      _pinController.clear();
+      _step = _Step.id;
     });
   }
 
@@ -226,21 +198,21 @@ class _LoginScreenState extends State<LoginScreen> {
               _demoRow(
                 sheetContext,
                 Strings.demoBuyerLabel,
-                demoBuyerNationalId,
+                demoBuyerPhone,
                 demoBuyerPin,
               ),
               const SizedBox(height: AppSpacing.sm),
               _demoRow(
                 sheetContext,
                 demoBuyer2Name,
-                demoBuyer2NationalId,
+                demoBuyer2Phone,
                 demoBuyer2Pin,
               ),
               const SizedBox(height: AppSpacing.sm),
               _demoRow(
                 sheetContext,
                 Strings.demoOwnerLabel,
-                demoOwnerNationalId,
+                demoOwnerPhone,
                 demoOwnerPin,
               ),
             ],
@@ -287,20 +259,12 @@ class _LoginScreenState extends State<LoginScreen> {
       listener: (context, state) {
         if (state is AuthFailure) {
           setState(() => _formError = state.errorMessage);
+          _retryPin();
         } else if (state is AuthSwitchToRegister) {
           setState(() {
-            _formError = Strings.nationalIdNotFound;
+            _formError = Strings.phoneNotFound;
             _notRegistered = true;
           });
-        } else if (state is AuthOtpSent) {
-          setState(() {
-            _step = _Step.otp;
-            _demoOtpCode = state.otpCode;
-            _formError = null;
-            _otpError = null;
-            _otpController.clear();
-          });
-          _startResendCooldown();
         } else if (state is Authenticated) {
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
@@ -315,16 +279,24 @@ class _LoginScreenState extends State<LoginScreen> {
             },
             child: Scaffold(
               appBar: AppBar(
-                toolbarHeight: _step == _Step.id ? 16 : kToolbarHeight,
+                // Pushed from the guest screen there is somewhere to go back
+                // to; as the root route the first step needs no bar at all.
+                toolbarHeight: _step == _Step.id && !Navigator.canPop(context)
+                    ? 16
+                    : kToolbarHeight,
                 backgroundColor: Colors.transparent,
                 scrolledUnderElevation: 0,
                 automaticallyImplyLeading: false,
-                leading: _step == _Step.id
+                leading: _step == _Step.id && !Navigator.canPop(context)
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.arrow_back),
                         tooltip: Strings.back,
-                        onPressed: isLoading ? null : _back,
+                        onPressed: isLoading
+                            ? null
+                            : (_step == _Step.id
+                                  ? () => Navigator.of(context).maybePop()
+                                  : _back),
                       ),
               ),
               body: SafeArea(
@@ -354,7 +326,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final title = switch (_step) {
       _Step.id => Strings.loginIdTitle,
       _Step.pin => Strings.loginPinTitle,
-      _Step.otp => Strings.loginOtpTitle,
     };
     return AutofillGroup(
       child: Column(
@@ -438,7 +409,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 switch (_step) {
                   _Step.id => _idStep(isLoading),
                   _Step.pin => _pinStep(isLoading),
-                  _Step.otp => _otpStep(isLoading),
                 },
               ],
             ),
@@ -475,23 +445,22 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LabeledField(
-          label: Strings.personalIdLabel,
+          label: Strings.phoneLabel,
           child: TextField(
             controller: _idController,
-            enabled: !isLoading,
+            readOnly: isLoading,
             autofocus: true,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.username],
+            autofillHints: const [AutofillHints.telephoneNumber],
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(9),
+              LengthLimitingTextInputFormatter(10),
             ],
             onChanged: (_) => _clearErrors(),
             onSubmitted: (_) => _continue(),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.badge_outlined),
-              helperText: Strings.nationalIdHelper,
+              prefixIcon: const Icon(Icons.phone_outlined),
               errorText: _idError,
             ),
           ),
@@ -505,15 +474,16 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text(Strings.createAccountLink),
           ),
         ),
-        Center(
-          child: TextButton(
-            onPressed: _showDemoAccounts,
-            child: Text(
-              Strings.demoAccountsTitle,
-              style: TextStyle(color: AppColors.textSecondary),
+        if (widget.showDemoAccounts)
+          Center(
+            child: TextButton(
+              onPressed: _showDemoAccounts,
+              child: Text(
+                Strings.demoAccountsTitle,
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -526,7 +496,8 @@ class _LoginScreenState extends State<LoginScreen> {
           label: Strings.pinLabel,
           child: TextField(
             controller: _pinController,
-            enabled: !isLoading,
+            focusNode: _pinFocus,
+            readOnly: isLoading,
             autofocus: true,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
@@ -568,94 +539,8 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: AppSpacing.md),
         Center(
           child: TextButton(
-            onPressed: isLoading ? null : _requestOtp,
+            onPressed: isLoading ? null : _forgotPin,
             child: const Text(Strings.forgotPin),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _otpStep(bool isLoading) {
-    final textTheme = Theme.of(context).textTheme;
-    final code = _demoOtpCode;
-    final waiting = _resendIn > 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (code != null) ...[
-          // Visibly simulated (constitution VI): no SMS is sent, the code is
-          // here, and tapping it fills the field.
-          Semantics(
-            button: true,
-            label: Strings.demoOtpTapToFill,
-            child: InkWell(
-              onTap: isLoading ? null : _fillDemoOtp,
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.accentContainer,
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      Strings.demoOtpBanner(code),
-                      style: textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(Strings.demoOtpTapToFill, style: textTheme.bodyMedium),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
-        LabeledField(
-          label: Strings.otpLabel,
-          child: TextField(
-            controller: _otpController,
-            enabled: !isLoading,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            textAlign: TextAlign.center,
-            style: textTheme.titleLarge?.copyWith(letterSpacing: 8),
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
-            ],
-            // A complete code is a submitted code.
-            onChanged: (value) {
-              _clearErrors();
-              if (value.trim().length == 4) _verifyOtp();
-            },
-            onSubmitted: (_) => _verifyOtp(),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.sms_outlined),
-              errorText: _otpError,
-            ),
-          ),
-        ),
-        _error(),
-        const SizedBox(height: AppSpacing.lg),
-        PrimaryButton(
-          text: Strings.verifyOtpButton,
-          loading: isLoading,
-          onPressed: _verifyOtp,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Center(
-          child: TextButton(
-            onPressed: (isLoading || waiting) ? null : _resendOtp,
-            child: Text(
-              waiting ? Strings.resendOtpIn(_resendIn) : Strings.resendOtp,
-            ),
           ),
         ),
       ],

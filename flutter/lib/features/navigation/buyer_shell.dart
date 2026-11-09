@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/widgets/app_bottom_bar.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../account/account_screen.dart';
 import '../auth/demo_accounts.dart';
-import '../locations/governorate_screen.dart';
 import '../queue/buyer_home_screen.dart';
+import '../queue/buyer_stores_home.dart';
+import '../queue/purchase_flow.dart';
 import '../queue/queue_controller.dart';
 import 'inbox_navigation.dart';
-import 'pickup_navigation.dart';
 
 class BuyerShell extends StatefulWidget {
   const BuyerShell({
@@ -15,16 +16,38 @@ class BuyerShell extends StatefulWidget {
     required this.controller,
     required this.currentUser,
     this.notifications,
+    this.openStoreId,
   });
   final QueueController controller;
   final DemoUser currentUser;
   final NotificationRepository? notifications;
+
+  /// A bakery to open the booking summary for right away (the one the visitor
+  /// chose before signing up).
+  final String? openStoreId;
   @override
   State<BuyerShell> createState() => _BuyerShellState();
 }
 
 class _BuyerShellState extends State<BuyerShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final storeId = widget.openStoreId;
+    if (storeId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.controller.watchStoreListFor(widget.currentUser.id);
+      startPurchase(
+        context,
+        controller: widget.controller,
+        currentUser: widget.currentUser,
+        storeId: storeId,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -58,21 +81,13 @@ class _BuyerShellState extends State<BuyerShell> {
             ),
             icon: const Icon(Icons.notifications_outlined),
           ),
+          if (_index == 2) const AccountMenuButton(),
         ],
       ),
       body: switch (_index) {
-        0 => GovernorateScreen(
+        0 => BuyerStoresHome(
           controller: widget.controller,
-          embedded: true,
-          onSelected: (province, area) => openStoreResults(
-            context,
-            widget.controller,
-            widget.currentUser,
-            governorate: province,
-            area: area,
-          ),
-          onBrowseAll: () =>
-              openStoreResults(context, widget.controller, widget.currentUser),
+          currentUser: widget.currentUser,
         ),
         1 => BuyerHomeScreen(
           controller: widget.controller,
@@ -81,9 +96,9 @@ class _BuyerShellState extends State<BuyerShell> {
         ),
         _ => const AccountScreen(embedded: true),
       },
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: AppBottomBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onSelected: (value) => setState(() => _index = value),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

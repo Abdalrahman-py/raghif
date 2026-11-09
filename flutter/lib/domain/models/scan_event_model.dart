@@ -15,7 +15,6 @@ class ScanEventModel extends Equatable {
     required this.scannedAtMillis,
     this.purchaseId,
     this.scannedName,
-    this.scannedNationalId,
   });
 
   final String id;
@@ -23,10 +22,10 @@ class ScanEventModel extends Equatable {
   final String? purchaseId;
   final String outcome;
   final String? scannedName;
-  final String? scannedNationalId;
   final int scannedAtMillis;
 
-  DateTime get scannedAt => DateTime.fromMillisecondsSinceEpoch(scannedAtMillis);
+  DateTime get scannedAt =>
+      DateTime.fromMillisecondsSinceEpoch(scannedAtMillis);
 
   /// True when the scan actually handed a bag over.
   bool get isCheckedIn => outcome == 'checkedIn';
@@ -38,7 +37,6 @@ class ScanEventModel extends Equatable {
     purchaseId,
     outcome,
     scannedName,
-    scannedNationalId,
     scannedAtMillis,
   ];
 }

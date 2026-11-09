@@ -18,6 +18,207 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+### Fixed — 2026-11-09 — simulated wallet payment no longer tells the bakery "don't take cash"
+
+- Every booking made in the app records a stand-in wallet payment
+  (`provider = 'simulated'`, code 1234, no money moves). The app read any
+  `jawwal_pay` row as prepaid, so the owner's scanner and queue said
+  "مدفوع مسبقًا عبر المحفظة: لا تأخذ نقدًا" and the bag was handed over unpaid.
+  Purchases now read `payments(method, provider)` and a simulated payment maps
+  to `paymentMethod = 'simulated'`, which is not prepaid: the owner is told to
+  take cash and the buyer's receipt says cash is due. Only a real
+  `provider = 'jawwal_pay'` payment will count as prepaid.
+- Sign-in error, owner queue search hint and sign-out warning no longer mention
+  the national ID (removed on 2026-11-08); they say phone number.
+- Found in review of the `obaida` branch before merging it to `master`.
+  Server side unchanged: `store_daily_summaries` still counts simulated bags as
+  no cash, and `record_wallet_payment` still accepts a call without any code.
+
+### Changed — 2026-11-08 — no live connection: data is read on demand
+
+- Realtime is gone. The app keeps no websocket and nothing downloads on its
+  own. Screens read when opened, after the person's own actions, on
+  pull-to-refresh (bakery list, receipt, owner dashboard/queue/customers), when
+  a push arrives while the app is open, and when the app returns after a
+  minute or more away. A failed read is not retried on a timer; the retry
+  button or a pull renews it. Replaces the retry/back-off and per-table
+  filtering added earlier today.
+- Migration `20261108150000_drop_realtime` removes `purchases` and `stores`
+  from the `supabase_realtime` publication, so the server stops fanning out
+  changes.
+- Checked in the web build: no websocket, one store read per screen, the
+  connection probe every 30 s, buyer sign-in and home load normally.
+
+### Changed — 2026-11-08 — less data on weak connections
+
+- Reads ask for named columns instead of `*` (stores, purchases); the buyer's
+  booking history in the bakery list is capped at the newest 100; the inbox
+  fetch drops from 100 to 50 rows.
+- The store list is fetched once and shared by every screen that asks for it
+  within two seconds (it used to be downloaded 2-3 times per change).
+- Live updates wait 2 s (was 0.35 s) after the last Realtime event before
+  re-reading, and a failing read backs off 10 s, 20 s, 40 s ... up to 2 min
+  instead of retrying every 10 s.
+- Live streams re-read only for the table they show (a booking-only stream no longer reloads on store changes), the bakery list waits 4 s, and while the app is in the background nothing is downloaded: one read on return if anything changed.
+- The connection bar probes every 30 s (was 6 s) with a HEAD request on a
+  kept-open connection.
+
+### Added — 2026-11-08 — offline reading for owners, and a connection bar
+
+- A bar across the top of the app shows whether the server can be reached:
+  amber "no connection, showing last saved data" while offline, green "back"
+  for two seconds on return. It probes `/auth/v1/health` every 6 s (a phone on
+  Wi-Fi with no internet counts as offline). `http` is now a direct dependency
+  (it was already pulled in by supabase_flutter).
+- Owners get the same read-only fallback buyers had: their bakery and today's
+  queue are saved and shown when the server cannot be reached, so the
+  dashboard and queue open offline. Writes still need the server.
+- Fixed: the saved copy was erased on every app start (the session-restore
+  state change ran `resetForSession`, which cleared the cache before an offline
+  start could read it). It is now cleared only when a signed-in person leaves.
+
+### Changed — 2026-11-08 — buyer home: "my bakeries" is the default filter
+
+- The buyer's list of bakeries starts on a "مخابزي" chip (the last five bakeries
+  they bought from, most recent first), placed before "الكل" and the
+  governorate chips. A buyer with no history sees everything as before.
+
+### Changed — 2026-11-08 — national ID removed; the phone number is the Jawwal Pay number
+
+- The national ID is gone from the app and the database (`profiles.national_id`,
+  `scan_events.scanned_national_id`, the QR payload, owner queue/history rows
+  and search, admin buyer search). Not published yet, so the columns were
+  dropped outright (migration `20261108120000_drop_national_id`).
+- One number for everything: it is the sign-in name, the Jawwal Pay wallet and
+  the uniqueness key (`profiles_phone_key`). `profiles.jawwal_pay_number` is
+  dropped. Registration is three steps (name, phone, PIN) and the phone must be
+  a 056/059 number.
+- `login-pin` takes `{phone, pin}`; `login_attempt(phone, pin)`,
+  `check_availability(phone)`, `create_profile` (no ID/wallet),
+  `update_my_profile(name)` (the phone is support-only),
+  `verify_my_wallet(code)` (verifies the account's own phone; the code is still
+  the stand-in 1234 until SMS exists), `record_scan` and `admin_list_buyers`
+  were recreated without the removed columns.
+- New accounts get a random sign-in address (`u-<uuid>@raghif.internal`) and
+  the gateway reads it back from the auth user, so it no longer depends on the
+  phone. Existing demo users keep their old `nid-…` address until cleaned up.
+- Fixed a gateway bug: redeeming a session on the shared service-role client made
+  every later call in a warm instance run as `authenticated` ("permission
+  denied for function login_attempt"). A throwaway client now redeems it, and
+  `register` no longer treats a failed availability check as "phone free".
+- Demo auth rows now carry `instance_id` and empty token strings so the auth
+  server can load them; the admin panel (`raghif-admin`) drops the ID column,
+  field and search.
+- Removed the legacy `seed-demo` gateway action and `seed_demo_*` functions;
+  `supabase/demo/seed_demo_data.sql` now signs in by phone
+  (0569000001…100 buyers, 0568000001…05 owners, PIN 2580).
+
+### Added — 2026-11-06 — owner: next-batch suggestion and last-7-days stats
+
+- The owner's home shows a "time for batch N" card when someone is waiting and
+  at most a quarter of the batch size (max 5) of the called buyers are still
+  out. It only opens the queue; calling a batch still needs confirmation.
+- A "last 7 days" card: bags sold, collected %, daily average, cash taken and
+  best day, from the existing per-day summaries (no new backend).
+- Admin panel (`raghif-admin`): bakeries without a governorate are flagged
+  "بلا محافظة" and the edit form no longer silently defaults to غزة.
+
+### Changed — 2026-11-06 — signed-out home shows the 5 busiest bakeries
+
+- Migration `20261106120000_popular_stores` (applied live, version aligned): `popular_stores(p_limit)` returns ids and booking counts of the busiest active bakeries over the last 7 days; callable by visitors, no buyer data.
+- The visitor's first screen lists only those 5 ("الأكثر طلبًا هذا الأسبوع"); the summary line still counts every bakery. If the ranking cannot be fetched it falls back to the 5 that sold most today.
+
+### Changed — 2026-11-06 — speed and offline reading
+
+- Bread image 1.4 MB PNG -> 35 KB WebP (`stitch_bread.webp`); unused Noto Sans Arabic font removed.
+- Start-up: Supabase, the notification channel and Firebase initialise together instead of one after the other.
+- Owner sales history loads the newest 30 days with "عرض المزيد" (was 366 days at once); the customer list shows 30 at a time.
+- Realtime refreshes are coalesced (one re-read 350 ms after the last change instead of one per row).
+- Release builds (`apk.yml`, `release.yml`) add `--obfuscate --split-debug-info`.
+- Buyer home: search by bakery name or area.
+- Offline reading (`core/cache/offline_cache.dart`): the last bakery list and the last receipts (with the QR) are saved on the phone and shown, marked as old, when the server cannot be reached. Cleared on sign-out. Writes still go to the server only.
+- AGENTS.md: removed notes that were out of date (postponement does push; `original_purchase_date` is shown; notification copy migrated).
+
+### Fixed — 2026-11-06 — wrong PIN retry, profile menu, daily quantity row
+
+- Sign-in: after a wrong PIN the field was disabled while the request ran, lost focus, and kept the wrong digits. It now stays enabled (read-only while loading), is emptied and focused again on failure, and a second submit while loading is ignored.
+- Profile: privacy policy, terms of use and the delete-account request moved from the page into a three-dots menu in the app bar (`AccountMenuButton`; the buyer shell shows it on the account tab).
+- Bakery dashboard: the "الكمية اليومية" stepper sits in the same row as its label.
+
+### Changed — 2026-11-06 — buyer/owner redesign, splash, WhatsApp support, demo data
+
+- Buyer home rebuilt: last 3 bakeries, governorate filter, open bakeries first, horizontal cards (green open / red closed or sold out), one-tap "اشترِ ربطة" straight to payment; the review screen, the governorate/area pickers and the old store list are removed. Bookings go through `queue/purchase_flow.dart`.
+- Bakery owner gets bottom tabs (الرئيسية · سجل الزبائن · سجل المبيعات). Shared `AppBottomBar` restyles both tab bars. Status chips that repeated the headline were removed from "حجزي", the receipt and the bakery page; "حجزي" no longer has a browse button.
+- Palette: the bread-brown / beige accent is replaced by the brand blue (`app_colors.dart`).
+- New animated splash (`features/splash`). Notification permission is no longer asked during start-up: push starts 1.5 s after the first frame (`startPushLater`), so a waiting dialog cannot hold the app. Firebase is skipped on web.
+- WhatsApp support button (`core/support/support_contact.dart`, `url_launcher`): guest home next to "هل أنت صاحب مخبز؟", forgot-PIN dialog, account screen, delete-account dialog.
+- Demo data for trying the app: `supabase/demo/seed_demo_data.sql` (15 bakeries, 5 owners, 100 buyers, a week of bookings; ids `de[012]00000-...`; PIN 2580) and `supabase/demo/cleanup_demo_data.sql` to remove exactly those rows. Seeded into the live project on 2026-11-06 at the owner's request.
+- `docs/screens-and-redesign-prompts.md`: every screen's contents and an AI redesign prompt for each.
+- `.claude/launch.json` works on Windows (no `bash`/`python3`).
+
+### Changed — 2026-11-05 — notification copy, Firebase tooling, Gradle 8.14
+
+- Migration `20261105150000_notification_copy` (applied live): clearer Arabic text for the confirmed / postponed / ready notifications, dates as DD/MM/YYYY.
+- `flutter/firebase.json` points at `ragheef-b8c20`. Gradle wrapper 8.12 -> 8.14 (the installed Flutter 3.47 refuses anything older).
+- Demo-data cleanup was run by the owner in the Supabase SQL editor.
+- Bakery owners are created only by the administrator in the panel; there is no owner self-registration (decision, not a gap). Remote alerts are by WhatsApp to the support number; there is no automatic sender yet.
+
+### Changed — 2026-11-05 — wallet verification live; postponed bookings show their original day
+
+- Migration `20261105140000_wallet_verification` applied to the live project (version aligned); client `UPDATE` on `verification_status` / `jawwal_pay_number` is now closed.
+- A postponed booking shows "تم تأجيله من يوم …" (`purchases.original_purchase_date` is finally read).
+- Demo-data cleanup (disable the 12 demo accounts, archive the 7 demo bakeries) is NOT done: the live SQL was blocked by the session's permission guard and is left for the owner.
+
+### Changed — 2026-11-05 — buyer verification by Jawwal Pay number (replaces ID/selfie)
+
+- The ID photo, selfie and fake "reviewing" screens are gone (and the `image_picker` dependency). A new buyer confirms the Jawwal Pay number instead: the number is entered, a code is "sent" (simulated, always 1234, shown on screen) and typed back.
+- Migration `20261105140000_wallet_verification` (written, not yet applied live): `verify_my_wallet(number, code)` checks the code on the server and sets `verified`; changing the wallet number via `update_my_profile` resets a buyer to `pending`; direct `UPDATE` on `verification_status` / `jawwal_pay_number` is revoked. Closes the old "client can flip its own verification" issue. SQL test `wallet_verification.sql` added.
+- Real SMS arrives with the Jawwal Pay gateway: replace the `'1234'` comparison and add an attempt limit then.
+
+### Changed — 2026-11-05 — app moved to the new Firebase project
+
+- `android/app/google-services.json` and `lib/firebase_options.dart` now point at project `ragheef-b8c20` (Android app `com.raghif.raghif` registered there through the Firebase Management API with the service-account key). This matches the `FCM_SERVICE_ACCOUNT` secret already on the server, so push can be delivered once a new APK is installed. The old web options are removed (the app is Android-only).
+- `db-backup.yml`: nightly schedule switched off (manual run only) until the project moves to Supabase Pro; no secrets are needed meanwhile.
+
+
+### Added — 2026-11-04 — admin panel rollout (live)
+
+
+
+- The six admin-panel migrations are applied to the live project; `admin-api`, `send-push` and `auth-gateway` (v16) are deployed. The first administrator is in `public.admins`; admin RPCs verified as that user inside a rolled-back transaction.
+- Panel published from the public repo ObaidaAlaff/raghif-admin (GitHub Pages: https://obaidaalaff.github.io/raghif-admin/). `admin/` README section added to the project README.
+- Still open: `FCM_SERVICE_ACCOUNT` push secret (Firebase project mismatch: app `raghif` vs key `ragheef-b8c20`), `announcementsReady` stays false until the app ships, `verification_status` self-service decision.
+
+
+
+### Added — 2026-11-04 — admin panel, phase 1 (database; not applied)
+
+- Plan: `docs/superpowers/plans/2026-11-04-admin-panel.md` — seven phases for a programmer-only admin panel (Vue via CDN on GitHub Pages) that manages bakeries, buyers, stats and announcements.
+- Four new migrations, **written and reviewed-ready but not applied to the live project**: `admin_foundation` (admins + `is_admin()`, `stores.bag_price` default 3, `stores.status` active/paused/archived, `profiles.account_status`, archived stores hidden from buyers, `reserve_bag` refuses paused/archived stores and disabled accounts, `DELETE` revoked on stores/profiles, `account_login_block`), `admin_rpcs` (overview, daily series, scans, notification stats, bakery and buyer lists, status/verification/price edits), `notifications_announcements` (announcement kind, nullable `purchase_id`, `admin_send_notification`) and `change_my_pin` (owners only, 5 misses lock 15 min, weak PINs refused).
+- New SQL suite `tests/admin_panel.sql`, added to `tests/run.sh`. Verified on a local real Postgres (PGlite — no docker here): every migration plus all six SQL suites pass. The four new migrations were also dry-run on the live schema inside one transaction that ends in a deliberate error, so nothing was applied.
+- Phase 2 (not deployed): migration `admin_service_helpers` (`admin_revoke_sessions`, `admin_set_pin`), new edge function `admin-api` (create a bakery with a one-time random PIN, reset a PIN, set store/account status and sign the user out; admin JWT required, service key only after `is_admin()`), 18 Node tests for its logic, and `auth-gateway` now answers 403 `account_disabled` / `store_archived` instead of "invalid credentials" (a missing database function is treated as no block so an early deploy cannot lock everyone out).
+- Phase 3 (not deployed): edge function `send-push` (pushes one inbox row to its owner's devices through FCM, drops dead device tokens, fails closed without the shared secret; 9 Node tests) and migration `inbox_push_trigger`, which pushes `postponed` and `announcement` rows — closing the "postponement sends no push" gap — while `confirmed`/`ready` stay with the existing triggers so nobody is buzzed twice. New SQL suite `tests/inbox_push.sql`.
+- Phase 4 (not deployed): the admin panel itself in `admin/` — Vue 3 from a pinned, SRI-checked CDN with no build step, Arabic RTL in the app's palette. Sign in (admin only), overview with a 30-day chart, bakeries (create, edit, pause/archive with confirmation, one-time PIN), buyers (search, verify, disable), statistics and an announcement form that stays disabled until the app can show announcements. Exercised only against built-in sample data (`?mock=1`, localhost only); never run against the real backend.
+- Phase 5 (not published): `admin-pages.yml` deploys `admin/` to GitHub Pages on changes to it (an explicit five-file list, and it fails if a secret key or any JWT ends up in the site); `ci.yml` gains an `edge-functions` job running the 27 Node tests; `admin/README.md` documents creating the administrator account and the Pages setup.
+- Phase 6 (app, not shipped): owners can change their PIN from the account screen (current PIN + new PIN twice, errors from the server shown in Arabic); a disabled account or archived bakery is told so at sign-in instead of "wrong PIN"; stores carry the administrator's `status`, so a paused bakery shows "متوقف مؤقتًا" and cannot be booked; announcements (no booking behind them) display and can be marked read instead of crashing the inbox. Verification is still self-service pending a product decision (see the plan).
+- Phase 7 preparation (nothing applied): `supabase/rollback/20261104_admin_panel_rollback.sql` undoes the six admin-panel migrations. Verified locally: after applying everything and writing data into the new columns, running it restores the schema exactly (columns, functions and their grants, policies, constraints, triggers, indexes, privileges) and keeps stores and profiles. A runbook for applying to the live project is in the plan.
+- Known follow-up (resolved by phase 6 once the app ships): the app reads `notification_inbox.purchase_id` as non-null, so no announcement may be sent before the app change in phase 6.
+
+### Fixed — 2026-11-04 — launch screen on every app open
+
+- Removed the "ابدأ التجربة" launch screen. Its "started" flag was never persisted, so every user (owner or buyer, signed in or not) had to tap through it on every cold start. The app now goes straight to the session check, then onboarding (once per install), login or home.
+- Owner dashboard: removed the large "المتبقي اليوم" hero card. The stat cards right below it already show remaining, pending pickup and daily allocation, so the same numbers appeared twice. The sold-out / low-stock notice stays, now directly under the stat cards.
+- Owner dashboard: the save-today's-settings button now shows a spinner and ignores taps while the save is in flight, so it can't be submitted twice.
+- Owner customers log (سجل الزبائن): removed the bakery-name card at the top (the owner already knows which bakery it is) and numbered each customer card 1, 2, 3… in the avatar circle.
+- Owner dashboard: the open/close-bakery switch shows a spinner and ignores taps while its write is in flight.
+- Owner sales history (سجل المبيعات): removed the bakery-name card; days are now a table (day | sales | collected | not collected) with the Arabic weekday name above each date, and the day screen title includes the weekday. Added filters by month and by a single day. The list now loads up to 366 days (was 30) so the filters reach back past last month.
+- Owner dashboard: removed the sign-out button (it lives on the account screen) and put the profile button where the bakery logo was, next to the bakery name. Account screen: no more "copy ID number" button for owners.
+- Booking-confirmed screen (تم حجز ربطتك): all details fit on one screen (scaled to fit, not scrolled) and the three actions — save, share, home — are pinned at the bottom in one row.
+- My booking (حجزي): removed the "browse bakeries" button from an existing booking and the three-step progress list (booked / ready / collected), which repeated the status chip and banner above it. The empty state keeps its browse button.
+- Account screen: removed the "copy ID number" button for everyone, not just owners.
+- Bottom navigation bar restyled to match the app: white strip with a hairline, accent-colored selected tab with a soft pill.
+- Replaced the beige ground (and its tinted borders/containers) with a light blue-grey across the app, the native splash screen and the loaf artwork.
+
 ### Fixed — 2026-10-29 — migration audit and team APK builds
 
 - Classified the two live Gaza City areas the governorate backfill missed (Sheikh Radwan, Tal al-Hawa), so every current store is reachable from the governorate screen instead of only browse-all.

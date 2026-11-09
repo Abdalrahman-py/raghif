@@ -15,7 +15,7 @@ class SupabaseNotificationRepository implements NotificationRepository {
   static AppNotification notificationFromRow(Map<String, dynamic> row) =>
       AppNotification(
         id: row['id'] as String,
-        purchaseId: row['purchase_id'] as String,
+        purchaseId: row['purchase_id'] as String?,
         kind: row['kind'] as String,
         title: row['title'] as String,
         body: row['body'] as String,
@@ -50,7 +50,9 @@ class SupabaseNotificationRepository implements NotificationRepository {
             .select('id,purchase_id,kind,title,body,created_at,read_at')
             .eq('user_id', id)
             .order('created_at', ascending: false)
-            .order('id', ascending: false);
+            .order('id', ascending: false)
+            // Newest first and bounded: the inbox grows with every booking.
+            .limit(50);
         return rows.map(notificationFromRow).toList();
       });
 

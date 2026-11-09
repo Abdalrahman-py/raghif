@@ -1,0 +1,57 @@
+name: Admin panel
+
+# Publishes admin/ to GitHub Pages. Only runs when the panel (or this file)
+# changes, so app and docs pushes never touch the site. Nothing here builds
+# anything: the panel is plain HTML, CSS and JS.
+#
+# One-time setup in the repository: Settings > Pages > Source = "GitHub
+# Actions". GitHub Pages on a private repository needs a paid plan; on a
+# public one it is free.
+on:
+  push:
+    branches: [master]
+    paths:
+      - "admin/**"
+      - ".github/workflows/admin-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a deployment in flight finish rather than cancel it half way.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # An explicit list, not "copy the folder": dev-mock.js (sample data for
+      # local work) and README.md stay out of the public site.
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp admin/index.html admin/app.js admin/api.js admin/config.js admin/style.css _site/
+          # No secret key may ever ship in the site; fail the deploy if one does
+          # (a new-style secret key, or any JWT such as a service_role key).
+          if grep -rIlE -e 'sb_secret_' -e 'eyJ[A-Za-z0-9_-]{20,}\.eyJ' _site; then
+            echo "A secret key was found in the published files" >&2
+            exit 1
+          fi
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

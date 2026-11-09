@@ -50,8 +50,11 @@ class PaymentSuccessScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   const ExcludeSemantics(
-                    child: Icon(Icons.check_circle_outline,
-                        color: AppColors.success, size: 40),
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.success,
+                      size: 40,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
