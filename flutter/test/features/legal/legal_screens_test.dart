@@ -34,7 +34,7 @@ void main() {
       Strings.deleteAccountBody,
       Strings.ownerViaSupport,
     ]) {
-      expect(text, contains('+972597816403'));
+      expect(text, contains('+972599060214'));
     }
   });
 }

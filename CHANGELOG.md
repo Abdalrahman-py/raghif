@@ -18,6 +18,13 @@ Workflow rules this changelog lives by:
   `TASKS.md` — this log starts at the current collaboration.
 
 ## [Unreleased]
+
+### Changed — 2026-11-09 — support WhatsApp number
+
+Every support/contact surface (WhatsApp button, forgot-PIN, login lockout,
+phone change, account deletion, bakery-owner request, privacy and terms) now
+points to `+972599060214`. The forgot-PIN and lockout copy used a hardcoded
+copy of the old number; they now read `Strings.supportWhatsapp` like the rest.
 ### Fixed — 2026-11-09 — server side of the PR 68 review: simulated payments, lock order, anon aggregate, search_path
 
 Migration `20261109120000_payment_and_grant_review_fixes` (applied live on
