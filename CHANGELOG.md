@@ -25,7 +25,8 @@ Workflow rules this changelog lives by:
   has required for new apps and updates since 2026-08-31. A release build
   without `key.properties` is left unsigned instead of signed with the debug
   key. `release.yml` also attaches an app bundle (`app-release.aab`) for Play.
-- Migration `20261121120000_publish_hardening` (not yet applied live):
+- Migration `20261121120000_publish_hardening` (applied live 2026-11-21 with
+  `supabase db push`; `auth-gateway` redeployed the same day):
   `stores` is RPC-only for clients (owner INSERT/UPDATE policies and grants
   dropped); `reserve_bag` returns the booking a buyer already holds at the same
   bakery instead of failing a retry; new `auth_rate_hit` counter.
