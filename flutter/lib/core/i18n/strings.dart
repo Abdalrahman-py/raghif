@@ -42,6 +42,8 @@ class Strings {
   static const ok = 'حسنًا';
   static const loginLocked =
       'تم إيقاف الدخول مؤقتًا بسبب محاولات خاطئة كثيرة. حاول بعد 15 دقيقة أو راسل الدعم على واتساب: $supportWhatsapp';
+  static const tooManyRequests =
+      'محاولات كثيرة من هذه الشبكة. حاول مرة أخرى بعد قليل.';
   static const pinTooWeak =
       'الرمز سهل التخمين. تجنب الأرقام المتكررة أو المتسلسلة.';
   static String loginForId(String id) => 'لحساب رقم $id';

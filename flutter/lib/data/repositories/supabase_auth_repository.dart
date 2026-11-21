@@ -167,12 +167,17 @@ class SupabaseAuthRepository implements AuthRepository {
     required String pin,
     required String name,
   }) async {
-    final result = await _invoke('register', {
-      'phone': phone.trim(),
-      'pin': pin.trim(),
-      'name': name.trim(),
-    });
-    return _applySession(result);
+    try {
+      final result = await _invoke('register', {
+        'phone': phone.trim(),
+        'pin': pin.trim(),
+        'name': name.trim(),
+      });
+      return await _applySession(result);
+    } on FunctionException catch (e) {
+      if (e.status == 429) throw const AccountBlockedException('rate_limited');
+      rethrow;
+    }
   }
 
   @override

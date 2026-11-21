@@ -19,6 +19,22 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Fixed — 2026-11-21 — publish readiness: Play target, signing, backend hardening
+
+- Android now targets API 36 (`flutter.targetSdkVersion`), which Google Play
+  has required for new apps and updates since 2026-08-31. A release build
+  without `key.properties` is left unsigned instead of signed with the debug
+  key. `release.yml` also attaches an app bundle (`app-release.aab`) for Play.
+- Migration `20261121120000_publish_hardening` (not yet applied live):
+  `stores` is RPC-only for clients (owner INSERT/UPDATE policies and grants
+  dropped); `reserve_bag` returns the booking a buyer already holds at the same
+  bakery instead of failing a retry; new `auth_rate_hit` counter.
+- `auth-gateway` rate-limits `register` (per IP and per phone) and
+  `check-availability` (per IP), answering 429 `rate_limited`; the app shows a
+  "too many attempts" message. 500s no longer echo internal error text.
+- The SQL suites run in CI (new `sql` job). `admin_panel.sql` no longer calls
+  the dropped `verify_pin_and_get_profile`, which had broken the suite.
+
 ### Changed — 2026-11-09 — support WhatsApp number
 
 Every support/contact surface (WhatsApp button, forgot-PIN, login lockout,

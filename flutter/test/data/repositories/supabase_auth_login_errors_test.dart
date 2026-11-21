@@ -84,6 +84,25 @@ void main() {
     );
   });
 
+  test('a 429 on register is rate_limited, not a raw error', () async {
+    gatewayReplies(
+      const FunctionException(
+        status: 429,
+        details: {'error': 'rate_limited', 'retryAfter': 3600},
+      ),
+    );
+    await expectLater(
+      repo.register(phone: '0599111111', pin: '2580', name: 'x'),
+      throwsA(
+        isA<AccountBlockedException>().having(
+          (e) => e.reason,
+          'reason',
+          'rate_limited',
+        ),
+      ),
+    );
+  });
+
   test('any other 403 stays an error', () async {
     gatewayReplies(
       const FunctionException(

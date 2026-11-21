@@ -29,4 +29,5 @@ psql < wallet_payment.sql
 psql < housekeeping.sql
 psql < wallet_verification.sql
 psql < review_fixes.sql
+psql < publish_hardening.sql
 echo "SQL tests passed"
