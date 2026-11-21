@@ -34,7 +34,9 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26
-        targetSdk = 34
+        // Google Play has required API 36 for new apps and updates since
+        // 2026-08-31. Targeting 35+ enforces edge-to-edge drawing.
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -46,8 +48,8 @@ android {
         }
         create("release") {
             // key.properties is gitignored and holds the real release keystore
-            // credentials (see android/key.properties.example). Without it,
-            // buildTypes.release below falls back to debug signing.
+            // credentials (see android/key.properties.example). Without it the
+            // release build is left unsigned rather than signed with a debug key.
             val keystorePropertiesFile = rootProject.file("key.properties")
             if (keystorePropertiesFile.exists()) {
                 val keystoreProperties = Properties()
@@ -65,11 +67,11 @@ android {
 
     buildTypes {
         release {
-            val releaseSigning = signingConfigs.findByName("release")
-            signingConfig = if (releaseSigning?.storeFile?.exists() == true) {
-                releaseSigning
-            } else {
-                signingConfigs.getByName("debug")
+            // Never fall back to the debug key: phones could not update an app
+            // signed with it, and Play rejects it.
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
             }
         }
     }

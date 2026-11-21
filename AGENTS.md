@@ -85,7 +85,11 @@ cover product intent.
   Because the phone is the login name and the wallet, a number change must stay
   a support action until an SMS code to the new number exists.
 - `register` answers `phone already registered` (409) and `check-availability`
-  tells anyone whether a number has an account. Rate-limit them before launch.
+  tells anyone whether a number has an account. Both are rate-limited in
+  `auth-gateway` through `auth_rate_hit` (fixed windows in
+  `auth_rate_limits`, keyed by the first `x-forwarded-for` hop and, for
+  `register`, the phone). The IP key is spoofable if the edge proxy appends to
+  that header; limits are loose because carrier NAT shares addresses.
 - Buyer verification: `verify_my_wallet(code)` is the only client path to `verification_status = 'verified'` (the column grants are revoked); it verifies the account's own phone, which is its Jawwal Pay number. The code is the fixed stand-in `1234` until an SMS gateway can text a real one to that number; swap the comparison in that function (and count wrong attempts) when it can.
 - There is no Realtime. Do not re-add a channel or a polling timer: it costs
   server RAM per connection and mobile data on weak networks. Freshness comes
@@ -100,25 +104,21 @@ cover product intent.
 - Notification title/body copy is hardcoded Arabic inside the trigger (migration `20261105150000_notification_copy`, dates DD/MM/YYYY); changing it needs a migration.
 - The inbox fetch is capped at 100 rows; add pagination before it grows past that.
 
-## Unmerged backend hardening
+## Backend hardening (from the old review branch)
 
-Remote branch `chore/backend-hardening-and-spec-rewrite` holds three commits that
-are **not** in `master`: bounded/retry-proof `reserve_bag`, RPC-only writes to
-`stores`, a 5-miss/15-min PIN lockout with a 4-digit PIN check, a spec rewrite
-(`ARCHITECTURE.md`, `TASKS.md`, `docs/BACKEND-REVIEW-2026-10.md`), and removal of
-dead dependencies. It predates the Stitch redesign and conflicts heavily.
-
-Do not merge it blindly and do not re-implement its ideas from scratch without
-reading it. Re-apply the hardening onto the current queue RPCs (the
-redesign replaced `reserve_bag`, `save_store_allocation`, `notify_next_batch`,
-`collect_purchase` and `record_scan`), keeping the date/lock/capacity invariants
-above.
+Remote branch `chore/backend-hardening-and-spec-rewrite` predates the Stitch
+redesign; do not merge it. Its ideas are now in `master`: the PIN lockout
+(`login_attempt`), 4-digit PIN checks, RPC-only writes to `stores` and an
+idempotent `reserve_bag` (`20261121120000_publish_hardening`). Its spec rewrite
+(`ARCHITECTURE.md`, `docs/BACKEND-REVIEW-2026-10.md`) was not carried over.
 
 ## CI and builds
 
-- `ci.yml` runs on pull requests: `flutter analyze` + `flutter test`.
-- `release.yml` runs on a push to `master`: builds the release APK with the real
-  Supabase project and replaces the rolling `latest` release.
+- `ci.yml` runs on pull requests: `flutter analyze` + `flutter test`, the
+  edge-function Node tests, and the SQL suites (`tests/run.sh`, Docker).
+- `release.yml` runs on a push to `master`: builds the release APK and app
+  bundle (`.aab`, for Play) with the real Supabase project and replaces the
+  rolling `latest` release.
 - `apk.yml` builds both a debug and a release APK and uploads them as one
   artifact; it never touches `latest`.
 - `SUPABASE_URL` / `SUPABASE_ANON_KEY` live in repo variables (they ship inside

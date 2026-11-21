@@ -128,6 +128,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
       );
       emit(Authenticated(user));
+    } on AccountBlockedException catch (e) {
+      emit(AuthFailure(_blockedMessage(e)));
     } catch (e) {
       emit(AuthFailure(e.toString()));
     }
@@ -170,6 +172,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       switch (e.reason) {
         'store_archived' => Strings.loginStoreArchived,
         'login_locked' => Strings.loginLocked,
+        'rate_limited' => Strings.tooManyRequests,
         _ => Strings.loginAccountDisabled,
       };
 }

@@ -87,6 +87,11 @@ jobs:
       - run: flutter build apk --release --target-platform android-arm64 --obfuscate --split-debug-info=build/symbols
         working-directory: flutter
 
+      # Google Play takes an app bundle, not an APK. All ABIs: Play serves each
+      # phone only its own. Uploading it to Play Console stays a manual step.
+      - run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+        working-directory: flutter
+
       # Fail the release if the APK is unsigned or Gradle fell back to debug.
       - name: Verify APK signature
         run: |
@@ -104,6 +109,7 @@ jobs:
         run: |
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest flutter/build/app/outputs/flutter-apk/app-release.apk \
+            flutter/build/app/outputs/bundle/release/app-release.aab \
             --title "Latest build" \
             --notes "Built from ${GITHUB_SHA} (${GITHUB_REF_NAME})" \
             --target "${GITHUB_SHA}"

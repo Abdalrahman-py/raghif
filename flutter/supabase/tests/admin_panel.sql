@@ -84,24 +84,18 @@ reset role;
 -- ------------------------------------------------------- owner guardrails --
 
 select pg_temp.as_user('a0000000-0000-0000-0000-000000000002');
--- The owner's everyday toggle still works.
-update public.stores set is_open = false where id = 'b0000000-0000-0000-0000-000000000001';
-update public.stores set is_open = true  where id = 'b0000000-0000-0000-0000-000000000001';
--- But not the columns only the administrator controls.
-select pg_temp.must_fail($$update public.stores set status = 'paused' where id = 'b0000000-0000-0000-0000-000000000001'$$, 'managed by the administrator');
-select pg_temp.must_fail($$update public.stores set bag_price = 1 where id = 'b0000000-0000-0000-0000-000000000001'$$, 'managed by the administrator');
+-- The owner's everyday toggle goes through the RPC; direct writes are gone
+-- (20261121120000_publish_hardening).
+select public.set_store_open('b0000000-0000-0000-0000-000000000001', false);
+select public.set_store_open('b0000000-0000-0000-0000-000000000001', true);
+select pg_temp.must_fail($$update public.stores set is_open = false where id = 'b0000000-0000-0000-0000-000000000001'$$, 'permission denied');
+select pg_temp.must_fail($$update public.stores set bags_remaining = 999 where id = 'b0000000-0000-0000-0000-000000000001'$$, 'permission denied');
 -- No hard delete of a store or a profile.
 select pg_temp.must_fail($$delete from public.stores where id = 'b0000000-0000-0000-0000-000000000001'$$, 'permission denied');
 select pg_temp.must_fail($$delete from public.profiles where id = 'a0000000-0000-0000-0000-000000000002'$$, 'permission denied');
--- A store the owner inserts is forced to the defaults.
-insert into public.stores (name, owner_id, is_open, daily_bag_limit, bags_remaining, batch_size, bag_price, status)
-  values ('self-made', 'a0000000-0000-0000-0000-000000000002', true, 5, 5, 2, 99, 'paused');
+-- Nor can an owner create a store of their own.
+select pg_temp.must_fail($$insert into public.stores (name, owner_id) values ('self-made', 'a0000000-0000-0000-0000-000000000002')$$, 'permission denied');
 reset role;
-do $$ begin
-  perform pg_temp.ok((select bag_price = 3 and status = 'active'
-    from public.stores where name = 'self-made'), 'insert forced to defaults');
-end $$;
-delete from public.stores where name = 'self-made';
 
 -- --------------------------------------------------- admin reads and edits --
 
@@ -207,6 +201,10 @@ do $$ begin
   perform pg_temp.ok((select count(*) = 1 from public.stores where id = 'b0000000-0000-0000-0000-000000000001'),
     'archived still visible to a buyer with a booking');
 end $$;
+-- A retry by the buyer who already holds the booking gets it back; anyone else is refused.
+select public.reserve_bag('b0000000-0000-0000-0000-000000000001', (now() at time zone 'Asia/Hebron')::date);
+reset role;
+select pg_temp.as_user('a0000000-0000-0000-0000-000000000006');
 select pg_temp.must_fail($$select public.reserve_bag('b0000000-0000-0000-0000-000000000001', (now() at time zone 'Asia/Hebron')::date)$$, 'store closed or sold out');
 reset role;
 select pg_temp.as_user('a0000000-0000-0000-0000-000000000002');
@@ -364,8 +362,8 @@ select pg_temp.must_fail($$select public.admin_set_pin('a0000000-0000-0000-0000-
 select pg_temp.must_fail($$select public.admin_set_pin('a0000000-0000-0000-0000-000000000001', '5921')$$, 'administrator');
 reset role;
 do $$ begin
-  perform pg_temp.ok((select id from public.verify_pin_and_get_profile('tst-7003', 'phone', '5921')) = 'a0000000-0000-0000-0000-000000000003', 'new PIN logs in');
-  perform pg_temp.ok((select id from public.verify_pin_and_get_profile('tst-7003', 'phone', '4829')) is null, 'old PIN no longer works');
+  perform pg_temp.ok((public.login_attempt('tst-7003', '5921') #>> '{profile,id}') = 'a0000000-0000-0000-0000-000000000003', 'new PIN logs in');
+  perform pg_temp.ok((public.login_attempt('tst-7003', '4829') ->> 'result') = 'invalid', 'old PIN no longer works');
   perform pg_temp.ok((select pin_failed_attempts = 0 and pin_locked_until is null from public.profiles
     where id = 'a0000000-0000-0000-0000-000000000003'), 'lock cleared by reset');
 end $$;

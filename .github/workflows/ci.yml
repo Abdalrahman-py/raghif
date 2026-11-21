@@ -43,3 +43,12 @@ jobs:
         with:
           node-version: 22
       - run: node --experimental-strip-types --test "flutter/supabase/functions/**/*.test.ts"
+
+  # Every migration applied to a throwaway Postgres, then the rollback-only
+  # SQL suites (queue invariants, grants, RLS). Docker is on the runner.
+  sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - run: bash flutter/supabase/tests/run.sh

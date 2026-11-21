@@ -6,8 +6,8 @@ import '../models/user_model.dart';
 class AccountBlockedException implements Exception {
   const AccountBlockedException(this.reason);
 
-  /// `account_disabled`, `store_archived` or `login_locked` (too many wrong
-  /// PINs; what the gateway sends).
+  /// `account_disabled`, `store_archived`, `login_locked` (too many wrong
+  /// PINs) or `rate_limited` (too many sign-ups from one network).
   final String reason;
 
   @override

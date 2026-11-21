@@ -120,6 +120,39 @@ async function loginBlock(profileId: string): Promise<string | null> {
   return typeof data === "string" ? data : null;
 }
 
+// Slows phone-number enumeration through check-availability / register.
+// Fixed windows counted in Postgres (auth_rate_hit, service role only).
+// shortcut: keyed on the first x-forwarded-for hop, which a client can
+// prepend to if the edge proxy appends rather than replaces; move to a
+// verified client-IP header or a CAPTCHA if abuse shows up in the logs.
+// Limits are generous because many phones share one carrier-NAT address.
+function clientIp(req: Request): string | null {
+  const fwd = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return fwd || req.headers.get("x-real-ip") || null;
+}
+
+// True when the caller is over the limit. A missing function (the migration
+// is not applied yet) is treated as "not limited", so deploying this file
+// before the database cannot block registration; any other error fails closed.
+async function overLimit(bucket: string, max: number, windowSeconds: number): Promise<boolean> {
+  const { data, error } = await admin.rpc("auth_rate_hit", {
+    p_bucket: bucket,
+    p_max: max,
+    p_window_seconds: windowSeconds,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || /could not find the function/i.test(error.message)) {
+      return false;
+    }
+    throw new Error(error.message);
+  }
+  return data === false;
+}
+
+function rateLimited(retryAfter: number) {
+  return json({ error: "rate_limited", retryAfter }, 429);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -137,11 +170,13 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action as string;
+  const ip = clientIp(req);
 
   try {
     switch (action) {
       case "check-availability": {
         const { phone } = body;
+        if (ip && await overLimit(`avail:ip:${ip}`, 60, 600)) return rateLimited(600);
         const { data, error } = await admin.rpc("check_availability", {
           p_phone: phone ?? "",
         });
@@ -161,6 +196,8 @@ Deno.serve(async (req: Request) => {
         }
         const problem = pinProblem(pin);
         if (problem) return json({ error: problem }, 400);
+        if (ip && await overLimit(`reg:ip:${ip}`, 20, 3600)) return rateLimited(3600);
+        if (await overLimit(`reg:phone:${phone}`, 5, 3600)) return rateLimited(3600);
         const { data: taken, error: takenError } = await admin.rpc(
           "check_availability",
           { p_phone: phone },
@@ -251,6 +288,8 @@ Deno.serve(async (req: Request) => {
         return json({ error: `unknown action: ${action}` }, 400);
     }
   } catch (err) {
-    return json({ error: (err as Error).message ?? "internal error" }, 500);
+    // Details go to the function log, never to the caller.
+    console.error(err);
+    return json({ error: "internal error" }, 500);
   }
 });
