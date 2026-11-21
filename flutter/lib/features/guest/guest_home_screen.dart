@@ -160,15 +160,17 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
                   const SizedBox(height: AppSpacing.lg),
                   _howItWorks(textTheme, muted),
                   const SizedBox(height: AppSpacing.lg),
+                  // Main action is signing in; new people book from a bakery
+                  // card or take the text action below.
                   FilledButton(
-                    onPressed: _signUp,
-                    child: const Text(Strings.guestCreateAccount),
+                    onPressed: _login,
+                    child: const Text(Strings.guestLogin),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Center(
                     child: TextButton(
-                      onPressed: _login,
-                      child: const Text(Strings.guestHaveAccount),
+                      onPressed: _signUp,
+                      child: const Text(Strings.guestSignUp),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),

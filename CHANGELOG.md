@@ -21,7 +21,7 @@ Workflow rules this changelog lives by:
 
 ### Changed — 2026-11-21 — guest screen footer, Arabic digits in number fields
 
-- Guest screen: the bakery-owner sentence (with the WhatsApp number) and the
+- Guest screen: "تسجيل الدخول" is the main button and "ليس لديك حساب؟ أنشئ حسابًا" the text action under it. The bakery-owner sentence (with the WhatsApp number) and the
   green outlined button are replaced by one quiet line, "صاحب مخبز؟" with a
   "تواصل معنا" link that opens the same WhatsApp chat. Privacy and terms are a
   muted footer line (still 48dp targets, 16sp). "Create account" is an M3

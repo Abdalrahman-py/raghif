@@ -129,8 +129,8 @@ class Strings {
   static const stepPinTitle = 'اختر رمزًا سريًا';
   static String registrationFor(String store) => 'لحجز رغيف من $store';
   static const guestTagline = 'احجز رغيفك من البيت بدل الازدحام';
-  static const guestCreateAccount = 'ابدأ بإنشاء حساب';
-  static const guestHaveAccount = 'لدي حساب؟ تسجيل الدخول';
+  static const guestSignUp = 'ليس لديك حساب؟ أنشئ حسابًا';
+  static const guestLogin = 'تسجيل الدخول';
   static const guestBook = 'احجز رغيفك';
   static const guestStoresTitle = 'الأكثر طلبًا هذا الأسبوع';
   static const guestLoadError =
