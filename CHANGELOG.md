@@ -19,6 +19,24 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-21 — guest screen footer, Arabic digits in number fields
+
+- Guest screen: the bakery-owner sentence (with the WhatsApp number) and the
+  green outlined button are replaced by one quiet line, "صاحب مخبز؟" with a
+  "تواصل معنا" link that opens the same WhatsApp chat. Privacy and terms are a
+  muted footer line (still 48dp targets, 16sp). "Create account" is an M3
+  `FilledButton`; a `filledButtonTheme` keeps it the app's 56dp pill.
+- Phone and PIN fields (login, registration, change PIN) now accept
+  Arabic-Indic (٠-٩) and Persian (۰-۹) digits and convert them to 0-9
+  (`AsciiDigitsFormatter`). Before, `digitsOnly` dropped them silently, so on
+  an Arabic keyboard nothing appeared when typing.
+- Login fields are no longer switched to read-only while sign-in runs (the
+  bloc already ignores a second submit). On web that toggle could leave the
+  field unable to take typing or paste after a refused PIN.
+- `docs/m3-port-study.md`: notes for moving the app to built-in Material 3
+  components. `.claude/launch.json` gains a Linux entry serving
+  `flutter/build/web`.
+
 ### Fixed — 2026-11-21 — publish readiness: Play target, signing, backend hardening
 
 - Android now targets API 36 (`flutter.targetSdkVersion`), which Google Play

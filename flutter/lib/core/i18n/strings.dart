@@ -30,6 +30,8 @@ class Strings {
   static const ownerViaSupport =
       'هل أنت صاحب مخبز؟ راسل الدعم على واتساب: $supportWhatsapp لإضافة مخبزك.';
   static const contactSupportWhatsapp = 'تواصل مع الدعم على واتساب';
+  static const ownerQuestion = 'صاحب مخبز؟';
+  static const ownerContactLink = 'تواصل معنا';
   static const ownerRequestMessage =
       'مرحبًا، أنا صاحب مخبز وأرغب بإضافة مخبزي إلى تطبيق رغيف.';
   static const supportMessage = 'مرحبًا، أحتاج مساعدة في تطبيق رغيف.';

@@ -4,19 +4,52 @@
     {
       "name": "flutter-web",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd flutter && flutter run -d web-server --web-port 5050"],
+      "runtimeArgs": [
+        "/c",
+        "cd flutter && flutter run -d web-server --web-port 5050"
+      ],
       "port": 5050
+    },
+    {
+      "name": "flutter-web-build-linux",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5051",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "flutter/build/web"
+      ],
+      "port": 5051
     },
     {
       "name": "flutter-web-build",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8088", "--bind", "127.0.0.1", "--directory", "flutter/build/web"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8088",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "flutter/build/web"
+      ],
       "port": 8088
     },
     {
       "name": "admin-panel",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8099", "--bind", "127.0.0.1", "--directory", "admin"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8099",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "admin"
+      ],
       "port": 8099
     }
   ]

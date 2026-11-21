@@ -139,6 +139,18 @@ class AppTheme {
           textStyle: AppTypography.labelLarge,
         ),
       ),
+      // M3's FilledButton, sized like the ElevatedButton above (56dp pill)
+      // so low-literacy users get the same big target; flat, as M3 intends.
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
+          minimumSize: const Size.fromHeight(56),
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          textStyle: AppTypography.labelLarge,
+        ),
+      ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 1,

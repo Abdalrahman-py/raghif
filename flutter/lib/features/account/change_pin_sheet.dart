@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import '../../core/input/digits_formatter.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
@@ -97,7 +98,7 @@ class _ChangePinSheetState extends State<ChangePinSheet> {
     keyboardType: TextInputType.number,
     textInputAction: action,
     maxLength: 4,
-    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+    inputFormatters: [AsciiDigitsFormatter()],
     decoration: InputDecoration(labelText: label, counterText: ''),
     validator: validator,
     onFieldSubmitted: action == TextInputAction.done ? (_) => _submit() : null,
