@@ -19,6 +19,19 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-21 — in-range dependency upgrade
+
+- `flutter pub upgrade` within the existing `pubspec.yaml` constraints: 67
+  packages in `pubspec.lock` move to newer patch/minor versions (among them
+  `supabase_flutter` 2.18.3, `mobile_scanner` 7.5.0, `flutter_svg` 2.5.0,
+  `shared_preferences` 2.5.6). `pubspec.yaml` is unchanged.
+- Major upgrades (`firebase_*`, `flutter_local_notifications`, `share_plus`,
+  `gal`, `flutter_dotenv`, `equatable`, `freezed`, `flutter_lints`) are left
+  for after the MVP; Firebase and notifications wait until push is proven on a
+  device. `audioplayers` stays pinned below 6.8.0.
+- Checked locally: `flutter analyze` clean, `flutter test` 306 pass, 2 skipped.
+  No Android build or device run yet.
+
 ### Fixed — 2026-11-21 — publish readiness: Play target, signing, backend hardening
 
 - Android now targets API 36 (`flutter.targetSdkVersion`), which Google Play
