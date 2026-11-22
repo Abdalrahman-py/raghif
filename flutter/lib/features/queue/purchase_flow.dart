@@ -54,6 +54,8 @@ Future<void> startPurchase(
   final choice = await showModalBottomSheet<PaymentChoice>(
     context: context,
     showDragHandle: true,
+    // Grows with large text instead of overflowing; the sheet scrolls.
+    isScrollControlled: true,
     builder: (_) => const PaymentChoiceSheet(),
   );
   if (choice == PaymentChoice.jawwal) {
@@ -147,7 +149,7 @@ class PaymentChoiceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg,
           0,
