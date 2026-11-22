@@ -19,6 +19,13 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-22 — Material 3 corner scale and port study
+
+- `AppShapes` follows the M3 corner scale (8 / 12 / 16 / 28dp: chips, inputs,
+  cards, dialogs and sheets); buttons stay full pills. `UI_SPEC.md` matches.
+- `docs/superpowers/specs/2026-11-21-material3-port.md` records the study that
+  orders the Material 3 port (theme first, then wrappers, then screens).
+
 ### Changed — 2026-11-21 — guest screen footer, Arabic digits in number fields
 
 - Guest screen: "تسجيل الدخول" is the main button and "ليس لديك حساب؟ أنشئ حسابًا" the text action under it. The bakery-owner sentence (with the WhatsApp number) and the

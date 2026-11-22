@@ -6,3 +6,6 @@
 
 # Local briefing documents, not part of the app
 /Claude outputs/
+
+# Local ticket tracker (Sadad convention), not pushed
+/.scratch/
