@@ -51,6 +51,30 @@ Workflow rules this changelog lives by:
 - New tests: every text role at 15sp or more, text-on-container contrast of
   4.5:1 or more, and the shared widgets at 360dp with a 2.0 text scale without
   overflow.
+### Changed — 2026-11-22 — reserve first, honest payment state, two bookings side by side
+
+- "اشتري ربطة" reserves the bag first (`reserve_bag`, idempotent), so sold out,
+  closed or offline is reported before any payment screen. A sheet then offers
+  "ادفع الآن عبر جوال باي" (the simulated wallet screens, then
+  `record_wallet_payment`) or "ادفع نقدًا عند الاستلام" (no payment record).
+  Backing out of the wallet, dismissing the sheet or a failed payment record
+  keeps the booking with cash due. A double tap sends one reservation.
+- Nothing says "paid" unless the bag is prepaid through the real wallet
+  (`PurchaseModel.isPrepaid`). The حجزي card and the store-details card show a
+  cash-at-pickup chip otherwise; the receipt has a payment row (cash at pickup,
+  trial wallet with cash due, or paid). The simulated wallet copy no longer
+  claims money was deducted.
+- The payment-code screen lost its duplicate "رجوع" button and the empty band
+  above the form.
+- "Today" on the phone is the Asia/Hebron date (UTC plus a tzdata-derived
+  summer-time table), not the device's zone, so a phone in another zone or
+  near midnight no longer sends a date the server rejects.
+- حجزي lists every uncollected booking from today on, so a postponed tomorrow
+  booking and a new today booking each get their own card and receipt
+  (`QueueRepository.upcomingPurchases` replaces `currentOrUpcomingPurchase`).
+  Offline receipts are kept per purchase id (`ReceiptStore`), so both open
+  without signal. SQL suite `two_bookings.sql` covers book, postpone, book
+  elsewhere. No migration; `reserve_bag` is unchanged.
 
 ### Changed — 2026-11-22 — Material 3 corner scale and port study
 

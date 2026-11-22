@@ -253,6 +253,8 @@ class Strings {
       'ادفع ${shekels(price)} شيكل نقدًا للمخبز عند استلام رغيفك. لا يُطلب منك أي دفع الآن.';
   static String cashCollected(double amount) =>
       'المحصَّل نقدًا: ${shekels(amount)} شيكل';
+  static String cashDueChip(double price) =>
+      'نقدًا عند الاستلام: ${shekels(price)} شيكل';
   static String amountDueAtPickup(double price) =>
       'المطلوب عند الاستلام: ${shekels(price)} شيكل نقدًا';
 
@@ -389,7 +391,8 @@ class Strings {
   // Payment (Jawwal Pay mock)
   static const paymentTitle = 'الدفع عبر جوال باي';
   static const confirmJawwalPayNumber = 'تأكيد رقم جوال باي';
-  static const jawwalPayPrompt = 'سيتم خصم 3 شيكل من محفظة جوال باي الخاصة بك.';
+  static const jawwalPayPrompt =
+      'الدفع تجريبي حاليًا: لن يُخصم أي مبلغ من محفظتك، ويبقى ثمن الربطة مستحقًا نقدًا عند الاستلام.';
   static const proceedToOtp = 'إرسال رمز التأكيد';
   static const paymentOtpTitle = 'رمز تأكيد الدفع';
   static const paymentOtpInstructions =
@@ -400,10 +403,22 @@ class Strings {
   static const confirmPaymentButton = 'تأكيد الدفع';
   static const resendCodeButton = 'إعادة إرسال الرمز';
   static const wrongOtpError = 'رمز التأكيد غير صحيح، يرجى المحاولة مرة أخرى';
-  static const paymentSuccessTitle = 'تم الدفع بنجاح';
+  // Jawwal Pay is simulated: nothing here may say money moved.
+  static const paymentSuccessTitle = 'تم تأكيد الدفع التجريبي';
   static const paymentSuccessMessage =
-      'تمت عملية الدفع بنجاح بقيمة 3 شيكل عبر جوال باي.';
-  static const completeReservationButton = 'إتمام الحجز';
+      'هذا دفع تجريبي ولم يُخصم أي مبلغ. ادفع ثمن الربطة نقدًا عند الاستلام.';
+  static const completeReservationButton = 'عرض وصل الحجز';
+
+  // Reserve first, then choose how to pay
+  static const bagHeldTitle = 'تم حجز ربطتك';
+  static const bagHeldBody = 'ربطتك محجوزة الآن. كيف ستدفع؟';
+  static const payWithJawwalOption = 'ادفع الآن عبر جوال باي';
+  static const payWithJawwalHint = 'تجريبي حاليًا: لا يُخصم أي مبلغ';
+  static const payCashOption = 'ادفع نقدًا عند الاستلام';
+  static const receiptPaymentLabel = 'الدفع';
+  static const paymentMethodCash = 'نقدًا عند الاستلام';
+  static const paymentMethodSimulated =
+      'جوال باي (تجريبي): الدفع نقدًا عند الاستلام';
 
   // Owner customers
   static const customersTitle = 'سجل الزبائن';

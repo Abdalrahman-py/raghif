@@ -86,8 +86,8 @@ abstract class QueueRepository {
   /// visible. Authoritative check happens server-side on reserve.
   Future<PurchaseModel?> getBlockingPurchase(String userId, String date);
 
-  /// Today's booking, otherwise the earliest future uncollected booking.
-  Future<PurchaseModel?> currentOrUpcomingPurchase(String userId, String today);
+  /// This buyer's bookings from [today] on, as [bookingsToShow] selects them.
+  Future<List<PurchaseModel>> upcomingPurchases(String userId, String today);
 
   /// Moves the signed-in buyer's eligible booking to tomorrow, atomically.
   Future<PurchaseModel> postponePurchase(String purchaseId);

@@ -129,8 +129,32 @@ void main() {
 
     expect(find.text(Strings.myOrderTodayTitle), findsOneWidget);
     expect(find.text(Strings.orderReady), findsNothing);
-    expect(find.text(Strings.paidBadge), findsOneWidget);
+    // Booked is not paid: cash is due unless prepaid through the wallet.
+    expect(find.text(Strings.paidBadge), findsNothing);
+    expect(
+      find.text(Strings.cashDueChip(StoreModel.defaultBagPrice)),
+      findsOneWidget,
+    );
     expect(find.text(Strings.showReceiptButton), findsOneWidget);
+  });
+
+  testWidgets('a prepaid order today says paid, with no cash due', (
+    tester,
+  ) async {
+    final entry = StoreListEntry(
+      store: store(),
+      todayStatus: PurchaseStatus.waiting,
+      todayPurchaseId: 'purchase-42',
+      todayPrepaid: true,
+    );
+    stubEntries([entry]);
+    await pumpDetails(tester, entry);
+
+    expect(find.text(Strings.paidBadge), findsOneWidget);
+    expect(
+      find.text(Strings.cashDueChip(StoreModel.defaultBagPrice)),
+      findsNothing,
+    );
   });
 
   testWidgets('no order section for a store the buyer is not using today', (

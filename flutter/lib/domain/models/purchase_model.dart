@@ -3,6 +3,19 @@ import 'package:equatable/equatable.dart';
 /// A purchase's position in the collection workflow (spec.md `purchases.status`).
 enum PurchaseStatus { waiting, notified, collected }
 
+/// The bookings حجزي shows, oldest date first: every uncollected booking from
+/// [today] on (a today booking and a postponed tomorrow one can coexist), plus
+/// today's booking once collected, so the buyer sees it was handed over.
+List<PurchaseModel> bookingsToShow(Iterable<PurchaseModel> rows, String today) =>
+    rows
+        .where(
+          (p) =>
+              p.purchaseDate.compareTo(today) >= 0 &&
+              (p.purchaseDate == today || p.status != PurchaseStatus.collected),
+        )
+        .toList()
+      ..sort((a, b) => a.purchaseDate.compareTo(b.purchaseDate));
+
 class PurchaseModel extends Equatable {
   const PurchaseModel({
     required this.id,

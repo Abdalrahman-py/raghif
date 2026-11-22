@@ -37,12 +37,27 @@ void main() {
       expect(moved.status, PurchaseStatus.waiting);
       expect(moved.postponementCount, 1);
       expect(controller.cachedPurchase(old.id), moved);
-      expect(
-        await controller.currentOrUpcomingPurchase('user-buyer', today),
-        moved,
-      );
+      expect(await controller.upcomingPurchases('user-buyer', today), [moved]);
       expect(await repository.getBlockingPurchase('user-buyer', today), isNull);
       await expectLater(controller.postponePurchase(old.id), throwsA(anything));
+    },
+  );
+  test(
+    'postpone A, then book B today elsewhere: both bookings stand apart',
+    () async {
+      final a = await controller.buy(storeId: 'store-rimal', date: today);
+      await controller.postponePurchase(a.id);
+      // The daily-limit pre-check counts only today's row.
+      expect(await controller.blockingPurchaseFor('user-buyer', today), isNull);
+      final b = await controller.buy(storeId: 'store-shati', date: today);
+
+      final shown = await controller.upcomingPurchases('user-buyer', today);
+      expect(shown.map((p) => (p.id, p.storeId, p.purchaseDate)), [
+        (b.id, 'store-shati', today),
+        (a.id, 'store-rimal', tomorrow),
+      ]);
+      expect(controller.cachedPurchase(a.id)!.purchaseDate, tomorrow);
+      expect(controller.cachedPurchase(b.id)!.purchaseDate, today);
     },
   );
   test(
@@ -93,10 +108,7 @@ void main() {
         date: tomorrow,
         status: PurchaseStatus.collected,
       );
-      expect(
-        await controller.currentOrUpcomingPurchase('user-buyer', today),
-        isNull,
-      );
+      expect(await controller.upcomingPurchases('user-buyer', today), isEmpty);
     },
   );
   test('old receipt date cannot redeem a moved booking even once notified', () {

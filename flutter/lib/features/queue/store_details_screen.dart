@@ -10,6 +10,7 @@ import '../../core/widgets/status_chip.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../auth/demo_accounts.dart';
 import 'confirmation_screen.dart';
+import 'payment_chip.dart';
 import 'purchase_flow.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -361,9 +362,9 @@ class _MyOrderCard extends StatelessWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.xs,
             children: [
-              const StatusChip(
-                text: Strings.paidBadge,
-                tone: StatusTone.success,
+              PaymentChip(
+                prepaid: entry.todayPrepaid,
+                price: entry.store.bagPrice,
               ),
             ],
           ),

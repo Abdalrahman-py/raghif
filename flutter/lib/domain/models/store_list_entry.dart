@@ -13,6 +13,7 @@ class StoreListEntry extends Equatable {
     this.pinned = false,
     this.todayStatus,
     this.todayPurchaseId,
+    this.todayPrepaid = false,
     this.lastPurchaseDate,
   });
 
@@ -21,12 +22,16 @@ class StoreListEntry extends Equatable {
   /// Buyer pinned this store → it always sorts to the top of the list.
   final bool pinned;
 
-  /// Today's order at this store for this buyer, if any. A purchase row only
-  /// exists after payment succeeded, so its presence also means "paid".
+  /// Today's order at this store for this buyer, if any. A booking is not a
+  /// payment: see [todayPrepaid].
   final PurchaseStatus? todayStatus;
 
   /// Id of that same order — lets the card/detail screen open its receipt.
   final String? todayPurchaseId;
+
+  /// That order was prepaid through the real wallet ([PurchaseModel.isPrepaid]).
+  /// False means cash is due at pickup, including a simulated wallet payment.
+  final bool todayPrepaid;
 
   /// Most recent purchase date at this store ("YYYY-MM-DD"), any day. Null
   /// when the buyer has never bought here.
@@ -34,7 +39,7 @@ class StoreListEntry extends Equatable {
 
   bool get hasOrderToday => todayStatus != null;
 
-  /// Paid, and the bag hasn't been handed over yet.
+  /// Booked, and the bag hasn't been handed over yet.
   bool get awaitingPickup =>
       todayStatus == PurchaseStatus.waiting ||
       todayStatus == PurchaseStatus.notified;
@@ -49,6 +54,7 @@ class StoreListEntry extends Equatable {
     pinned: pinned ?? this.pinned,
     todayStatus: todayStatus,
     todayPurchaseId: todayPurchaseId,
+    todayPrepaid: todayPrepaid,
     lastPurchaseDate: lastPurchaseDate,
   );
 
@@ -58,6 +64,7 @@ class StoreListEntry extends Equatable {
     pinned,
     todayStatus,
     todayPurchaseId,
+    todayPrepaid,
     lastPurchaseDate,
   ];
 }
