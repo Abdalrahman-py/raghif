@@ -19,6 +19,28 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-22 — Material 3 theme and shared widgets (port Phases 0–1)
+
+- The theme builds a full colour scheme with `ColorScheme.fromSeed` from the
+  brand blue, with the brand roles pinned (primary, containers, the #EEF2F6
+  ground, white cards and sheets, outlines, the danger set). Success, warning
+  and neutral pairs live in one `StatusColors` theme extension, which
+  `StatusChip` reads.
+- All 15 text roles are set, none under 15sp (`titleSmall` used to fall back
+  to 14sp).
+- Buttons are 48dp pills with 16sp labels instead of 56dp. Cards have one
+  treatment: white, outlined, flat, 16dp corners, no margin. Icon buttons have
+  a 48dp minimum. App bar, list tile, floating snack bar, dialog, bottom sheet
+  and navigation bar themes are set once.
+- `PrimaryButton` is a `FilledButton` with a loading spinner (no press-scale
+  animation), `SecondaryButton` an `OutlinedButton`, `AppCard` a themed
+  `Card`. `AppBottomBar` is gone: both shells use `NavigationBar` on a white
+  surface, with no shadow or rounded top. `NumberStepper` uses
+  `IconButton.outlined` with tooltips.
+- New tests: every text role at 15sp or more, text-on-container contrast of
+  4.5:1 or more, and the shared widgets at 360dp with a 2.0 text scale without
+  overflow.
+
 ### Changed — 2026-11-22 — Material 3 corner scale and port study
 
 - `AppShapes` follows the M3 corner scale (8 / 12 / 16 / 28dp: chips, inputs,

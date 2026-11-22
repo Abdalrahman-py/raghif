@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 
 /// Outlined, not filled — a solid second button would compete visually with
 /// the screen's one primary action (UI_SPEC.md PurchaseScreen treatment).
+/// A stock [OutlinedButton] styled by `outlinedButtonTheme`, full width.
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     super.key,
@@ -20,27 +19,14 @@ class SecondaryButton extends StatelessWidget {
   final bool loading;
 
   @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: loading ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(56),
-        shape: const StadiumBorder(),
-        backgroundColor: AppColors.surface,
-        side: const BorderSide(color: AppColors.border),
-        foregroundColor: AppColors.accent,
-        textStyle: AppTypography.labelLarge.copyWith(color: AppColors.accent),
-      ),
-      child: loading
-          ? const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.accent,
-              ),
-            )
-          : Text(text),
-    );
-  }
+  Widget build(BuildContext context) => OutlinedButton(
+    onPressed: loading ? null : onPressed,
+    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+    child: loading
+        ? const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          )
+        : Text(text, textAlign: TextAlign.center),
+  );
 }

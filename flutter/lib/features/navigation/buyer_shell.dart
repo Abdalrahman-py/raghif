@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../core/widgets/app_bottom_bar.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../account/account_screen.dart';
 import '../auth/demo_accounts.dart';
@@ -96,9 +95,9 @@ class _BuyerShellState extends State<BuyerShell> {
         ),
         _ => const AccountScreen(embedded: true),
       },
-      bottomNavigationBar: AppBottomBar(
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) => setState(() => _index = value),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

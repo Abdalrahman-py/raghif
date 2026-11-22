@@ -1,39 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/status_colors.dart';
 import '../theme/app_typography.dart';
 
 enum StatusTone { success, warning, danger, neutral }
-
-class _ToneColors {
-  const _ToneColors(this.container, this.content);
-  final Color container;
-  final Color content;
-}
-
-_ToneColors _toneColors(StatusTone tone) {
-  switch (tone) {
-    case StatusTone.success:
-      return const _ToneColors(
-        AppColors.successContainer,
-        AppColors.onSuccessContainer,
-      );
-    case StatusTone.warning:
-      return const _ToneColors(
-        AppColors.warningContainer,
-        AppColors.onWarningContainer,
-      );
-    case StatusTone.danger:
-      return const _ToneColors(
-        AppColors.dangerContainer,
-        AppColors.onDangerContainer,
-      );
-    case StatusTone.neutral:
-      return const _ToneColors(
-        AppColors.neutralContainer,
-        AppColors.textSecondary,
-      );
-  }
-}
 
 /// Status pairs a color with an icon/label — color is never the only signal
 /// (colorblind + grayscale-screen-in-sunlight safe), per UI_SPEC.md.
@@ -54,7 +23,23 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = _toneColors(tone);
+    final status = StatusColors.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final (container, content) = switch (tone) {
+      StatusTone.success => (
+        status.successContainer,
+        status.onSuccessContainer,
+      ),
+      StatusTone.warning => (
+        status.warningContainer,
+        status.onWarningContainer,
+      ),
+      StatusTone.danger => (scheme.errorContainer, scheme.onErrorContainer),
+      StatusTone.neutral => (
+        status.neutralContainer,
+        status.onNeutralContainer,
+      ),
+    };
     final resolvedIcon =
         icon ??
         switch (tone) {
@@ -64,7 +49,7 @@ class StatusChip extends StatelessWidget {
         };
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.container,
+        color: container,
         borderRadius: BorderRadius.circular(99),
       ),
       child: Padding(
@@ -75,15 +60,13 @@ class StatusChip extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Icon(resolvedIcon, size: 16, color: colors.content),
+              child: Icon(resolvedIcon, size: 16, color: content),
             ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 text,
-                style: AppTypography.labelMedium.copyWith(
-                  color: colors.content,
-                ),
+                style: AppTypography.labelMedium.copyWith(color: content),
               ),
             ),
           ],

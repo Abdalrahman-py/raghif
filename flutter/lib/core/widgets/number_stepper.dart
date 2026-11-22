@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_shapes.dart';
 import '../theme/app_typography.dart';
 
 /// +/- stepper over free-text entry — fewer input errors for numeric fields
@@ -31,66 +29,30 @@ class NumberStepper extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _StepperButton(
-          icon: Icons.remove,
-          label: decrementLabel,
-          onTap: value > min
+        // The tooltip is the button's accessible name.
+        IconButton.outlined(
+          icon: const Icon(Icons.remove),
+          tooltip: decrementLabel,
+          onPressed: value > min
               ? () => onChanged(value - step < min ? min : value - step)
               : null,
         ),
-        SizedBox(
-          width: 40,
+        // A floor, not a fixed width: "300" at a large font scale must not
+        // wrap.
+        ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 40),
           child: Text(
             '$value',
             textAlign: TextAlign.center,
             style: AppTypography.titleMedium,
           ),
         ),
-        _StepperButton(
-          icon: Icons.add,
-          label: incrementLabel,
-          onTap: () => onChanged(value + step),
+        IconButton.outlined(
+          icon: const Icon(Icons.add),
+          tooltip: incrementLabel,
+          onPressed: () => onChanged(value + step),
         ),
       ],
-    );
-  }
-}
-
-class _StepperButton extends StatelessWidget {
-  const _StepperButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: Material(
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppShapes.medium,
-          side: const BorderSide(color: AppColors.border),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Semantics(
-            label: label,
-            button: true,
-            child: Icon(
-              icon,
-              color: onTap == null ? AppColors.border : AppColors.accent,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
