@@ -52,9 +52,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Straight to payment: no review screen in between.
-    expect(find.text(Strings.paymentTitle), findsOneWidget);
+    // The bag is reserved first, then the buyer picks how to pay.
+    expect(find.text(Strings.bagHeldTitle), findsOneWidget);
     expect(find.text('راجع حجزك'), findsNothing);
+    expect(
+      await harness.controller.blockingPurchaseFor(
+        seededBuyerId,
+        todayDateString(),
+      ),
+      isNotNull,
+    );
   });
 
   testWidgets('the home opens on "my bakeries" and "all" is one tap away', (

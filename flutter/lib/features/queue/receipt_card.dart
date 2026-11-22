@@ -18,6 +18,7 @@ class ReceiptCard extends StatelessWidget {
     required this.userName,
     required this.status,
     required this.qrData,
+    this.paymentText,
   });
 
   final String storeName;
@@ -27,6 +28,9 @@ class ReceiptCard extends StatelessWidget {
   final String userName;
   final PurchaseStatus status;
   final String qrData;
+
+  /// Payment state and method ("cash at pickup", "trial wallet"…), if known.
+  final String? paymentText;
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +126,11 @@ class ReceiptCard extends StatelessWidget {
                     label: Strings.receiptBatchLabel,
                     value: '$batchNumber',
                   ),
+                  if (paymentText != null)
+                    _InfoRow(
+                      label: Strings.receiptPaymentLabel,
+                      value: paymentText!,
+                    ),
                   const SizedBox(height: 10),
                   Align(
                     alignment: AlignmentDirectional.centerStart,

@@ -4,74 +4,116 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/models/purchase_model.dart';
 
-/// The one thing this app keeps on the phone: the signed-in buyer's latest
-/// receipt, so the pickup QR still opens with no signal at the bakery.
+/// The signed-in buyer's receipts, kept on the phone so the pickup QR still
+/// opens with no signal at the bakery.
 ///
-/// Everything else comes from Supabase on demand. This is written only from
-/// a server answer and read only when the server cannot be reached.
+/// A buyer can hold a today booking and a postponed tomorrow booking at the
+/// same time, so receipts are kept per purchase id, newest last. Everything
+/// else comes from Supabase on demand. This is written only from a server
+/// answer and read only when the server cannot be reached.
 class ReceiptStore {
-  static const _key = 'receipt.latest';
+  static const _key = 'receipt.all';
 
-  Future<void> _pendingSave = Future.value();
+  /// Where a single receipt lived before receipts were kept per id.
+  static const _legacyKey = 'receipt.latest';
 
-  Future<void> save(PurchaseModel p) {
-    final write = _pendingSave.catchError((Object _) {}).then((_) => _save(p));
-    _pendingSave = write;
-    return write;
+  /// Today plus tomorrow, with room for a stale entry or two.
+  static const _max = 4;
+
+  Future<void> _pending = Future.value();
+
+  /// Writes run one after another, so two saves never drop each other.
+  Future<void> _serial(Future<void> Function() write) {
+    final next = _pending.catchError((Object _) {}).then((_) => write());
+    _pending = next;
+    return next;
   }
 
-  Future<void> _save(PurchaseModel p) async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> save(PurchaseModel p) => _serial(() async {
+    final all = await loadAll();
+    final previous = all.where((r) => r.id == p.id).firstOrNull;
     // An older in-flight read must not overwrite a moved receipt.
-    final previous = await load();
-    if (previous?.id == p.id &&
-        previous!.postponementCount > p.postponementCount) {
+    if (previous != null && previous.postponementCount > p.postponementCount) {
       return;
     }
-    await prefs.setString(
-      _key,
-      jsonEncode({
-        'id': p.id,
-        'storeId': p.storeId,
-        'userId': p.userId,
-        'purchaseDate': p.purchaseDate,
-        'batchNumber': p.batchNumber,
-        'status': p.status.name,
-        'createdAt': p.createdAtMillis,
-        'userName': p.userName,
-        'userPhone': p.userPhone,
-        'storeName': p.storeName,
-        'postponementCount': p.postponementCount,
-      }),
-    );
-  }
+    all
+      ..removeWhere((r) => r.id == p.id)
+      ..add(p);
+    while (all.length > _max) {
+      all.removeAt(0);
+    }
+    await _write(all);
+  });
 
-  Future<PurchaseModel?> load() async {
+  /// Forgets the receipts [drop] selects.
+  Future<void> removeWhere(bool Function(PurchaseModel) drop) =>
+      _serial(() async => _write((await loadAll())..removeWhere(drop)));
+
+  /// The most recently saved receipt (startup without signal needs one).
+  Future<PurchaseModel?> load() async => (await loadAll()).lastOrNull;
+
+  Future<PurchaseModel?> loadById(String id) async =>
+      (await loadAll()).where((r) => r.id == id).firstOrNull;
+
+  Future<List<PurchaseModel>> loadAll() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
-    if (raw == null) return null;
     try {
-      final j = jsonDecode(raw) as Map<String, dynamic>;
-      return PurchaseModel(
-        id: j['id'] as String,
-        storeId: j['storeId'] as String,
-        userId: j['userId'] as String,
-        purchaseDate: j['purchaseDate'] as String,
-        batchNumber: j['batchNumber'] as int,
-        status: PurchaseStatus.values.byName(j['status'] as String),
-        createdAtMillis: j['createdAt'] as int,
-        userName: j['userName'] as String?,
-        userPhone: j['userPhone'] as String?,
-        storeName: j['storeName'] as String?,
-        postponementCount: (j['postponementCount'] as int?) ?? 0,
-      );
+      if (raw != null) {
+        return [
+          for (final j in jsonDecode(raw) as List)
+            _fromJson(Map<String, dynamic>.from(j as Map)),
+        ];
+      }
+      final legacy = prefs.getString(_legacyKey);
+      if (legacy == null) return [];
+      return [_fromJson(jsonDecode(legacy) as Map<String, dynamic>)];
     } catch (_) {
-      return null;
+      return [];
     }
   }
 
-  Future<void> clear() async {
+  Future<void> clear() => _serial(() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+    await prefs.remove(_legacyKey);
+  });
+
+  Future<void> _write(List<PurchaseModel> all) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode([for (final p in all) _toJson(p)]));
+    await prefs.remove(_legacyKey);
   }
+
+  static Map<String, dynamic> _toJson(PurchaseModel p) => {
+    'id': p.id,
+    'storeId': p.storeId,
+    'userId': p.userId,
+    'purchaseDate': p.purchaseDate,
+    'batchNumber': p.batchNumber,
+    'status': p.status.name,
+    'createdAt': p.createdAtMillis,
+    'userName': p.userName,
+    'userPhone': p.userPhone,
+    'storeName': p.storeName,
+    'postponementCount': p.postponementCount,
+    'paymentMethod': p.paymentMethod,
+    'originalPurchaseDate': p.originalPurchaseDate,
+  };
+
+  static PurchaseModel _fromJson(Map<String, dynamic> j) => PurchaseModel(
+    id: j['id'] as String,
+    storeId: j['storeId'] as String,
+    userId: j['userId'] as String,
+    purchaseDate: j['purchaseDate'] as String,
+    batchNumber: j['batchNumber'] as int,
+    status: PurchaseStatus.values.byName(j['status'] as String),
+    createdAtMillis: j['createdAt'] as int,
+    userName: j['userName'] as String?,
+    userPhone: j['userPhone'] as String?,
+    storeName: j['storeName'] as String?,
+    postponementCount: (j['postponementCount'] as int?) ?? 0,
+    paymentMethod: j['paymentMethod'] as String?,
+    originalPurchaseDate: j['originalPurchaseDate'] as String?,
+  );
 }

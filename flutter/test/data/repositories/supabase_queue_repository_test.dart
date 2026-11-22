@@ -83,10 +83,7 @@ void main() {
       'batch_number': 2,
       'status': 'notified',
       'created_at': '2026-10-03T10:00:00Z',
-      'profiles': {
-        'name': 'أحمد',
-        'phone': '0599111111',
-      },
+      'profiles': {'name': 'أحمد', 'phone': '0599111111'},
       'stores': {'name': 'مخبز الرمال'},
     };
 
@@ -171,16 +168,37 @@ void main() {
 
     test('today check does not erase a postponed future receipt', () async {
       serverRows = [row(date: '2026-10-04')..['postponement_count'] = 1];
-      final moved = await repo.currentOrUpcomingPurchase('u1', '2026-10-03');
-      expect(moved?.purchaseDate, '2026-10-04');
+      final moved = (await repo.upcomingPurchases('u1', '2026-10-03')).single;
+      expect(moved.purchaseDate, '2026-10-04');
       serverRows = [];
       expect(await repo.getBlockingPurchase('u1', '2026-10-03'), isNull);
       expect(await ReceiptStore().load(), moved);
       down = true;
-      expect(await repo.currentOrUpcomingPurchase('u1', '2026-10-03'), moved);
+      expect(await repo.upcomingPurchases('u1', '2026-10-03'), [moved]);
       expect(
-        repo.currentOrUpcomingPurchase('other', '2026-10-03'),
+        repo.upcomingPurchases('other', '2026-10-03'),
         throwsA(isA<BackendUnavailableException>()),
+      );
+    });
+
+    test('today and a postponed tomorrow booking both open offline', () async {
+      serverRows = [
+        row(),
+        row(date: '2026-10-04')
+          ..['id'] = 'p2'
+          ..['postponement_count'] = 1,
+      ];
+      final both = await repo.upcomingPurchases('u1', '2026-10-03');
+      expect(both.map((p) => p.id), ['p1', 'p2']);
+
+      down = true;
+      expect(await repo.upcomingPurchases('u1', '2026-10-03'), both);
+      expect(await repo.getPurchaseById('p1'), both.first);
+      expect(await repo.getPurchaseById('p2'), both.last);
+      expect(
+        (await repo.getBlockingPurchase('u1', '2026-10-03'))?.id,
+        'p1',
+        reason: 'the daily-limit check counts only the today booking',
       );
     });
 
@@ -188,7 +206,7 @@ void main() {
       'offline purchase reads require the active authenticated buyer',
       () async {
         serverRows = [row(date: '2026-10-04')..['postponement_count'] = 1];
-        await repo.currentOrUpcomingPurchase('u1', '2026-10-03');
+        await repo.upcomingPurchases('u1', '2026-10-03');
         down = true;
         final anonymous = SupabaseClient(
           'http://127.0.0.1:${server.port}',
@@ -197,7 +215,7 @@ void main() {
         addTearDown(anonymous.dispose);
         final loggedOutRepo = SupabaseQueueRepository(client: anonymous);
         await expectLater(
-          loggedOutRepo.currentOrUpcomingPurchase('u1', '2026-10-03'),
+          loggedOutRepo.upcomingPurchases('u1', '2026-10-03'),
           throwsA(isA<BackendUnavailableException>()),
         );
         await expectLater(
@@ -206,7 +224,7 @@ void main() {
         );
         await authenticate('other');
         await expectLater(
-          repo.currentOrUpcomingPurchase('u1', '2026-10-03'),
+          repo.upcomingPurchases('u1', '2026-10-03'),
           throwsA(isA<BackendUnavailableException>()),
         );
         await expectLater(

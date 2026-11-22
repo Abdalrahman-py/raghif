@@ -9,8 +9,10 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
+import '../../domain/models/store_model.dart';
 import '../auth/demo_accounts.dart';
 import 'confirmation_screen.dart';
+import 'payment_chip.dart';
 import 'postpone_booking_screen.dart';
 import 'queue_controller.dart';
 import 'queue_logic.dart';
@@ -43,15 +45,30 @@ class BuyerHomeScreen extends StatefulWidget {
 }
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
-  late Future<PurchaseModel?> _initialOrder;
+  late Future<List<PurchaseModel>> _orders = _load();
 
-  @override
-  void initState() {
-    super.initState();
-    _initialOrder = widget.controller.currentOrUpcomingPurchase(
-      widget.currentUser.id,
-      todayDateString(),
+  Future<List<PurchaseModel>> _load() => widget.controller.upcomingPurchases(
+    widget.currentUser.id,
+    todayDateString(),
+  );
+
+  void _reload() {
+    final next = _load();
+    setState(() {
+      _orders = next;
+    });
+  }
+
+  Future<void> _postpone(PurchaseModel booking) async {
+    final moved = await Navigator.of(context).push<PurchaseModel>(
+      MaterialPageRoute(
+        builder: (_) => PostponeBookingScreen(
+          controller: widget.controller,
+          purchase: booking,
+        ),
+      ),
     );
+    if (moved != null && mounted) _reload();
   }
 
   void _openReceipt(String purchaseId) {
@@ -85,51 +102,42 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: FutureBuilder<PurchaseModel?>(
-              future: _initialOrder,
+            child: FutureBuilder<List<PurchaseModel>>(
+              future: _orders,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return OfflineNotice(
-                    onRetry: () => setState(() {
-                      _initialOrder = widget.controller
-                          .currentOrUpcomingPurchase(
-                            widget.currentUser.id,
-                            todayDateString(),
-                          );
-                    }),
-                  );
+                  return OfflineNotice(onRetry: _reload);
                 }
-                final purchase = snapshot.data;
-                if (purchase == null) {
+                final orders = snapshot.data ?? const <PurchaseModel>[];
+                if (orders.isEmpty) {
                   return const _NoOrderView();
                 }
-                return _CurrentOrderView(
-                  controller: widget.controller,
-                  purchaseId: purchase.id,
-                  onShowReceipt: () => _openReceipt(purchase.id),
-                  onPostpone: (booking) async {
-                    final moved = await Navigator.of(context)
-                        .push<PurchaseModel>(
-                          MaterialPageRoute(
-                            builder: (_) => PostponeBookingScreen(
-                              controller: widget.controller,
-                              purchase: booking,
-                            ),
-                          ),
-                        );
-                    if (moved != null && mounted) {
-                      setState(() {
-                        _initialOrder = widget.controller
-                            .currentOrUpcomingPurchase(
-                              widget.currentUser.id,
-                              todayDateString(),
-                            );
-                      });
-                    }
+                // Today's booking and a postponed tomorrow one are separate
+                // bookings: each gets its own card and receipt.
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await widget.controller.refreshAll();
+                    _reload();
                   },
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    children: [
+                      for (final (i, order) in orders.indexed) ...[
+                        if (i > 0) const SizedBox(height: 32),
+                        _CurrentOrderView(
+                          key: ValueKey(order.id),
+                          controller: widget.controller,
+                          purchaseId: order.id,
+                          onShowReceipt: () => _openReceipt(order.id),
+                          onPostpone: _postpone,
+                        ),
+                      ],
+                    ],
+                  ),
                 );
               },
             ),
@@ -183,6 +191,7 @@ class _NoOrderView extends StatelessWidget {
 /// updates by itself when the owner calls the batch or hands the bag over.
 class _CurrentOrderView extends StatelessWidget {
   const _CurrentOrderView({
+    super.key,
     required this.controller,
     required this.purchaseId,
     required this.onShowReceipt,
@@ -206,160 +215,156 @@ class _CurrentOrderView extends StatelessWidget {
         final future = purchase.purchaseDate.compareTo(todayDateString()) > 0;
         final textTheme = Theme.of(context).textTheme;
         final store = controller.storeById(purchase.storeId);
-        return RefreshIndicator(
-          onRefresh: controller.refreshAll,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: purchase.status == PurchaseStatus.waiting
-                      ? AppColors.warningContainer
-                      : AppColors.successContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      purchase.status == PurchaseStatus.waiting
-                          ? Icons.schedule_rounded
-                          : Icons.check_circle_outline_rounded,
-                      color: purchase.status == PurchaseStatus.waiting
-                          ? AppColors.onWarningContainer
-                          : AppColors.onSuccessContainer,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        future
-                            ? 'حجزك القادم بتاريخ ${purchase.purchaseDate}. انتظر إشعار المخبز في موعد الحجز.'
-                            : switch (purchase.status) {
-                                PurchaseStatus.waiting =>
-                                  Strings.waitingReassurance,
-                                PurchaseStatus.notified =>
-                                  Strings.batchReadyNotificationBody,
-                                PurchaseStatus.collected =>
-                                  'تم استلام طلبك، صحتين وعافية',
-                              },
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: purchase.status == PurchaseStatus.waiting
-                              ? AppColors.onWarningContainer
-                              : AppColors.onSuccessContainer,
-                        ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: purchase.status == PurchaseStatus.waiting
+                    ? AppColors.warningContainer
+                    : AppColors.successContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    purchase.status == PurchaseStatus.waiting
+                        ? Icons.schedule_rounded
+                        : Icons.check_circle_outline_rounded,
+                    color: purchase.status == PurchaseStatus.waiting
+                        ? AppColors.onWarningContainer
+                        : AppColors.onSuccessContainer,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      future
+                          ? 'حجزك القادم بتاريخ ${purchase.purchaseDate}. انتظر إشعار المخبز في موعد الحجز.'
+                          : switch (purchase.status) {
+                              PurchaseStatus.waiting =>
+                                Strings.waitingReassurance,
+                              PurchaseStatus.notified =>
+                                Strings.batchReadyNotificationBody,
+                              PurchaseStatus.collected =>
+                                'تم استلام طلبك، صحتين وعافية',
+                            },
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: purchase.status == PurchaseStatus.waiting
+                            ? AppColors.onWarningContainer
+                            : AppColors.onSuccessContainer,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              AppCard(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        StatusChip(
-                          text: Strings.paidBadge,
-                          tone: StatusTone.success,
+            ),
+            const SizedBox(height: 20),
+            AppCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      PaymentChip(
+                        prepaid: purchase.isPrepaid,
+                        price: store?.bagPrice ?? StoreModel.defaultBagPrice,
+                      ),
+                      StatusChip(
+                        text: Strings.buyerHomeBatch(purchase.batchNumber),
+                        tone: StatusTone.neutral,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: AppColors.accentContainer,
+                          borderRadius: BorderRadius.circular(18),
                         ),
-                        StatusChip(
-                          text: Strings.buyerHomeBatch(purchase.batchNumber),
-                          tone: StatusTone.neutral,
+                        child: const Icon(
+                          Icons.storefront_outlined,
+                          color: AppColors.accent,
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              purchase.storeName ?? store?.name ?? '',
+                              style: textTheme.titleLarge,
+                            ),
+                            if (store != null && store.area.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(store.area, style: textTheme.bodyMedium),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(height: 22),
-                    Row(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppColors.accentContainer,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.storefront_outlined,
-                            color: AppColors.accent,
-                          ),
+                        Text(
+                          Strings.receiptPurchaseIdLabel,
+                          style: textTheme.bodyMedium,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                purchase.storeName ?? store?.name ?? '',
-                                style: textTheme.titleLarge,
-                              ),
-                              if (store != null && store.area.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(store.area, style: textTheme.bodyMedium),
-                              ],
-                            ],
-                          ),
+                        const SizedBox(height: 4),
+                        Text('#${purchase.id}', style: textTheme.titleMedium),
+                        const SizedBox(height: 12),
+                        Text(
+                          '${Strings.receiptDateLabel}: ${purchase.purchaseDate}',
+                          style: textTheme.bodyMedium,
                         ),
+                        if (purchase.originalPurchaseDate != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            Strings.postponedFrom(
+                              purchase.originalPurchaseDate!,
+                            ),
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            Strings.receiptPurchaseIdLabel,
-                            style: textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text('#${purchase.id}', style: textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          Text(
-                            '${Strings.receiptDateLabel}: ${purchase.purchaseDate}',
-                            style: textTheme.bodyMedium,
-                          ),
-                          if (purchase.originalPurchaseDate != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              Strings.postponedFrom(
-                                purchase.originalPurchaseDate!,
-                              ),
-                              style: textTheme.bodyMedium,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              PrimaryButton(
-                text: Strings.showReceiptButton,
-                onPressed: onShowReceipt,
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: Strings.showReceiptButton,
+              onPressed: onShowReceipt,
+            ),
+            if (purchase.purchaseDate == todayDateString() &&
+                purchase.status != PurchaseStatus.collected &&
+                purchase.postponementCount == 0) ...[
+              const SizedBox(height: 12),
+              SecondaryButton(
+                text: 'تأجيل الحجز إلى الغد',
+                onPressed: () => onPostpone(purchase),
               ),
-              if (purchase.purchaseDate == todayDateString() &&
-                  purchase.status != PurchaseStatus.collected &&
-                  purchase.postponementCount == 0) ...[
-                const SizedBox(height: 12),
-                SecondaryButton(
-                  text: 'تأجيل الحجز إلى الغد',
-                  onPressed: () => onPostpone(purchase),
-                ),
-              ],
             ],
-          ),
+          ],
         );
       },
     );

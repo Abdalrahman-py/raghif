@@ -6,12 +6,44 @@ import '../../domain/models/store_model.dart';
 /// pumping a widget tree. Mirrors app/.../data/QueueLogic.kt's rules.
 const batchIntervalMinutes = 10;
 
+/// Today's date (`YYYY-MM-DD`) in Asia/Hebron, the server's day.
+///
+/// Every queue RPC rejects any other date, so this ignores the device's zone:
+/// [now] (default: the current instant) is converted to UTC and shifted by
+/// the Palestine offset.
 String todayDateString([DateTime? now]) {
-  final d = now ?? DateTime.now();
+  final utc = (now ?? DateTime.now()).toUtc();
+  final d = utc.add(Duration(hours: hebronUtcOffsetHours(utc)));
   final y = d.year.toString().padLeft(4, '0');
   final m = d.month.toString().padLeft(2, '0');
   final day = d.day.toString().padLeft(2, '0');
   return '$y-$m-$day';
+}
+
+/// Palestine summer time, as UTC instants: (starts, ends). From
+/// `zdump -v Asia/Hebron` (tzdata). It starts Saturday 02:00 local and ends
+/// Saturday 02:00 local (Friday 23:00 UTC), on dates set year by year.
+final _hebronSummer = <int, (DateTime, DateTime)>{
+  2025: (DateTime.utc(2025, 4, 12), DateTime.utc(2025, 10, 24, 23)),
+  2026: (DateTime.utc(2026, 3, 28), DateTime.utc(2026, 10, 23, 23)),
+  2027: (DateTime.utc(2027, 3, 27), DateTime.utc(2027, 10, 29, 23)),
+  2028: (DateTime.utc(2028, 3, 25), DateTime.utc(2028, 10, 27, 23)),
+  2029: (DateTime.utc(2029, 3, 24), DateTime.utc(2029, 10, 26, 23)),
+  2030: (DateTime.utc(2030, 3, 30), DateTime.utc(2030, 10, 25, 23)),
+  2031: (DateTime.utc(2031, 3, 29), DateTime.utc(2031, 10, 24, 23)),
+  2032: (DateTime.utc(2032, 3, 27), DateTime.utc(2032, 10, 29, 23)),
+  2033: (DateTime.utc(2033, 3, 26), DateTime.utc(2033, 10, 28, 23)),
+  2034: (DateTime.utc(2034, 3, 25), DateTime.utc(2034, 10, 27, 23)),
+  2035: (DateTime.utc(2035, 3, 24), DateTime.utc(2035, 10, 26, 23)),
+};
+
+/// Hours Asia/Hebron is ahead of UTC at [utc]: 3 in summer time, else 2.
+// shortcut: a fixed table, outside it April–September counts as summer;
+// extend it from tzdata when Palestine announces new dates or before 2035.
+int hebronUtcOffsetHours(DateTime utc) {
+  final summer = _hebronSummer[utc.year];
+  if (summer == null) return utc.month >= 4 && utc.month <= 9 ? 3 : 2;
+  return !utc.isBefore(summer.$1) && utc.isBefore(summer.$2) ? 3 : 2;
 }
 
 /// Admin arrival check: notified (pending) <-> collected (arrived). Waiting

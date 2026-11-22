@@ -200,6 +200,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                         userName: qrPayload.userName,
                                         status: purchase.status,
                                         qrData: qrPayload.encode(),
+                                        paymentText: purchase.isPrepaid
+                                            ? Strings.paidAlready
+                                            : purchase.paymentMethod ==
+                                                  'simulated'
+                                            ? Strings.paymentMethodSimulated
+                                            : Strings.paymentMethodCash,
                                       ),
                                     ),
                                     const SizedBox(height: 10),

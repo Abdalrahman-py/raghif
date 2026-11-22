@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/purchase_model.dart';
+import 'package:raghif/domain/models/store_model.dart';
 import 'package:raghif/domain/repositories/queue_repository.dart';
 import 'package:raghif/features/auth/bloc/auth_bloc.dart';
 import 'package:raghif/features/auth/demo_accounts.dart';
@@ -32,11 +33,15 @@ void main() {
   PurchaseModel order({
     PurchaseStatus status = PurchaseStatus.waiting,
     int batchNumber = 2,
+    String id = 'purchase-7',
+    String date = '2026-08-01',
+    String? paymentMethod,
   }) => PurchaseModel(
-    id: 'purchase-7',
+    id: id,
     storeId: 'store-1',
     userId: 'user-1',
-    purchaseDate: '2026-08-01',
+    purchaseDate: date,
+    paymentMethod: paymentMethod,
     batchNumber: batchNumber,
     status: status,
     createdAtMillis: 1,
@@ -71,11 +76,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  void stubTodayOrder(PurchaseModel? purchase) {
+  void stubOrders(List<PurchaseModel> orders) {
     when(
-      () => repo.currentOrUpcomingPurchase(any(), any()),
-    ).thenAnswer((_) async => purchase);
+      () => repo.upcomingPurchases(any(), any()),
+    ).thenAnswer((_) async => orders);
   }
+
+  void stubTodayOrder(PurchaseModel? purchase) =>
+      stubOrders([if (purchase != null) purchase]);
 
   Future<void> stubLiveOrder(PurchaseModel purchase) async {
     when(
@@ -98,7 +106,7 @@ void main() {
     tester,
   ) async {
     when(
-      () => repo.currentOrUpcomingPurchase(any(), any()),
+      () => repo.upcomingPurchases(any(), any()),
     ).thenAnswer((_) async => throw const BackendUnavailableException('x'));
     await pumpHome(tester);
 
@@ -124,7 +132,6 @@ void main() {
 
     expect(find.text('مخبز الرمال'), findsOneWidget);
     expect(find.text('#purchase-7'), findsOneWidget);
-    expect(find.text(Strings.paidBadge), findsOneWidget);
     expect(find.text(Strings.buyerHomeBatch(3)), findsOneWidget);
     // Ready-for-pickup reassurance, not an invented ETA.
     expect(find.text(Strings.batchReadyNotificationBody), findsOneWidget);
@@ -159,5 +166,45 @@ void main() {
     await pumpHome(tester);
 
     expect(find.text(Strings.showReceiptButton), findsNothing);
+  });
+
+  testWidgets('payment chip: paid only when prepaid through the wallet', (
+    tester,
+  ) async {
+    final cashDue = Strings.cashDueChip(StoreModel.defaultBagPrice);
+    for (final (method, paid) in [
+      ('jawwal_pay', true),
+      ('simulated', false),
+      (null, false),
+    ]) {
+      final purchase = order(paymentMethod: method);
+      stubTodayOrder(purchase);
+      await stubLiveOrder(purchase);
+      await pumpHome(tester);
+
+      expect(
+        find.text(Strings.paidBadge),
+        paid ? findsOneWidget : findsNothing,
+        reason: '$method',
+      );
+      expect(find.text(cashDue), paid ? findsNothing : findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
+  testWidgets('today and a postponed tomorrow booking each get a card', (
+    tester,
+  ) async {
+    final todays = order(id: 'today-1', date: '2026-08-01');
+    final moved = order(id: 'tomorrow-1', date: '2099-01-02');
+    stubOrders([todays, moved]);
+    await stubLiveOrder(todays);
+    await stubLiveOrder(moved);
+
+    await pumpHome(tester);
+
+    expect(find.text('#today-1'), findsOneWidget);
+    expect(find.text('#tomorrow-1'), findsOneWidget);
+    expect(find.text(Strings.showReceiptButton), findsNWidgets(2));
   });
 }
