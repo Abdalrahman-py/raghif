@@ -145,7 +145,16 @@ class Strings {
   static const guestHow2 = 'احجز دورك من البيت';
   static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
-  static String postponedFrom(String date) => 'تم تأجيله من يوم $date';
+  /// Wraps an id or `YYYY-MM-DD` date in a left-to-right isolate, so the Arabic
+  /// line around it does not reorder its digits ("2026-11-22", not "22-11-2026").
+  static String ltr(String value) => '\u2066$value\u2069';
+
+  static String postponedFrom(String date) => 'تم تأجيله من يوم ${ltr(date)}';
+  static String postponeCurrentDate(String date) =>
+      'الموعد الحالي: ${ltr(date)}';
+  static String postponeNewDate(String date) => 'الموعد الجديد: ${ltr(date)}';
+  static String upcomingBookingOn(String date) =>
+      'حجزك القادم بتاريخ ${ltr(date)}. انتظر إشعار المخبز في موعد الحجز.';
 
   // Wallet verification (the buyer's proof of account)
   static const walletVerifyTitle = 'تحقق من رقم جوال باي';

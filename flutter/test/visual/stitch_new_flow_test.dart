@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:raghif/core/i18n/strings.dart';
 import 'package:raghif/core/theme/app_theme.dart';
 import 'package:raghif/domain/models/app_notification.dart';
 import 'package:raghif/domain/models/user_model.dart';
@@ -322,7 +323,7 @@ void main() {
         );
         await tap(find.text('فتح التأجيل'), 'open postpone confirmation');
         expect(
-          find.text('الموعد الحالي: ${purchase.purchaseDate}'),
+          find.text(Strings.postponeCurrentDate(purchase.purchaseDate)),
           findsOneWidget,
         );
         await capture('postpone_booking');

@@ -290,7 +290,7 @@ class _CurrentOrderView extends StatelessWidget {
                     Expanded(
                       child: Text(
                         future
-                            ? 'حجزك القادم بتاريخ ${purchase.purchaseDate}. انتظر إشعار المخبز في موعد الحجز.'
+                            ? Strings.upcomingBookingOn(purchase.purchaseDate)
                             : switch (purchase.status) {
                                 PurchaseStatus.waiting =>
                                   Strings.waitingReassurance,
