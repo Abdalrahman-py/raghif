@@ -19,6 +19,16 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-22 — lighter account and notifications screens
+
+- Account: one compact header row (avatar, name, phone) and one list of
+  actions (edit profile, change PIN, WhatsApp support) instead of a large
+  avatar block and four stacked full-width buttons; sign out is a quiet red
+  row in its own card. Everything fits on a 360x780 screen without scrolling.
+- Notifications: the repeated headline and subtitle are gone; each notice is a
+  tighter card with an unread dot plus the word "غير مقروء" and the date on one
+  wrapping line. Still fits at 1.8x text on a 320dp screen.
+
 ### Changed — 2026-11-22 — Material 3 corner scale and port study
 
 - `AppShapes` follows the M3 corner scale (8 / 12 / 16 / 28dp: chips, inputs,

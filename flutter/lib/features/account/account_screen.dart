@@ -6,7 +6,6 @@ import '../../core/i18n/strings.dart';
 import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../domain/models/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -82,87 +81,90 @@ class AccountScreen extends StatelessWidget {
               );
             }
             final user = state.user;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            final scheme = Theme.of(context).colorScheme;
+            final busy = state.profileSaving;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
+                // Who is signed in: one compact row instead of a hero block.
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: scheme.primaryContainer,
+                    child: Icon(Icons.person_outline, color: scheme.primary),
+                  ),
+                  title: Text(user.name, style: AppTypography.titleLarge),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Center(
-                        child: CircleAvatar(
-                          radius: 36,
-                          backgroundColor: AppColors.accentContainer,
-                          child: Icon(
-                            Icons.person_outline,
-                            size: 40,
-                            color: AppColors.accent,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user.name,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.titleLarge,
-                      ),
-                      const SizedBox(height: 24),
-                      AppCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _Detail(
-                              label: 'رقم جوال باي (رقم الدخول)',
-                              value: user.phone,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      Text(user.phone, style: AppTypography.bodyLarge),
                       const Text(
-                        'رقم الجوال ونوع الحساب وحالة التحقق لا تتغير من هذه الصفحة.',
+                        'رقم جوال باي (رقم الدخول)',
                         style: AppTypography.bodySmall,
-                      ),
-                      const SizedBox(height: 20),
-                      PrimaryButton(
-                        text: 'تعديل البيانات',
-                        onPressed: state.profileSaving
-                            ? null
-                            : () => _edit(context, user),
-                      ),
-                      if (_repository != null) ...[
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          key: const Key('change-pin'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(56),
-                          ),
-                          onPressed: state.profileSaving
-                              ? null
-                              : () => _changePin(context, _repository!),
-                          icon: const Icon(Icons.lock_outline),
-                          label: const Text('تغيير الرمز السري'),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      const SupportWhatsAppButton(
-                        key: Key('account-support-whatsapp'),
-                        message: Strings.supportMessage,
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
-                        ),
-                        onPressed: () => confirmLogout(context),
-                        icon: const Icon(Icons.logout),
-                        label: const Text('تسجيل الخروج'),
                       ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.edit_outlined),
+                        title: const Text('تعديل البيانات'),
+                        trailing: const Icon(Icons.chevron_left),
+                        enabled: !busy,
+                        onTap: () => _edit(context, user),
+                      ),
+                      if (_repository != null) ...[
+                        const Divider(height: 1),
+                        ListTile(
+                          key: const Key('change-pin'),
+                          leading: const Icon(Icons.lock_outline),
+                          title: const Text('تغيير الرمز السري'),
+                          trailing: const Icon(Icons.chevron_left),
+                          enabled: !busy,
+                          onTap: () => _changePin(context, _repository!),
+                        ),
+                      ],
+                      const Divider(height: 1),
+                      ListTile(
+                        key: const Key('account-support-whatsapp'),
+                        leading: const Icon(Icons.chat_outlined),
+                        title: const Text(Strings.contactSupportWhatsapp),
+                        trailing: const Icon(Icons.open_in_new),
+                        onTap: () => openSupportWhatsApp(
+                          context,
+                          message: Strings.supportMessage,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(4, 12, 4, 0),
+                  child: Text(
+                    'رقم الجوال ونوع الحساب وحالة التحقق لا تتغير من هذه الصفحة.',
+                    style: AppTypography.bodySmall,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    leading: Icon(Icons.logout, color: scheme.error),
+                    title: Text(
+                      'تسجيل الخروج',
+                      style: TextStyle(color: scheme.error),
+                    ),
+                    onTap: () => confirmLogout(context),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -250,24 +252,6 @@ class AccountMenuButton extends StatelessWidget {
         ),
       ),
     ],
-  );
-}
-
-class _Detail extends StatelessWidget {
-  const _Detail({required this.label, required this.value});
-  final String label;
-  final String value;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTypography.bodySmall),
-        const SizedBox(height: 4),
-        Text(value, style: AppTypography.bodyLarge),
-      ],
-    ),
   );
 }
 

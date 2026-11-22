@@ -106,7 +106,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('حسابي'));
       await tester.pumpAndSettle();
-      final logout = find.widgetWithText(OutlinedButton, 'تسجيل الخروج');
+      final logout = find.widgetWithText(ListTile, 'تسجيل الخروج');
       await tester.ensureVisible(logout);
       await tester.pumpAndSettle();
       expect(logout.hitTestable(), findsOneWidget);

@@ -118,15 +118,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           onRefresh: _saving ? () async {} : _load,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              const Text('آخر أخبار حجزك', style: AppTypography.titleLarge),
-              const SizedBox(height: 8),
-              const Text(
-                'تابع تأكيد الحجز وموعد الاستلام وأي تأجيل هنا.',
-                style: AppTypography.bodyMedium,
-              ),
-              const SizedBox(height: 16),
               if (_loading)
                 const Padding(
                   padding: EdgeInsets.all(32),
@@ -176,6 +169,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 )
               else ...[
+                // In the body, not the app bar: under large text the bar has
+                // no room for the title and this action together.
                 Align(
                   alignment: AlignmentDirectional.centerEnd,
                   child: _button(
@@ -190,42 +185,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     semanticsLabel: 'جارٍ حفظ حالة القراءة',
                   ),
                 for (final item in _items) ...[
-                  const SizedBox(height: 12),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (!item.isRead)
-                          const Text(
-                            'غير مقروء',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        Text(item.title, style: AppTypography.titleMedium),
-                        const SizedBox(height: 8),
-                        Text(item.body, style: AppTypography.bodyLarge),
-                        const SizedBox(height: 8),
-                        Text(
-                          _date(item.createdAt),
-                          style: AppTypography.bodyMedium,
-                        ),
-                        // An announcement has no booking to show: all it can
-                        // need is to be marked read.
-                        if (item.purchaseId != null)
-                          _button(
+                  const SizedBox(height: 8),
+                  _NotificationCard(
+                    item: item,
+                    date: _date(item.createdAt),
+                    // An announcement has no booking to show: all it can need
+                    // is to be marked read.
+                    action: item.purchaseId != null
+                        ? _button(
                             'عرض الحجز',
                             _saving ? null : () => _read(item: item),
                           )
-                        else if (!item.isRead)
-                          _button(
+                        : !item.isRead
+                        ? _button(
                             'تعليم كمقروء',
                             _saving ? null : () => _read(item: item),
-                          ),
-                      ],
-                    ),
+                          )
+                        : null,
                   ),
                 ],
               ],
@@ -239,5 +215,67 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String _date(DateTime time) {
     final local = time.toLocal();
     return '${local.day}/${local.month}/${local.year} · ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({
+    required this.item,
+    required this.date,
+    required this.action,
+  });
+
+  final AppNotification item;
+  final String date;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Wraps under large text instead of overflowing the card.
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Dot plus word: unread is never shown by colour alone.
+                if (!item.isRead) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: scheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Text(
+                    'غير مقروء',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+                Text(date, style: AppTypography.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(item.title, style: AppTypography.titleMedium),
+            const SizedBox(height: 4),
+            Text(item.body, style: AppTypography.bodyMedium),
+            if (action != null)
+              Align(alignment: AlignmentDirectional.centerEnd, child: action)
+            else
+              const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 }
