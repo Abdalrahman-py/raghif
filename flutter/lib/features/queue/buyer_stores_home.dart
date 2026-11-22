@@ -366,18 +366,18 @@ class BakeryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  StatusChip(
-                    text: label,
-                    tone: ok ? StatusTone.success : StatusTone.danger,
-                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: AppSpacing.md,
                 runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  StatusChip(
+                    text: label,
+                    tone: ok ? StatusTone.success : StatusTone.danger,
+                  ),
                   _Fact(
                     icon: Icons.bakery_dining_outlined,
                     text: ok
@@ -395,21 +395,38 @@ class BakeryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: PrimaryButton(
-                      text: 'اشترِ ربطة',
+              // Side by side normally; stacked once large text would squeeze
+              // the labels.
+              if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PrimaryButton(
+                      text: Strings.reserveBagButton,
                       onPressed: ok ? onBuy : null,
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  TextButton(
-                    onPressed: onOpen,
-                    child: const Text('عرض المخبز'),
-                  ),
-                ],
-              ),
+                    TextButton(
+                      onPressed: onOpen,
+                      child: const Text('عرض المخبز'),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: PrimaryButton(
+                        text: Strings.reserveBagButton,
+                        onPressed: ok ? onBuy : null,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    TextButton(
+                      onPressed: onOpen,
+                      child: const Text('عرض المخبز'),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

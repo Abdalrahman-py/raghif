@@ -157,7 +157,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilterChip, 'غزة'));
       await tester.pumpAndSettle();
       expect(find.text('مخبز الرمال'), findsOneWidget);
-      expect(find.text('اشترِ ربطة'), findsWidgets);
+      expect(find.text(Strings.reserveBagButton), findsWidgets);
       expect(find.text('عرض المخبز'), findsWidgets);
       // Search by name narrows the list and says so when nothing matches.
       await tester.enterText(find.byKey(const Key('store-search')), 'الرمال');

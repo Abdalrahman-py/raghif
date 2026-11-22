@@ -334,6 +334,9 @@ void main() {
 
       expect(find.text(Strings.paymentTitle), findsNothing);
       expect(find.byType(ConfirmationScreen), findsOneWidget);
+      // Told on the receipt, not in a SnackBar covering its bottom actions.
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byKey(const Key('receipt-notice')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

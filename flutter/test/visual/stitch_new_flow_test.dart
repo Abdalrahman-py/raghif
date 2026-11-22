@@ -180,7 +180,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(harness.controller.storeListLoaded, isTrue);
-        expect(find.text('اشترِ ربطة'), findsWidgets);
+        expect(find.text(Strings.reserveBagButton), findsWidgets);
         await capture('buyer_home');
 
         final notifications = FakeNotificationRepository()

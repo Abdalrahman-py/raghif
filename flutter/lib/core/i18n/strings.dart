@@ -225,7 +225,7 @@ class Strings {
   static const storeDetailsTitle = 'تفاصيل المخبز';
   static const myOrderTodayTitle = 'طلبي اليوم';
   static const showReceiptButton = 'اعرض وصل الاستلام';
-  static const reserveBagButton = 'احجز كيس خبز';
+  static const reserveBagButton = 'احجز ربطة';
   static const storeClosedLabel = 'المخبز مغلق حالياً';
 
   // Purchase
@@ -440,7 +440,7 @@ class Strings {
   static const buyerHomeTitle = 'طلبي';
   static const buyerHomeNoOrder = 'لا يوجد طلب اليوم';
   static const buyerHomeNoOrderHint =
-      'احجز كيس خبز من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
+      'احجز ربطة من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
   static const browseStoresButton = 'تصفح المخابز';
   static String buyerHomeBatch(int batch) => 'الدفعة رقم $batch';
 

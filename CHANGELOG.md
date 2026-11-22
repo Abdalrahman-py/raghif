@@ -34,6 +34,15 @@ Workflow rules this changelog lives by:
 - Dates inside Arabic sentences (postpone screen, "postponed from", upcoming
   booking line) are wrapped in a left-to-right isolate (`Strings.ltr`): they
   showed as "22-11-2026" and now read "2026-11-22".
+- "Already booked today" is said on the receipt it opens (`ConfirmationScreen.notice`),
+  not in a SnackBar that covered the receipt's bottom actions (owner screenshot 4).
+- One label for securing a bag: the list and the details screen both say
+  "احجز ربطة" (`Strings.reserveBagButton`). "اشترِ ربطة" suggested paying,
+  while the button reserves first.
+- Bakery card under large text: the status chip joins the wrapping facts line
+  and the two actions stack; at 2x text on 320dp it overflowed by 82px.
+  `screens_large_text_test.dart` covers the account screen and the card at 2x;
+  `buyer_home_screen_test.dart` covers two booking cards at 2x.
 - Payment choice sheet (after a bag is reserved) scrolls under large system
   text; at 2x on a 320dp screen it overflowed by 192px and could hide the cash
   option. Regression test `payment_choice_sheet_test.dart`.

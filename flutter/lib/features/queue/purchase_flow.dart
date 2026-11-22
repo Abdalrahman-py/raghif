@@ -81,13 +81,15 @@ void _openReceipt(
   NavigatorState navigator,
   QueueController controller,
   DemoUser currentUser,
-  String purchaseId,
-) => navigator.push(
+  String purchaseId, {
+  String? notice,
+}) => navigator.push(
   MaterialPageRoute(
     builder: (_) => ConfirmationScreen(
       controller: controller,
       purchaseId: purchaseId,
       currentUser: currentUser,
+      notice: notice,
     ),
   ),
 );
@@ -111,8 +113,13 @@ Future<PurchaseModel?> _reserve(
     final existing = await controller.blockingPurchaseFor(currentUser.id, date);
     if (existing != null) {
       final sameStore = existing.storeId == storeId;
-      say(
-        sameStore
+      // Said on the receipt itself, not in a SnackBar over its actions.
+      _openReceipt(
+        navigator,
+        controller,
+        currentUser,
+        existing.id,
+        notice: sameStore
             ? Strings.dailyLimitReached
             : Strings.dailyLimitReachedOtherStore(
                 existing.storeName ??
@@ -120,7 +127,6 @@ Future<PurchaseModel?> _reserve(
                     '',
               ),
       );
-      _openReceipt(navigator, controller, currentUser, existing.id);
       return null;
     }
   } on BackendUnavailableException {

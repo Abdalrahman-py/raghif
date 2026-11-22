@@ -207,4 +207,37 @@ void main() {
     expect(find.text('#tomorrow-1'), findsOneWidget);
     expect(find.text(Strings.showReceiptButton), findsNWidgets(2));
   });
+
+  testWidgets('two booking cards fit 320x640 at 2x text', (tester) async {
+    final todays = order(id: 'today-1', date: '2026-08-01');
+    final moved = order(id: 'tomorrow-1', date: '2099-01-02');
+    stubOrders([todays, moved]);
+    await stubLiveOrder(todays);
+    await stubLiveOrder(moved);
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      BlocProvider<AuthBloc>.value(
+        value: authBloc,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2.0)),
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: child!,
+            ),
+          ),
+          home: BuyerHomeScreen(controller: controller, currentUser: demoUser),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('#tomorrow-1'), 200);
+    expect(find.text('#tomorrow-1'), findsOneWidget);
+  });
 }
