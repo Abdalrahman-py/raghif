@@ -19,8 +19,8 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Colour, border, corners and zero margin come from `cardTheme`.
     return Card(
-      margin: EdgeInsets.zero,
       // The rounded corners are the card's own shape; without clipping, the
       // ink splash of a tappable card paints square corners over them. Only
       // applied when the card is a tap target, so non-interactive cards render
