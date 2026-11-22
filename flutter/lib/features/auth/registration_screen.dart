@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/input/digits_formatter.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -177,7 +179,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           enabled: !isLoading,
           keyboardType: TextInputType.phone,
           formatters: [
-            FilteringTextInputFormatter.digitsOnly,
+            AsciiDigitsFormatter(),
             LengthLimitingTextInputFormatter(10),
           ],
           autofill: const [AutofillHints.telephoneNumber],
@@ -266,7 +268,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.next,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
+                AsciiDigitsFormatter(),
                 LengthLimitingTextInputFormatter(4),
               ],
               validator: _validatePin,
@@ -296,7 +298,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
+                AsciiDigitsFormatter(),
                 LengthLimitingTextInputFormatter(4),
               ],
               validator: _validateConfirmPin,

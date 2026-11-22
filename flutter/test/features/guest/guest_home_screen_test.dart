@@ -117,11 +117,11 @@ void main() {
     await pump(tester, FakeQueueRepository.seeded());
 
     await tester.scrollUntilVisible(
-      find.text(Strings.guestHaveAccount),
+      find.text(Strings.guestLogin),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text(Strings.guestHaveAccount));
+    await tester.tap(find.text(Strings.guestLogin));
     await tester.pumpAndSettle();
     expect(find.byType(LoginScreen), findsOneWidget);
     // Pushed from the guest screen, so there is a way back.
@@ -130,11 +130,11 @@ void main() {
     await tester.tap(find.byTooltip(Strings.back));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text(Strings.guestCreateAccount),
+      find.text(Strings.guestSignUp),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.text(Strings.guestCreateAccount));
+    await tester.tap(find.text(Strings.guestSignUp));
     await tester.pumpAndSettle();
     expect(find.byType(RegistrationScreen), findsOneWidget);
   });

@@ -160,52 +160,48 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
                   const SizedBox(height: AppSpacing.lg),
                   _howItWorks(textTheme, muted),
                   const SizedBox(height: AppSpacing.lg),
-                  PrimaryButton(
-                    text: Strings.guestCreateAccount,
-                    onPressed: _signUp,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Center(
-                    child: TextButton(
-                      onPressed: _login,
-                      child: const Text(Strings.guestHaveAccount),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    Strings.ownerViaSupport,
-                    key: const Key('guest-owner-note'),
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyMedium?.copyWith(color: muted),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  const SupportWhatsAppButton(
-                    key: Key('guest-owner-whatsapp'),
-                    message: Strings.ownerRequestMessage,
-                    label: 'تواصل معنا لإضافة مخبزك',
+                  // Main action is signing in; new people book from a bakery
+                  // card or take the text action below.
+                  FilledButton(
+                    onPressed: _login,
+                    child: const Text(Strings.guestLogin),
                   ),
                   const SizedBox(height: AppSpacing.xs),
+                  Center(
+                    child: TextButton(
+                      onPressed: _signUp,
+                      child: const Text(Strings.guestSignUp),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  // Owners are a handful of people: one quiet line, with only
+                  // "تواصل معنا" as the (48dp) link that opens the WhatsApp chat.
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LegalScreen.privacy(),
-                          ),
-                        ),
-                        child: const Text(Strings.privacyTitle),
+                      Text(
+                        Strings.ownerQuestion,
+                        style: textTheme.bodySmall?.copyWith(color: muted),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LegalScreen.terms(),
+                        key: const Key('guest-owner-whatsapp'),
+                        style: TextButton.styleFrom(
+                          textStyle: textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xs,
                           ),
                         ),
-                        child: const Text(Strings.termsTitle),
+                        onPressed: () => openSupportWhatsApp(
+                          context,
+                          message: Strings.ownerRequestMessage,
+                        ),
+                        child: const Text(Strings.ownerContactLink),
                       ),
                     ],
                   ),
+                  _LegalFooter(muted: muted),
                 ],
               );
             },
@@ -322,6 +318,44 @@ class _GuestHomeScreenState extends State<GuestHomeScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Privacy and terms as one quiet line at the foot of the screen, the way most
+/// sign-in screens carry them: muted, no accent colour, still a full 48dp tap
+/// target each and never under the app's 16sp floor.
+class _LegalFooter extends StatelessWidget {
+  const _LegalFooter({required this.muted});
+
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextButton.styleFrom(
+      foregroundColor: muted,
+      textStyle: Theme.of(context).textTheme.bodySmall,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+    );
+    void open(Widget screen) =>
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          style: style,
+          onPressed: () => open(const LegalScreen.privacy()),
+          child: const Text(Strings.privacyTitle),
+        ),
+        ExcludeSemantics(
+          child: Text('·', style: TextStyle(color: muted)),
+        ),
+        TextButton(
+          style: style,
+          onPressed: () => open(const LegalScreen.terms()),
+          child: const Text(Strings.termsTitle),
+        ),
+      ],
     );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/input/digits_formatter.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/support/support_contact.dart';
 import '../../core/theme/app_colors.dart';
@@ -448,13 +450,12 @@ class _LoginScreenState extends State<LoginScreen> {
           label: Strings.phoneLabel,
           child: TextField(
             controller: _idController,
-            readOnly: isLoading,
             autofocus: true,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.telephoneNumber],
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
+              AsciiDigitsFormatter(),
               LengthLimitingTextInputFormatter(10),
             ],
             onChanged: (_) => _clearErrors(),
@@ -497,14 +498,13 @@ class _LoginScreenState extends State<LoginScreen> {
           child: TextField(
             controller: _pinController,
             focusNode: _pinFocus,
-            readOnly: isLoading,
             autofocus: true,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
             obscureText: !_showPin,
             autofillHints: const [AutofillHints.password],
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
+              AsciiDigitsFormatter(),
               LengthLimitingTextInputFormatter(4),
             ],
             // A complete PIN is a submitted PIN: nobody hunts for the button

@@ -79,8 +79,10 @@ outside this app's type scale.
 | Token | Value | Use |
 |---|---|---|
 | `shape.sm` | 8dp corner | Chips, status badges |
-| `shape.md` | 12dp corner | Buttons, inputs |
+| `shape.md` | 12dp corner | Inputs |
 | `shape.lg` | 16dp corner | Cards |
+| `shape.xl` | 28dp corner | Dialogs, bottom sheets |
+| buttons | full (pill) | M3 default; not a token |
 | `spacing.xs` | 4dp | Icon-to-label gap |
 | `spacing.sm` | 8dp | Min gap between adjacent touch targets |
 | `spacing.md` | 16dp | Standard content padding |
