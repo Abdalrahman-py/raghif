@@ -28,6 +28,8 @@ Workflow rules this changelog lives by:
 - Notifications: the repeated headline and subtitle are gone; each notice is a
   tighter card with an unread dot plus the word "غير مقروء" and the date on one
   wrapping line. Still fits at 1.8x text on a 320dp screen.
+- Login: the form sits on the theme's card instead of a hand-made shadow box;
+  the logo badge is a `CircleAvatar`.
 
 ### Changed — 2026-11-22 — Material 3 corner scale and port study
 
