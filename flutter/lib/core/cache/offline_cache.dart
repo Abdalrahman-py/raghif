@@ -187,6 +187,7 @@ class OfflineCache {
     'pinned': e.pinned,
     'todayStatus': e.todayStatus?.name,
     'todayPurchaseId': e.todayPurchaseId,
+    'todayPrepaid': e.todayPrepaid,
     'lastPurchaseDate': e.lastPurchaseDate,
   };
 
@@ -199,6 +200,7 @@ class OfflineCache {
           ? null
           : PurchaseStatus.values.firstWhere((v) => v.name == status),
       todayPurchaseId: j['todayPurchaseId'] as String?,
+      todayPrepaid: (j['todayPrepaid'] as bool?) ?? false,
       lastPurchaseDate: j['lastPurchaseDate'] as String?,
     );
   }

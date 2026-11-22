@@ -327,10 +327,9 @@ class QueueController extends ChangeNotifier {
   Future<PurchaseModel?> blockingPurchaseFor(String userId, String date) =>
       _repository.getBlockingPurchase(userId, date);
 
-  Future<PurchaseModel?> currentOrUpcomingPurchase(
-    String userId,
-    String today,
-  ) => _repository.currentOrUpcomingPurchase(userId, today);
+  /// This buyer's bookings from [today] on (today and a postponed tomorrow).
+  Future<List<PurchaseModel>> upcomingPurchases(String userId, String today) =>
+      _repository.upcomingPurchases(userId, today);
 
   Future<PurchaseModel> postponePurchase(String purchaseId) async {
     final session = _sessionGeneration;

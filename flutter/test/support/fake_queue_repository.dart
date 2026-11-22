@@ -7,6 +7,7 @@ import 'package:raghif/domain/models/store_day_summary.dart';
 import 'package:raghif/domain/models/store_list_entry.dart';
 import 'package:raghif/domain/models/store_model.dart';
 import 'package:raghif/domain/repositories/queue_repository.dart';
+import 'package:raghif/features/queue/queue_logic.dart' show todayDateString;
 
 /// In-memory stand-in for the backend.
 ///
@@ -85,6 +86,13 @@ class FakeQueueRepository implements QueueRepository {
   /// The signed-in user, as the Supabase session would report it. Writes
   /// that the server attributes to `auth.uid()` use this.
   String currentUserId = 'user-buyer';
+
+  /// Calls to [reserveBag] and [recordWalletPayment], for flow tests.
+  int reserveCalls = 0;
+  int walletPaymentCalls = 0;
+
+  /// Makes [recordWalletPayment] fail as an unreachable server would.
+  bool failWalletPayment = false;
 
   /// Set false to make every write fail the way an unreachable backend does.
   bool online = true;
@@ -181,7 +189,11 @@ class FakeQueueRepository implements QueueRepository {
 
   @override
   Future<void> recordWalletPayment(String purchaseId) async {
+    walletPaymentCalls++;
     _requireOnline();
+    if (failWalletPayment) {
+      throw const BackendUnavailableException('wallet record failed');
+    }
     final i = _purchases.indexWhere((p) => p.id == purchaseId);
     if (i < 0) throw StateError('purchase not found');
     _purchases[i] = _purchases[i].copyWith(paymentMethod: 'simulated');
@@ -192,15 +204,19 @@ class FakeQueueRepository implements QueueRepository {
     required String storeId,
     required String date,
   }) async {
+    reserveCalls++;
     _requireOnline();
     final store = _stores.firstWhere((s) => s.id == storeId);
+    // Like reserve_bag: a retry at the same bakery hands the booking back.
+    final existing = _purchases
+        .where((p) => p.userId == currentUserId && p.purchaseDate == date)
+        .firstOrNull;
+    if (existing != null) {
+      if (existing.storeId == storeId) return _decorate(existing);
+      throw StateError('already reserved a bag today');
+    }
     if (!store.isOpen || store.bagsRemaining <= 0) {
       throw StoreSoldOutException();
-    }
-    if (_purchases.any(
-      (p) => p.userId == currentUserId && p.purchaseDate == date,
-    )) {
-      throw StateError('already reserved a bag today');
     }
 
     final sameDay = _purchases.where(
@@ -234,7 +250,7 @@ class FakeQueueRepository implements QueueRepository {
       throw const PostponeRejectedException('not your booking');
     }
     final p = _purchases[i];
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final today = todayDateString();
     if (p.postponementCount > 0) {
       throw const PostponeRejectedException('already postponed');
     }
@@ -281,26 +297,16 @@ class FakeQueueRepository implements QueueRepository {
   }
 
   @override
-  Future<PurchaseModel?> currentOrUpcomingPurchase(
+  Future<List<PurchaseModel>> upcomingPurchases(
     String userId,
     String today,
-  ) async {
-    final rows =
-        _purchases
-            .where(
-              (p) =>
-                  p.userId == userId &&
-                  p.purchaseDate.compareTo(today) >= 0 &&
-                  (p.purchaseDate == today ||
-                      p.status != PurchaseStatus.collected),
-            )
-            .toList()
-          ..sort((a, b) => a.purchaseDate.compareTo(b.purchaseDate));
-    final purchase =
-        rows.where((p) => p.status != PurchaseStatus.collected).firstOrNull ??
-        rows.where((p) => p.purchaseDate == today).firstOrNull;
-    return purchase == null ? null : _decorate(purchase);
-  }
+  ) async => [
+    for (final p in bookingsToShow(
+      _purchases.where((p) => p.userId == userId),
+      today,
+    ))
+      _decorate(p),
+  ];
 
   @override
   Future<bool> notifyNextBatch(String storeId, String date) async {
@@ -462,6 +468,7 @@ class FakeQueueRepository implements QueueRepository {
           pinned: _pins.contains('$userId|${store.id}'),
           todayStatus: todays?.status,
           todayPurchaseId: todays?.id,
+          todayPrepaid: todays?.isPrepaid ?? false,
           lastPurchaseDate: mine.firstOrNull?.purchaseDate,
         );
       }).toList();

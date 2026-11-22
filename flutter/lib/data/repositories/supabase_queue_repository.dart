@@ -45,16 +45,16 @@ class SupabaseQueueRepository
       purchase = known;
     }
     if (_isActiveBuyer(purchase.userId)) {
-      final saved = await _receipts.load();
-      if (saved?.id == purchase.id &&
-          saved!.userId == purchase.userId &&
+      final saved = await _receipts.loadById(purchase.id);
+      if (saved != null &&
+          saved.userId == purchase.userId &&
           saved.postponementCount > purchase.postponementCount) {
         purchase = saved;
       }
       await _receipts.save(purchase);
-      final persisted = await _receipts.load();
-      if (persisted?.id == purchase.id &&
-          persisted!.userId == purchase.userId &&
+      final persisted = await _receipts.loadById(purchase.id);
+      if (persisted != null &&
+          persisted.userId == purchase.userId &&
           persisted.postponementCount > purchase.postponementCount) {
         purchase = persisted;
       }
@@ -187,7 +187,7 @@ class SupabaseQueueRepository
 
   @override
   Future<PurchaseModel> postponePurchase(String purchaseId) async {
-    final previous = await _receipts.load();
+    final previous = await _receipts.loadById(purchaseId);
     Map<String, dynamic> row;
     try {
       row = await _rpc<Map<String, dynamic>>('postpone_purchase', {
@@ -425,7 +425,9 @@ class SupabaseQueueRepository
               .eq('user_id', userId),
           await _client
               .from('purchases')
-              .select('id, store_id, purchase_date, status')
+              .select(
+                'id, store_id, purchase_date, status, payments(method, provider)',
+              )
               .eq('user_id', userId)
               .order('purchase_date', ascending: false)
               // The newest bookings are all the list needs (today's, and the
@@ -445,6 +447,9 @@ class SupabaseQueueRepository
           pinned: pinned.contains(store.id),
           todayStatus: todays == null ? null : _status(todays['status']),
           todayPurchaseId: todays?['id'] as String?,
+          todayPrepaid:
+              todays != null &&
+              _paymentMethod(todays['payments']) == 'jawwal_pay',
           lastPurchaseDate: atStore.firstOrNull?['purchase_date'] as String?,
         );
       }).toList();
@@ -477,29 +482,28 @@ class SupabaseQueueRepository
           .eq('purchase_date', date)
           .maybeSingle();
       if (row == null) {
-        // The server has no order today, so a saved one must not resurface.
-        final saved = await _receipts.load();
-        if (saved?.userId == userId && saved?.purchaseDate == date) {
-          await _receipts.clear();
-        }
+        // The server has no order that day, so a saved one must not
+        // resurface. Other days' receipts (a postponed booking) stay.
+        await _receipts.removeWhere(
+          (r) => r.userId == userId && r.purchaseDate == date,
+        );
         return null;
       }
       return await _rememberPurchase(purchaseFromRow(row));
     } catch (e) {
       // No signal: the saved receipt stands in, if it is this buyer's today.
-      final saved = await _receipts.load();
-      if (_isActiveBuyer(userId) &&
-          saved != null &&
-          saved.userId == userId &&
-          saved.purchaseDate == date) {
-        return saved;
+      if (_isActiveBuyer(userId)) {
+        final saved = (await _receipts.loadAll())
+            .where((r) => r.userId == userId && r.purchaseDate == date)
+            .firstOrNull;
+        if (saved != null) return saved;
       }
       throw BackendUnavailableException(e);
     }
   }
 
   @override
-  Future<PurchaseModel?> currentOrUpcomingPurchase(
+  Future<List<PurchaseModel>> upcomingPurchases(
     String userId,
     String today,
   ) async {
@@ -510,27 +514,21 @@ class SupabaseQueueRepository
           .eq('user_id', userId)
           .gte('purchase_date', today)
           .order('purchase_date');
-      final purchases = rows.map(purchaseFromRow).toList();
-      final purchase =
-          purchases
-              .where((p) => p.status != PurchaseStatus.collected)
-              .firstOrNull ??
-          purchases.where((p) => p.purchaseDate == today).firstOrNull;
-      if (purchase != null) {
-        return await _rememberPurchase(purchase);
-      } else {
-        await _receipts.clear();
-      }
-      return purchase;
+      final shown = [
+        for (final p in bookingsToShow(rows.map(purchaseFromRow), today))
+          await _rememberPurchase(p),
+      ];
+      final ids = {for (final p in shown) p.id};
+      // Bookings the server no longer lists must not resurface offline.
+      await _receipts.removeWhere((r) => !ids.contains(r.id));
+      return shown;
     } catch (e) {
-      final saved = await _receipts.load();
-      if (_isActiveBuyer(userId) &&
-          saved != null &&
-          saved.userId == userId &&
-          saved.purchaseDate.compareTo(today) >= 0 &&
-          (saved.purchaseDate == today ||
-              saved.status != PurchaseStatus.collected)) {
-        return saved;
+      if (_isActiveBuyer(userId)) {
+        final saved = bookingsToShow(
+          (await _receipts.loadAll()).where((r) => r.userId == userId),
+          today,
+        );
+        if (saved.isNotEmpty) return saved;
       }
       throw BackendUnavailableException(e);
     }
@@ -547,10 +545,8 @@ class SupabaseQueueRepository
       if (row == null) return null;
       return await _rememberPurchase(purchaseFromRow(row));
     } catch (e) {
-      final saved = await _receipts.load();
-      if (saved != null &&
-          saved.id == purchaseId &&
-          _isActiveBuyer(saved.userId)) {
+      final saved = await _receipts.loadById(purchaseId);
+      if (saved != null && _isActiveBuyer(saved.userId)) {
         return saved;
       }
       throw BackendUnavailableException(e);
