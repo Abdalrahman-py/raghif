@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/i18n/strings.dart';
+import '../../core/theme/status_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/app_card.dart';
 import '../../core/widgets/offline_notice.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../domain/models/purchase_model.dart';
 import '../../domain/models/store_model.dart';
@@ -215,158 +213,163 @@ class _CurrentOrderView extends StatelessWidget {
         final future = purchase.purchaseDate.compareTo(todayDateString()) > 0;
         final textTheme = Theme.of(context).textTheme;
         final store = controller.storeById(purchase.storeId);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: purchase.status == PurchaseStatus.waiting
-                    ? AppColors.warningContainer
-                    : AppColors.successContainer,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    purchase.status == PurchaseStatus.waiting
-                        ? Icons.schedule_rounded
-                        : Icons.check_circle_outline_rounded,
-                    color: purchase.status == PurchaseStatus.waiting
-                        ? AppColors.onWarningContainer
-                        : AppColors.onSuccessContainer,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      future
-                          ? 'حجزك القادم بتاريخ ${purchase.purchaseDate}. انتظر إشعار المخبز في موعد الحجز.'
-                          : switch (purchase.status) {
-                              PurchaseStatus.waiting =>
-                                Strings.waitingReassurance,
-                              PurchaseStatus.notified =>
-                                Strings.batchReadyNotificationBody,
-                              PurchaseStatus.collected =>
-                                'تم استلام طلبك، صحتين وعافية',
-                            },
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: purchase.status == PurchaseStatus.waiting
-                            ? AppColors.onWarningContainer
-                            : AppColors.onSuccessContainer,
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        final status = StatusColors.of(context);
+        final waiting = purchase.status == PurchaseStatus.waiting;
+        final noteColor = waiting
+            ? status.onWarningContainer
+            : status.onSuccessContainer;
+        final canPostpone =
+            purchase.purchaseDate == todayDateString() &&
+            purchase.status != PurchaseStatus.collected &&
+            purchase.postponementCount == 0;
+        // One card per booking: status line, place, facts and actions together,
+        // so two bookings (today and tomorrow) stay readable side by side.
+        return Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: scheme.primaryContainer,
+                      child: Icon(
+                        Icons.storefront_outlined,
+                        size: 22,
+                        color: scheme.primary,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            AppCard(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      PaymentChip(
-                        prepaid: purchase.isPrepaid,
-                        price: store?.bagPrice ?? StoreModel.defaultBagPrice,
-                      ),
-                      StatusChip(
-                        text: Strings.buyerHomeBatch(purchase.batchNumber),
-                        tone: StatusTone.neutral,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: AppColors.accentContainer,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: const Icon(
-                          Icons.storefront_outlined,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              purchase.storeName ?? store?.name ?? '',
-                              style: textTheme.titleLarge,
-                            ),
-                            if (store != null && store.area.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(store.area, style: textTheme.bodyMedium),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          Strings.receiptPurchaseIdLabel,
-                          style: textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text('#${purchase.id}', style: textTheme.titleMedium),
-                        const SizedBox(height: 12),
-                        Text(
-                          '${Strings.receiptDateLabel}: ${purchase.purchaseDate}',
-                          style: textTheme.bodyMedium,
-                        ),
-                        if (purchase.originalPurchaseDate != null) ...[
-                          const SizedBox(height: 4),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            Strings.postponedFrom(
-                              purchase.originalPurchaseDate!,
-                            ),
-                            style: textTheme.bodyMedium,
+                            purchase.storeName ?? store?.name ?? '',
+                            style: textTheme.titleMedium,
                           ),
+                          if (store != null && store.area.isNotEmpty)
+                            Text(store.area, style: textTheme.bodySmall),
                         ],
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    PaymentChip(
+                      prepaid: purchase.isPrepaid,
+                      price: store?.bagPrice ?? StoreModel.defaultBagPrice,
+                    ),
+                    StatusChip(
+                      text: Strings.buyerHomeBatch(purchase.batchNumber),
+                      tone: StatusTone.neutral,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      waiting
+                          ? Icons.schedule_rounded
+                          : Icons.check_circle_outline_rounded,
+                      size: 20,
+                      color: noteColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        future
+                            ? 'حجزك القادم بتاريخ ${purchase.purchaseDate}. انتظر إشعار المخبز في موعد الحجز.'
+                            : switch (purchase.status) {
+                                PurchaseStatus.waiting =>
+                                  Strings.waitingReassurance,
+                                PurchaseStatus.notified =>
+                                  Strings.batchReadyNotificationBody,
+                                PurchaseStatus.collected =>
+                                  'تم استلام طلبك، صحتين وعافية',
+                              },
+                        style: textTheme.bodyMedium?.copyWith(color: noteColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                _Fact(
+                  label: Strings.receiptPurchaseIdLabel,
+                  value: '#${_shortId(purchase.id)}',
+                ),
+                _Fact(
+                  label: Strings.receiptDateLabel,
+                  value: purchase.purchaseDate,
+                ),
+                if (purchase.originalPurchaseDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      Strings.postponedFrom(purchase.originalPurchaseDate!),
+                      style: textTheme.bodySmall,
                     ),
                   ),
-                ],
-              ),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  text: Strings.showReceiptButton,
+                  onPressed: onShowReceipt,
+                ),
+                if (canPostpone)
+                  TextButton(
+                    onPressed: () => onPostpone(purchase),
+                    child: const Text('تأجيل الحجز إلى الغد'),
+                  )
+                else
+                  const SizedBox(height: 8),
+              ],
             ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              text: Strings.showReceiptButton,
-              onPressed: onShowReceipt,
-            ),
-            if (purchase.purchaseDate == todayDateString() &&
-                purchase.status != PurchaseStatus.collected &&
-                purchase.postponementCount == 0) ...[
-              const SizedBox(height: 12),
-              SecondaryButton(
-                text: 'تأجيل الحجز إلى الغد',
-                onPressed: () => onPostpone(purchase),
-              ),
-            ],
-          ],
+          ),
         );
       },
+    );
+  }
+}
+
+/// The first block of a UUID is enough to read out at the counter; the QR on
+/// the receipt still carries the full id.
+String _shortId(String id) => id.length > 12 ? id.substring(0, 8) : id;
+
+class _Fact extends StatelessWidget {
+  const _Fact({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        spacing: 8,
+        children: [
+          Text(label, style: textTheme.bodyMedium),
+          // Ids and dates are left-to-right inside the Arabic layout.
+          Text(
+            value,
+            textDirection: TextDirection.ltr,
+            style: textTheme.titleSmall,
+          ),
+        ],
+      ),
     );
   }
 }

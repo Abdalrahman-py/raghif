@@ -19,6 +19,19 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-22 — bakery list, booking card and receipt on Material 3
+
+- Bakery list: each bakery is one theme card that opens its details when
+  tapped, with no coloured border; status is an icon-and-word chip; bags left
+  and hours share one wrapping line; "عرض المخبز" is a one-line text action
+  beside "اشترِ ربطة" instead of a second, wrapping pill.
+- حجزي: each booking is one card (place, payment and batch chips, status line,
+  order number and date, actions), so a today booking and a tomorrow booking
+  read as two compact cards instead of banner + card + two pills each. A UUID
+  order number shows its first block; the QR still carries the full id.
+- Receipt and booking card: order numbers and dates read left to right inside
+  the Arabic layout (the "#" no longer jumps to the far side).
+
 ### Changed — 2026-11-22 — lighter account and notifications screens
 
 - Account: one compact header row (avatar, name, phone) and one list of
