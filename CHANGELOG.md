@@ -19,6 +19,15 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-23 — offline bakery-list banner on Material 3 (#81)
+
+- The "no connection, showing the saved list" banner on the bakery list is a
+  `Card.filled` with a `ListTile` in the `StatusColors` warning pair, instead of
+  a hand-built `BoxDecoration` box. The "تحديث" action now sits under the text:
+  as a trailing button it squeezed the message to one word per line at 2x text
+  and pushed the banner past 1000dp tall.
+- New large-text test pumps the banner at 320dp and 2x text and taps refresh.
+
 ### Changed — 2026-11-22 — bakery list, booking card and receipt on Material 3
 
 - Bakery list: each bakery is one theme card that opens its details when

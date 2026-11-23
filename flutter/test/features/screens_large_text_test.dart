@@ -52,6 +52,22 @@ void main() {
     expect(find.text('أحمد ناصر'), findsOneWidget);
   });
 
+  testWidgets('stale bakery list banner fits at 2x text', (tester) async {
+    var refreshed = false;
+    await pump(
+      tester,
+      Scaffold(
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [StaleListBanner(onRefresh: () => refreshed = true)],
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('تحديث'));
+    expect(refreshed, isTrue);
+  });
+
   for (final open in [true, false]) {
     testWidgets('bakery card fits at 2x text (open: $open)', (tester) async {
       await pump(

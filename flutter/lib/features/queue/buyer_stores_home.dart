@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/i18n/strings.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shapes.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/status_colors.dart';
 import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/offline_notice.dart';
 import '../../core/widgets/primary_button.dart';
@@ -133,34 +134,9 @@ class _BuyerStoresHomeState extends State<BuyerStoresHome> {
                     ),
                     children: [
                       if (widget.controller.storeListStale) ...[
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: AppColors.warningContainer,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.cloud_off_outlined,
-                                color: AppColors.onWarningContainer,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              const Expanded(
-                                child: Text(
-                                  'لا يوجد اتصال. نعرض آخر قائمة محفوظة وقد تكون قديمة.',
-                                  style: TextStyle(
-                                    color: AppColors.onWarningContainer,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => widget.controller
-                                    .watchStoreListFor(widget.currentUser.id),
-                                child: const Text('تحديث'),
-                              ),
-                            ],
-                          ),
+                        StaleListBanner(
+                          onRefresh: () => widget.controller
+                              .watchStoreListFor(widget.currentUser.id),
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
@@ -307,6 +283,47 @@ class _GovChip extends StatelessWidget {
 /// One bakery: the whole card opens its details; name, place and status on
 /// top, bags left and hours on one wrapping line, then the one main action.
 /// Status reads as icon + word, never as colour alone.
+/// Shown above the saved bakery list when the server could not be reached.
+class StaleListBanner extends StatelessWidget {
+  const StaleListBanner({super.key, required this.onRefresh});
+
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = StatusColors.of(context);
+    return Card.filled(
+      color: status.warningContainer,
+      // cardTheme.shape carries the outline; a filled card passes its own.
+      shape: const RoundedRectangleBorder(borderRadius: AppShapes.large),
+      // The action sits under the text, not as `trailing`: at 2x text a
+      // trailing button squeezes the title to one word per line.
+      child: Column(
+        children: [
+          ListTile(
+            iconColor: status.onWarningContainer,
+            textColor: status.onWarningContainer,
+            leading: const Icon(Icons.cloud_off_outlined),
+            title: const Text(
+              'لا يوجد اتصال. نعرض آخر قائمة محفوظة وقد تكون قديمة.',
+            ),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8, bottom: 4),
+              child: TextButton(
+                onPressed: onRefresh,
+                child: const Text('تحديث'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class BakeryCard extends StatelessWidget {
   const BakeryCard({
     super.key,
