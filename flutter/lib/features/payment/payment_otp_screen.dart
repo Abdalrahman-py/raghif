@@ -5,7 +5,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/secondary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import 'mock_jawwal_pay_service.dart';
 import 'payment_success_screen.dart';
@@ -79,7 +78,9 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
         titleTextStyle: AppTypography.titleMedium,
       ),
       body: SafeArea(
-        child: Center(
+        // Top-aligned: centring left an empty band above a short form.
+        child: Align(
+          alignment: Alignment.topCenter,
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -187,11 +188,6 @@ class _PaymentOtpScreenState extends State<PaymentOtpScreen> {
                       ),
                       child: const Text(Strings.resendCodeButton),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  SecondaryButton(
-                    text: Strings.back,
-                    onPressed: () => Navigator.of(context).pop(false),
                   ),
                 ],
               ),

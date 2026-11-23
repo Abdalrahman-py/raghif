@@ -353,12 +353,9 @@ class _LoginScreenState extends State<LoginScreen> {
             )
           else ...[
             Center(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: const BoxDecoration(
-                  color: AppColors.accentContainer,
-                  shape: BoxShape.circle,
-                ),
+              child: CircleAvatar(
+                radius: 40,
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                 child: SvgPicture.asset(
                   'assets/images/stitch_loaf.svg',
                   width: 52,
@@ -376,43 +373,36 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
           SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
-          Container(
-            padding: EdgeInsets.all(compact ? AppSpacing.md : AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.04),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (_step != _Step.id) ...[
-                  const SizedBox(height: AppSpacing.xs),
+          // The theme's card (no hand-made shadow): one quiet surface.
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: EdgeInsets.all(compact ? AppSpacing.md : AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Text(
-                    Strings.loginForId(_idController.text.trim()),
+                    title,
                     textAlign: TextAlign.center,
-                    style: textTheme.bodyLarge,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                  if (_step != _Step.id) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      Strings.loginForId(_idController.text.trim()),
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyLarge,
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  switch (_step) {
+                    _Step.id => _idStep(isLoading),
+                    _Step.pin => _pinStep(isLoading),
+                  },
                 ],
-                const SizedBox(height: AppSpacing.lg),
-                switch (_step) {
-                  _Step.id => _idStep(isLoading),
-                  _Step.pin => _pinStep(isLoading),
-                },
-              ],
+              ),
             ),
           ),
         ],

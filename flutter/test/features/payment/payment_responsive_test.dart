@@ -67,7 +67,7 @@ void main() {
         tester
             .getSize(
               find.widgetWithText(
-                ElevatedButton,
+                FilledButton,
                 Strings.completeReservationButton,
               ),
             )

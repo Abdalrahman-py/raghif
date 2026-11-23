@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
-class PrimaryButton extends StatefulWidget {
+/// The screen's one main action: a stock [FilledButton] (size, shape and
+/// colours from `filledButtonTheme`) plus the loading state stock buttons lack.
+class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
     required this.text,
@@ -11,45 +12,21 @@ class PrimaryButton extends StatefulWidget {
 
   final String text;
   final VoidCallback? onPressed;
+
+  /// Shows a spinner and disables the button, so a slow write can't be
+  /// triggered twice.
   final bool loading;
 
   @override
-  State<PrimaryButton> createState() => _PrimaryButtonState();
-}
-
-class _PrimaryButtonState extends State<PrimaryButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = !widget.loading && widget.onPressed != null;
-    return Listener(
-      onPointerDown: enabled ? (_) => _setPressed(true) : null,
-      onPointerUp: (_) => _setPressed(false),
-      onPointerCancel: (_) => _setPressed(false),
-      child: AnimatedScale(
-        scale: enabled && _pressed ? 0.98 : 1,
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 140),
-        child: ElevatedButton(
-          onPressed: enabled ? widget.onPressed : null,
-          child: widget.loading
-              ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: AppColors.onAccent,
-                  ),
-                )
-              : Text(widget.text, textAlign: TextAlign.center),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => FilledButton(
+    onPressed: loading ? null : onPressed,
+    // The spinner sits on the disabled fill, so it takes the scheme's primary
+    // rather than white.
+    child: loading
+        ? const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          )
+        : Text(text, textAlign: TextAlign.center),
+  );
 }

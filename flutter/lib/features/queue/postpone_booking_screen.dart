@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/strings.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
@@ -113,12 +115,12 @@ class _PostponeBookingScreenState extends State<PostponeBookingScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'الموعد الحالي: ${p.purchaseDate}',
+                            Strings.postponeCurrentDate(p.purchaseDate),
                             style: text.bodyLarge,
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'الموعد الجديد: $tomorrow',
+                            Strings.postponeNewDate(tomorrow),
                             style: text.titleMedium,
                           ),
                           const SizedBox(height: 20),

@@ -145,7 +145,16 @@ class Strings {
   static const guestHow2 = 'احجز دورك من البيت';
   static const guestHow3 = 'استلم رغيفك عند إشعارك، بلا ازدحام';
 
-  static String postponedFrom(String date) => 'تم تأجيله من يوم $date';
+  /// Wraps an id or `YYYY-MM-DD` date in a left-to-right isolate, so the Arabic
+  /// line around it does not reorder its digits ("2026-11-22", not "22-11-2026").
+  static String ltr(String value) => '\u2066$value\u2069';
+
+  static String postponedFrom(String date) => 'تم تأجيله من يوم ${ltr(date)}';
+  static String postponeCurrentDate(String date) =>
+      'الموعد الحالي: ${ltr(date)}';
+  static String postponeNewDate(String date) => 'الموعد الجديد: ${ltr(date)}';
+  static String upcomingBookingOn(String date) =>
+      'حجزك القادم بتاريخ ${ltr(date)}. انتظر إشعار المخبز في موعد الحجز.';
 
   // Wallet verification (the buyer's proof of account)
   static const walletVerifyTitle = 'تحقق من رقم جوال باي';
@@ -183,8 +192,7 @@ class Strings {
   static const retryButton = 'إعادة المحاولة';
 
   /// The bar across the top of the app (see ConnectivityBanner).
-  static const connectionOffline =
-      'لا يوجد اتصال بالإنترنت — تظهر آخر بيانات محفوظة';
+  static const connectionOffline = 'لا يوجد اتصال بالإنترنت';
   static const connectionRestored = 'عاد الاتصال بالإنترنت';
 
   /// Short badge form of [storeClosedLabel], for chips beside a store name.
@@ -216,7 +224,7 @@ class Strings {
   static const storeDetailsTitle = 'تفاصيل المخبز';
   static const myOrderTodayTitle = 'طلبي اليوم';
   static const showReceiptButton = 'اعرض وصل الاستلام';
-  static const reserveBagButton = 'احجز كيس خبز';
+  static const reserveBagButton = 'احجز ربطة';
   static const storeClosedLabel = 'المخبز مغلق حالياً';
 
   // Purchase
@@ -253,6 +261,8 @@ class Strings {
       'ادفع ${shekels(price)} شيكل نقدًا للمخبز عند استلام رغيفك. لا يُطلب منك أي دفع الآن.';
   static String cashCollected(double amount) =>
       'المحصَّل نقدًا: ${shekels(amount)} شيكل';
+  static String cashDueChip(double price) =>
+      'نقدًا عند الاستلام: ${shekels(price)} شيكل';
   static String amountDueAtPickup(double price) =>
       'المطلوب عند الاستلام: ${shekels(price)} شيكل نقدًا';
 
@@ -389,7 +399,8 @@ class Strings {
   // Payment (Jawwal Pay mock)
   static const paymentTitle = 'الدفع عبر جوال باي';
   static const confirmJawwalPayNumber = 'تأكيد رقم جوال باي';
-  static const jawwalPayPrompt = 'سيتم خصم 3 شيكل من محفظة جوال باي الخاصة بك.';
+  static const jawwalPayPrompt =
+      'الدفع تجريبي حاليًا: لن يُخصم أي مبلغ من محفظتك، ويبقى ثمن الربطة مستحقًا نقدًا عند الاستلام.';
   static const proceedToOtp = 'إرسال رمز التأكيد';
   static const paymentOtpTitle = 'رمز تأكيد الدفع';
   static const paymentOtpInstructions =
@@ -400,10 +411,22 @@ class Strings {
   static const confirmPaymentButton = 'تأكيد الدفع';
   static const resendCodeButton = 'إعادة إرسال الرمز';
   static const wrongOtpError = 'رمز التأكيد غير صحيح، يرجى المحاولة مرة أخرى';
-  static const paymentSuccessTitle = 'تم الدفع بنجاح';
+  // Jawwal Pay is simulated: nothing here may say money moved.
+  static const paymentSuccessTitle = 'تم تأكيد الدفع التجريبي';
   static const paymentSuccessMessage =
-      'تمت عملية الدفع بنجاح بقيمة 3 شيكل عبر جوال باي.';
-  static const completeReservationButton = 'إتمام الحجز';
+      'هذا دفع تجريبي ولم يُخصم أي مبلغ. ادفع ثمن الربطة نقدًا عند الاستلام.';
+  static const completeReservationButton = 'عرض وصل الحجز';
+
+  // Reserve first, then choose how to pay
+  static const bagHeldTitle = 'تم حجز ربطتك';
+  static const bagHeldBody = 'ربطتك محجوزة الآن. كيف ستدفع؟';
+  static const payWithJawwalOption = 'ادفع الآن عبر جوال باي';
+  static const payWithJawwalHint = 'تجريبي حاليًا: لا يُخصم أي مبلغ';
+  static const payCashOption = 'ادفع نقدًا عند الاستلام';
+  static const receiptPaymentLabel = 'الدفع';
+  static const paymentMethodCash = 'نقدًا عند الاستلام';
+  static const paymentMethodSimulated =
+      'جوال باي (تجريبي): الدفع نقدًا عند الاستلام';
 
   // Owner customers
   static const customersTitle = 'سجل الزبائن';
@@ -416,7 +439,7 @@ class Strings {
   static const buyerHomeTitle = 'طلبي';
   static const buyerHomeNoOrder = 'لا يوجد طلب اليوم';
   static const buyerHomeNoOrderHint =
-      'احجز كيس خبز من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
+      'احجز ربطة من المخابز المتاحة، وسيظهر هنا حتى تستلمه.';
   static const browseStoresButton = 'تصفح المخابز';
   static String buyerHomeBatch(int batch) => 'الدفعة رقم $batch';
 

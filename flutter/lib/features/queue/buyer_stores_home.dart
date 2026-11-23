@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/i18n/strings.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shapes.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/status_colors.dart';
+import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/offline_notice.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/secondary_button.dart';
 import '../../domain/models/store_list_entry.dart';
 import '../../domain/models/store_model.dart';
 import '../auth/demo_accounts.dart';
@@ -133,33 +134,9 @@ class _BuyerStoresHomeState extends State<BuyerStoresHome> {
                     ),
                     children: [
                       if (widget.controller.storeListStale) ...[
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: AppColors.warningContainer,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.cloud_off_outlined,
-                                color: AppColors.onWarningContainer,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              const Expanded(
-                                child: Text(
-                                  'لا يوجد اتصال. نعرض آخر قائمة محفوظة وقد تكون قديمة.',
-                                  style: TextStyle(
-                                    color: AppColors.onWarningContainer,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => widget.controller
-                                    .watchStoreListFor(widget.currentUser.id),
-                                child: const Text('تحديث'),
-                              ),
-                            ],
+                        StaleListBanner(
+                          onRefresh: () => widget.controller.watchStoreListFor(
+                            widget.currentUser.id,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -304,9 +281,50 @@ class _GovChip extends StatelessWidget {
   );
 }
 
-/// One bakery: name and place on top, then bags left and hours side by side,
-/// then the two actions. Green = open with bags left; red = closed, paused or
-/// sold out.
+/// One bakery: the whole card opens its details; name, place and status on
+/// top, bags left and hours on one wrapping line, then the one main action.
+/// Status reads as icon + word, never as colour alone.
+/// Shown above the saved bakery list when the server could not be reached.
+class StaleListBanner extends StatelessWidget {
+  const StaleListBanner({super.key, required this.onRefresh});
+
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = StatusColors.of(context);
+    return Card.filled(
+      color: status.warningContainer,
+      // cardTheme.shape carries the outline; a filled card passes its own.
+      shape: const RoundedRectangleBorder(borderRadius: AppShapes.large),
+      // The action sits under the text, not as `trailing`: at 2x text a
+      // trailing button squeezes the title to one word per line.
+      child: Column(
+        children: [
+          ListTile(
+            iconColor: status.onWarningContainer,
+            textColor: status.onWarningContainer,
+            leading: const Icon(Icons.cloud_off_outlined),
+            title: const Text(
+              'لا يوجد اتصال. نعرض آخر قائمة محفوظة وقد تكون قديمة.',
+            ),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8, bottom: 4),
+              child: TextButton(
+                onPressed: onRefresh,
+                child: const Text('تحديث'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class BakeryCard extends StatelessWidget {
   const BakeryCard({
     super.key,
@@ -322,10 +340,10 @@ class BakeryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = entry.store;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final scheme = theme.colorScheme;
     final ok = store.isAvailable;
-    final tone = ok ? AppColors.success : AppColors.danger;
-    final toneBg = ok ? AppColors.successContainer : AppColors.dangerContainer;
     final label = ok
         ? 'مفتوح'
         : store.isPaused
@@ -334,122 +352,86 @@ class BakeryCard extends StatelessWidget {
         ? Strings.soldOut
         : Strings.storeClosedBadge;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: tone.withValues(alpha: 0.55), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: toneBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.storefront_outlined, color: tone),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: scheme.primaryContainer,
+                    child: Icon(
+                      Icons.storefront_outlined,
+                      size: 22,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(store.name, style: textTheme.titleMedium),
+                        if (store.area.isNotEmpty)
+                          Text(store.area, style: textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: AppSpacing.sm),
+              // Status only: bags left and hours are on the details screen.
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: StatusChip(
+                  text: label,
+                  tone: ok ? StatusTone.success : StatusTone.danger,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // Side by side normally; stacked once large text would squeeze
+              // the labels.
+              if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(store.name, style: textTheme.titleMedium),
-                    if (store.area.isNotEmpty)
-                      Text(store.area, style: textTheme.bodySmall),
+                    PrimaryButton(
+                      text: Strings.reserveBagButton,
+                      onPressed: ok ? onBuy : null,
+                    ),
+                    TextButton(
+                      onPressed: onOpen,
+                      child: const Text('عرض المخبز'),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: PrimaryButton(
+                        text: Strings.reserveBagButton,
+                        onPressed: ok ? onBuy : null,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    TextButton(
+                      onPressed: onOpen,
+                      child: const Text('عرض المخبز'),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: toneBg,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  label,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: tone,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: _Fact(
-                  icon: Icons.bakery_dining_outlined,
-                  text: ok
-                      ? '${store.bagsRemaining} من ${store.dailyBagLimit} ربطة'
-                      : 'لا توجد ربطات الآن',
-                  color: tone,
-                ),
-              ),
-              Expanded(
-                child: _Fact(
-                  icon: Icons.schedule_outlined,
-                  text: store.hasPurchaseWindow
-                      ? '${store.openTime} – ${store.closeTime}'
-                      : 'الموعد غير محدد',
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: PrimaryButton(
-                  text: 'اشترِ ربطة',
-                  onPressed: ok ? onBuy : null,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                flex: 2,
-                child: SecondaryButton(text: 'عرض المخبز', onPressed: onOpen),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
-}
-
-class _Fact extends StatelessWidget {
-  const _Fact({required this.icon, required this.text, required this.color});
-
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 6),
-      Flexible(
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
-        ),
-      ),
-    ],
-  );
 }

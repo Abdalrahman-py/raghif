@@ -30,8 +30,11 @@ void main() {
         date: tomorrow,
       );
       expect(
-        await repository.currentOrUpcomingPurchase('user-buyer', today),
-        upcoming,
+        (await repository.upcomingPurchases(
+          'user-buyer',
+          today,
+        )).map((p) => p.id),
+        [isNot(upcoming.id), upcoming.id],
       );
     },
   );
@@ -87,8 +90,8 @@ void main() {
           row('postponed-tomorrow', tomorrow, 'waiting'),
         ];
         expect(
-          (await repository.currentOrUpcomingPurchase('u1', today))?.id,
-          'postponed-tomorrow',
+          (await repository.upcomingPurchases('u1', today)).map((p) => p.id),
+          ['collected-today', 'postponed-tomorrow'],
         );
       },
     );
@@ -100,21 +103,21 @@ void main() {
           row('collected-future', tomorrow, 'collected'),
         ];
         expect(
-          (await repository.currentOrUpcomingPurchase('u1', today))?.id,
-          'collected-today',
+          (await repository.upcomingPurchases('u1', today)).map((p) => p.id),
+          ['collected-today'],
         );
       },
     );
     test(
-      'uncollected today takes priority over uncollected tomorrow',
+      'a today booking and a postponed tomorrow booking are both listed',
       () async {
         rows = [
           row('waiting-today', today, 'waiting'),
           row('postponed-tomorrow', tomorrow, 'waiting'),
         ];
         expect(
-          (await repository.currentOrUpcomingPurchase('u1', today))?.id,
-          'waiting-today',
+          (await repository.upcomingPurchases('u1', today)).map((p) => p.id),
+          ['waiting-today', 'postponed-tomorrow'],
         );
       },
     );

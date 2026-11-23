@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/app_bottom_bar.dart';
 import '../queue/owner_customers_screen.dart';
 import '../queue/owner_dashboard_screen.dart';
 import '../queue/owner_history_screen.dart';
@@ -49,9 +48,9 @@ class _OwnerShellState extends State<OwnerShell> {
           storeId: widget.storeId,
         ),
       },
-      bottomNavigationBar: AppBottomBar(
+      bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) => setState(() => _index = value),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

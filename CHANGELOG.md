@@ -19,6 +19,111 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-23 — plainer bakery card and an honest offline bar
+
+- Bakery card on the buyer list shows name, area and status (مفتوح, مغلق,
+  نفدت…) only. Bags left and hours stay on the bakery's details screen.
+- The offline bar across the top now says only "لا يوجد اتصال بالإنترنت". It
+  used to add "showing the last saved data" even when nothing was saved, next
+  to an empty "could not reach the server" screen. Its text is 15sp (was 13sp,
+  under the constitution's floor).
+
+### Changed — 2026-11-23 — offline bakery-list banner on Material 3 (#81)
+
+- The "no connection, showing the saved list" banner on the bakery list is a
+  `Card.filled` with a `ListTile` in the `StatusColors` warning pair, instead of
+  a hand-built `BoxDecoration` box. The "تحديث" action now sits under the text:
+  as a trailing button it squeezed the message to one word per line at 2x text
+  and pushed the banner past 1000dp tall.
+- New large-text test pumps the banner at 320dp and 2x text and taps refresh.
+
+### Changed — 2026-11-22 — bakery list, booking card and receipt on Material 3
+
+- Bakery list: each bakery is one theme card that opens its details when
+  tapped, with no coloured border; status is an icon-and-word chip; bags left
+  and hours share one wrapping line; "عرض المخبز" is a one-line text action
+  beside "اشترِ ربطة" instead of a second, wrapping pill.
+- حجزي: each booking is one card (place, payment and batch chips, status line,
+  order number and date, actions), so a today booking and a tomorrow booking
+  read as two compact cards instead of banner + card + two pills each. A UUID
+  order number shows its first block; the QR still carries the full id.
+- Receipt and booking card: order numbers and dates read left to right inside
+  the Arabic layout (the "#" no longer jumps to the far side).
+- Dates inside Arabic sentences (postpone screen, "postponed from", upcoming
+  booking line) are wrapped in a left-to-right isolate (`Strings.ltr`): they
+  showed as "22-11-2026" and now read "2026-11-22".
+- "Already booked today" is said on the receipt it opens (`ConfirmationScreen.notice`),
+  not in a SnackBar that covered the receipt's bottom actions (owner screenshot 4).
+- One label for securing a bag: the list and the details screen both say
+  "احجز ربطة" (`Strings.reserveBagButton`). "اشترِ ربطة" suggested paying,
+  while the button reserves first.
+- Bakery card under large text: the status chip joins the wrapping facts line
+  and the two actions stack; at 2x text on 320dp it overflowed by 82px.
+  `screens_large_text_test.dart` covers the account screen and the card at 2x;
+  `buyer_home_screen_test.dart` covers two booking cards at 2x.
+- Payment choice sheet (after a bag is reserved) scrolls under large system
+  text; at 2x on a 320dp screen it overflowed by 192px and could hide the cash
+  option. Regression test `payment_choice_sheet_test.dart`.
+- Store details: bags left and purchase hours are two plain rows in one card,
+  instead of two bordered tiles inside a card with an unlabeled large "10:00".
+
+### Changed — 2026-11-22 — lighter account and notifications screens
+
+- Account: one compact header row (avatar, name, phone) and one list of
+  actions (edit profile, change PIN, WhatsApp support) instead of a large
+  avatar block and four stacked full-width buttons; sign out is a quiet red
+  row in its own card. Everything fits on a 360x780 screen without scrolling.
+- Notifications: the repeated headline and subtitle are gone; each notice is a
+  tighter card with an unread dot plus the word "غير مقروء" and the date on one
+  wrapping line. Still fits at 1.8x text on a 320dp screen.
+- Login: the form sits on the theme's card instead of a hand-made shadow box;
+  the logo badge is a `CircleAvatar`.
+### Changed — 2026-11-22 — Material 3 theme and shared widgets (port Phases 0–1)
+
+- The theme builds a full colour scheme with `ColorScheme.fromSeed` from the
+  brand blue, with the brand roles pinned (primary, containers, the #EEF2F6
+  ground, white cards and sheets, outlines, the danger set). Success, warning
+  and neutral pairs live in one `StatusColors` theme extension, which
+  `StatusChip` reads.
+- All 15 text roles are set, none under 15sp (`titleSmall` used to fall back
+  to 14sp).
+- Buttons are 48dp pills with 16sp labels instead of 56dp. Cards have one
+  treatment: white, outlined, flat, 16dp corners, no margin. Icon buttons have
+  a 48dp minimum. App bar, list tile, floating snack bar, dialog, bottom sheet
+  and navigation bar themes are set once.
+- `PrimaryButton` is a `FilledButton` with a loading spinner (no press-scale
+  animation), `SecondaryButton` an `OutlinedButton`, `AppCard` a themed
+  `Card`. `AppBottomBar` is gone: both shells use `NavigationBar` on a white
+  surface, with no shadow or rounded top. `NumberStepper` uses
+  `IconButton.outlined` with tooltips.
+- New tests: every text role at 15sp or more, text-on-container contrast of
+  4.5:1 or more, and the shared widgets at 360dp with a 2.0 text scale without
+  overflow.
+### Changed — 2026-11-22 — reserve first, honest payment state, two bookings side by side
+
+- "اشتري ربطة" reserves the bag first (`reserve_bag`, idempotent), so sold out,
+  closed or offline is reported before any payment screen. A sheet then offers
+  "ادفع الآن عبر جوال باي" (the simulated wallet screens, then
+  `record_wallet_payment`) or "ادفع نقدًا عند الاستلام" (no payment record).
+  Backing out of the wallet, dismissing the sheet or a failed payment record
+  keeps the booking with cash due. A double tap sends one reservation.
+- Nothing says "paid" unless the bag is prepaid through the real wallet
+  (`PurchaseModel.isPrepaid`). The حجزي card and the store-details card show a
+  cash-at-pickup chip otherwise; the receipt has a payment row (cash at pickup,
+  trial wallet with cash due, or paid). The simulated wallet copy no longer
+  claims money was deducted.
+- The payment-code screen lost its duplicate "رجوع" button and the empty band
+  above the form.
+- "Today" on the phone is the Asia/Hebron date (UTC plus a tzdata-derived
+  summer-time table), not the device's zone, so a phone in another zone or
+  near midnight no longer sends a date the server rejects.
+- حجزي lists every uncollected booking from today on, so a postponed tomorrow
+  booking and a new today booking each get their own card and receipt
+  (`QueueRepository.upcomingPurchases` replaces `currentOrUpcomingPurchase`).
+  Offline receipts are kept per purchase id (`ReceiptStore`), so both open
+  without signal. SQL suite `two_bookings.sql` covers book, postpone, book
+  elsewhere. No migration; `reserve_bag` is unchanged.
+
 ### Changed — 2026-11-22 — Material 3 corner scale and port study
 
 - `AppShapes` follows the M3 corner scale (8 / 12 / 16 / 28dp: chips, inputs,

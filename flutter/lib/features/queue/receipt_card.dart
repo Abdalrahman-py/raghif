@@ -18,6 +18,7 @@ class ReceiptCard extends StatelessWidget {
     required this.userName,
     required this.status,
     required this.qrData,
+    this.paymentText,
   });
 
   final String storeName;
@@ -27,6 +28,9 @@ class ReceiptCard extends StatelessWidget {
   final String userName;
   final PurchaseStatus status;
   final String qrData;
+
+  /// Payment state and method ("cash at pickup", "trial wallet"…), if known.
+  final String? paymentText;
 
   @override
   Widget build(BuildContext context) {
@@ -111,17 +115,24 @@ class ReceiptCard extends StatelessWidget {
                   _InfoRow(
                     label: Strings.receiptPurchaseIdLabel,
                     value: '#$purchaseId',
+                    ltr: true,
                   ),
                   _InfoRow(label: Strings.receiptNameLabel, value: userName),
                   _InfoRow(label: 'نقطة التوزيع', value: storeName),
                   _InfoRow(
                     label: Strings.receiptDateLabel,
                     value: purchaseDate,
+                    ltr: true,
                   ),
                   _InfoRow(
                     label: Strings.receiptBatchLabel,
                     value: '$batchNumber',
                   ),
+                  if (paymentText != null)
+                    _InfoRow(
+                      label: Strings.receiptPaymentLabel,
+                      value: paymentText!,
+                    ),
                   const SizedBox(height: 10),
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -186,10 +197,13 @@ class _Perforation extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.ltr = false});
 
   final String label;
   final String value;
+
+  /// Ids and dates read left to right inside the Arabic receipt.
+  final bool ltr;
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +226,8 @@ class _InfoRow extends StatelessWidget {
             flex: 3,
             child: Text(
               value,
-              textAlign: TextAlign.end,
+              textAlign: ltr ? TextAlign.left : TextAlign.end,
+              textDirection: ltr ? TextDirection.ltr : null,
               style: AppTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.w600,
               ),

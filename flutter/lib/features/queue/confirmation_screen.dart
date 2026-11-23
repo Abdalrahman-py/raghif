@@ -28,11 +28,17 @@ class ConfirmationScreen extends StatefulWidget {
     required this.controller,
     required this.purchaseId,
     required this.currentUser,
+    this.notice,
   });
 
   final QueueController controller;
   final String purchaseId;
   final DemoUser currentUser;
+
+  /// Why this receipt opened instead of a new booking ("already booked
+  /// today"). Shown inline under the headline: a SnackBar would sit on top of
+  /// the pinned actions at the bottom of this screen.
+  final String? notice;
 
   @override
   State<ConfirmationScreen> createState() => _ConfirmationScreenState();
@@ -151,6 +157,17 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                         ),
                                       ],
                                     ),
+                                    if (widget.notice != null) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        widget.notice!,
+                                        key: const Key('receipt-notice'),
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleSmall,
+                                      ),
+                                    ],
                                     if (purchase.status !=
                                         PurchaseStatus.collected) ...[
                                       const SizedBox(height: 6),
@@ -200,6 +217,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen> {
                                         userName: qrPayload.userName,
                                         status: purchase.status,
                                         qrData: qrPayload.encode(),
+                                        paymentText: purchase.isPrepaid
+                                            ? Strings.paidAlready
+                                            : purchase.paymentMethod ==
+                                                  'simulated'
+                                            ? Strings.paymentMethodSimulated
+                                            : Strings.paymentMethodCash,
                                       ),
                                     ),
                                     const SizedBox(height: 10),

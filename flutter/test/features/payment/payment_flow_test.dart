@@ -94,7 +94,7 @@ void main() {
     });
   });
 
-  group('Buying a bag goes straight to payment', () {
+  group('Buying a bag: reserve first, then choose payment', () {
     const testUser = DemoUser(
       id: seededBuyerId,
       phone: '0599111111',
@@ -121,9 +121,63 @@ void main() {
       ),
     );
 
+    /// Number screen -> OTP -> success -> back to the flow.
+    Future<void> payThroughWallet(WidgetTester tester) async {
+      await tester.ensureVisible(find.text(Strings.proceedToOtp));
+      await tester.tap(find.text(Strings.proceedToOtp));
+      await tester.pumpAndSettle();
+      final bannerFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            (widget.data?.contains('رمز التحقق (رسالة تجريبية): ') ?? false),
+      );
+      final otp = (tester.widget(bannerFinder) as Text).data!
+          .split(': ')
+          .last
+          .trim();
+      await tester.enterText(find.byType(TextField), otp);
+      await tester.ensureVisible(find.text(Strings.confirmPaymentButton));
+      await tester.tap(find.text(Strings.confirmPaymentButton));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(Strings.completeReservationButton));
+      await tester.tap(find.text(Strings.completeReservationButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tearDownTree(WidgetTester tester) async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the bag is reserved before any payment screen opens', (
+      tester,
+    ) async {
+      final harness = buildQueueHarness();
+
+      await tester.pumpWidget(launcher(harness.controller, seededStoreId));
+      await tester.tap(find.text('buy'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.bagHeldTitle), findsOneWidget);
+      expect(find.text(Strings.paymentTitle), findsNothing);
+      expect(harness.repo.reserveCalls, 1);
+      expect(
+        await harness.controller.blockingPurchaseFor(
+          testUser.id,
+          todayDateString(),
+        ),
+        isNotNull,
+      );
+
+      await tester.tap(find.text(Strings.payCashOption));
+      await tester.pumpAndSettle();
+      await tearDownTree(tester);
+    });
+
     testWidgets(
-      'the first screen is payment (no review screen); completing it books a '
-      'prepaid bag and shows the receipt',
+      'Jawwal: the simulated payment is recorded but never marks the bag paid',
       (tester) async {
         final harness = buildQueueHarness();
         final controller = harness.controller;
@@ -131,72 +185,140 @@ void main() {
         await tester.pumpWidget(launcher(controller, seededStoreId));
         await tester.tap(find.text('buy'));
         await tester.pumpAndSettle();
-
-        // Straight to the Jawwal Pay number screen.
+        await tester.tap(find.text(Strings.payWithJawwalOption));
+        await tester.pumpAndSettle();
         expect(find.text(Strings.paymentTitle), findsOneWidget);
-        expect(find.text('راجع حجزك'), findsNothing);
 
-        await tester.ensureVisible(find.text(Strings.proceedToOtp));
-        await tester.tap(find.text(Strings.proceedToOtp));
-        await tester.pumpAndSettle();
-        expect(find.text(Strings.paymentOtpTitle), findsOneWidget);
-
-        final bannerFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is Text &&
-              (widget.data?.contains('رمز التحقق (رسالة تجريبية): ') ?? false),
-        );
-        final otp = (tester.widget(bannerFinder) as Text).data!
-            .split(': ')
-            .last
-            .trim();
-        await tester.enterText(find.byType(TextField), otp);
-        await tester.ensureVisible(find.text(Strings.confirmPaymentButton));
-        await tester.tap(find.text(Strings.confirmPaymentButton));
-        await tester.pumpAndSettle();
-
-        await tester.ensureVisible(
-          find.text(Strings.completeReservationButton),
-        );
-        await tester.tap(find.text(Strings.completeReservationButton));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 600));
-        await tester.pumpAndSettle();
+        await payThroughWallet(tester);
 
         expect(find.byType(ConfirmationScreen), findsOneWidget);
+        expect(harness.repo.walletPaymentCalls, 1);
         final booked = await controller.blockingPurchaseFor(
           testUser.id,
           todayDateString(),
         );
-        expect(booked, isNotNull);
         expect(booked!.paymentMethod, 'simulated');
         expect(booked.isPrepaid, isFalse);
+        expect(find.text(Strings.paymentMethodSimulated), findsOneWidget);
+        expect(find.text(Strings.paidAlready), findsNothing);
+        expect(find.byKey(const Key('amount-due')), findsOneWidget);
 
-        await tester.pumpWidget(const SizedBox());
-        await tester.pumpAndSettle();
+        await tearDownTree(tester);
       },
     );
 
-    testWidgets('backing out of payment books nothing', (tester) async {
+    testWidgets('cash at pickup records no payment', (tester) async {
       final harness = buildQueueHarness();
       final controller = harness.controller;
 
       await tester.pumpWidget(launcher(controller, seededStoreId));
       await tester.tap(find.text('buy'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text(Strings.payCashOption));
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.paymentTitle), findsNothing);
+      expect(find.byType(ConfirmationScreen), findsOneWidget);
+      expect(harness.repo.walletPaymentCalls, 0);
+      final booked = await controller.blockingPurchaseFor(
+        testUser.id,
+        todayDateString(),
+      );
+      expect(booked!.paymentMethod, isNull);
+      expect(find.text(Strings.paymentMethodCash), findsOneWidget);
+
+      await tearDownTree(tester);
+    });
+
+    testWidgets('backing out of the wallet keeps the booking, cash due', (
+      tester,
+    ) async {
+      final harness = buildQueueHarness();
+      final controller = harness.controller;
+
+      await tester.pumpWidget(launcher(controller, seededStoreId));
+      await tester.tap(find.text('buy'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(Strings.payWithJawwalOption));
+      await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text(Strings.back));
       await tester.tap(find.text(Strings.back));
       await tester.pumpAndSettle();
 
-      expect(find.text('buy'), findsOneWidget);
+      expect(find.byType(ConfirmationScreen), findsOneWidget);
+      expect(harness.repo.walletPaymentCalls, 0);
       expect(
-        await controller.blockingPurchaseFor(testUser.id, todayDateString()),
+        (await controller.blockingPurchaseFor(
+          testUser.id,
+          todayDateString(),
+        ))!.paymentMethod,
         isNull,
       );
+      expect(find.text(Strings.paymentMethodCash), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox());
+      await tearDownTree(tester);
+    });
+
+    testWidgets('a failed payment record keeps the booking, cash due', (
+      tester,
+    ) async {
+      final harness = buildQueueHarness();
+      harness.repo.failWalletPayment = true;
+
+      await tester.pumpWidget(launcher(harness.controller, seededStoreId));
+      await tester.tap(find.text('buy'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text(Strings.payWithJawwalOption));
+      await tester.pumpAndSettle();
+      await payThroughWallet(tester);
+
+      expect(find.byType(ConfirmationScreen), findsOneWidget);
+      expect(harness.repo.walletPaymentCalls, 1);
+      expect(
+        (await harness.controller.blockingPurchaseFor(
+          testUser.id,
+          todayDateString(),
+        ))!.paymentMethod,
+        isNull,
+      );
+      expect(find.text(Strings.paymentMethodCash), findsOneWidget);
+
+      await tearDownTree(tester);
+    });
+
+    testWidgets('a double tap reserves once', (tester) async {
+      final harness = buildQueueHarness();
+
+      await tester.pumpWidget(launcher(harness.controller, seededStoreId));
+      await tester.tap(find.text('buy'));
+      await tester.tap(find.text('buy'));
+      await tester.pumpAndSettle();
+
+      expect(harness.repo.reserveCalls, 1);
+      expect(find.text(Strings.bagHeldTitle), findsOneWidget);
+
+      await tester.tap(find.text(Strings.payCashOption));
+      await tester.pumpAndSettle();
+      await tearDownTree(tester);
+    });
+
+    testWidgets('a closed bakery is reported before any payment screen', (
+      tester,
+    ) async {
+      final harness = buildQueueHarness();
+
+      await tester.pumpWidget(
+        launcher(harness.controller, seededClosedStoreId),
+      );
+      await tester.tap(find.text('buy'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(Strings.soldOut), findsOneWidget);
+      expect(find.text(Strings.bagHeldTitle), findsNothing);
+      expect(find.text(Strings.paymentTitle), findsNothing);
+
+      await tearDownTree(tester);
     });
 
     testWidgets('a buyer who already booked today is sent to that receipt', (
@@ -212,6 +334,9 @@ void main() {
 
       expect(find.text(Strings.paymentTitle), findsNothing);
       expect(find.byType(ConfirmationScreen), findsOneWidget);
+      // Told on the receipt, not in a SnackBar covering its bottom actions.
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byKey(const Key('receipt-notice')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
