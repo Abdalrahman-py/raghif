@@ -192,8 +192,7 @@ class Strings {
   static const retryButton = 'إعادة المحاولة';
 
   /// The bar across the top of the app (see ConnectivityBanner).
-  static const connectionOffline =
-      'لا يوجد اتصال بالإنترنت — تظهر آخر بيانات محفوظة';
+  static const connectionOffline = 'لا يوجد اتصال بالإنترنت';
   static const connectionRestored = 'عاد الاتصال بالإنترنت';
 
   /// Short badge form of [storeClosedLabel], for chips beside a store name.

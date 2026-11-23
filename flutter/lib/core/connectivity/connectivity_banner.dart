@@ -104,7 +104,7 @@ class _ConnectivityBannerState extends State<ConnectivityBanner> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

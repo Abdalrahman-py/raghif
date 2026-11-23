@@ -19,6 +19,15 @@ Workflow rules this changelog lives by:
 
 ## [Unreleased]
 
+### Changed — 2026-11-23 — plainer bakery card and an honest offline bar
+
+- Bakery card on the buyer list shows name, area and status (مفتوح, مغلق,
+  نفدت…) only. Bags left and hours stay on the bakery's details screen.
+- The offline bar across the top now says only "لا يوجد اتصال بالإنترنت". It
+  used to add "showing the last saved data" even when nothing was saved, next
+  to an empty "could not reach the server" screen. Its text is 15sp (was 13sp,
+  under the constitution's floor).
+
 ### Changed — 2026-11-23 — offline bakery-list banner on Material 3 (#81)
 
 - The "no connection, showing the saved list" banner on the bakery list is a

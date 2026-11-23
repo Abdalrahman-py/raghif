@@ -135,8 +135,9 @@ class _BuyerStoresHomeState extends State<BuyerStoresHome> {
                     children: [
                       if (widget.controller.storeListStale) ...[
                         StaleListBanner(
-                          onRefresh: () => widget.controller
-                              .watchStoreListFor(widget.currentUser.id),
+                          onRefresh: () => widget.controller.watchStoreListFor(
+                            widget.currentUser.id,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
@@ -386,30 +387,13 @@ class BakeryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  StatusChip(
-                    text: label,
-                    tone: ok ? StatusTone.success : StatusTone.danger,
-                  ),
-                  _Fact(
-                    icon: Icons.bakery_dining_outlined,
-                    text: ok
-                        ? '${store.bagsRemaining} من ${store.dailyBagLimit} ربطة'
-                        : 'لا توجد ربطات الآن',
-                    color: ok ? scheme.onSurface : scheme.error,
-                  ),
-                  _Fact(
-                    icon: Icons.schedule_outlined,
-                    text: store.hasPurchaseWindow
-                        ? '${store.openTime} – ${store.closeTime}'
-                        : 'الموعد غير محدد',
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
+              // Status only: bags left and hours are on the details screen.
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: StatusChip(
+                  text: label,
+                  tone: ok ? StatusTone.success : StatusTone.danger,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               // Side by side normally; stacked once large text would squeeze
@@ -450,27 +434,4 @@ class BakeryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Fact extends StatelessWidget {
-  const _Fact({required this.icon, required this.text, required this.color});
-
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 6),
-      Flexible(
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
-        ),
-      ),
-    ],
-  );
 }
